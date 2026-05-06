@@ -52,6 +52,6 @@ open index.html
 
 ## ライセンス
 
-© 2025 Nexus. All Rights Reserved.
+© 2026 Kojki. All Rights Reserved.
 
 本リポジトリのコード・デザイン・テキストコンテンツの無断転載・複製・改変・再配布を禁じます。
