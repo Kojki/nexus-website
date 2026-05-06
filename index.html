@@ -120,12 +120,9 @@
     }
 
     .hero-inner {
-      max-width: 1100px;
+      max-width: 720px;
       margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4rem;
-      align-items: center;
+      display: block;
       position: relative;
       z-index: 1;
     }
@@ -653,24 +650,8 @@
           </svg>
         </a>
       </div>
-      <div class="hero-visual fade-in" style="transition-delay: 0.2s">
-        <div class="hero-card-stack">
-          <div class="hero-card">
-            <span class="card-tag tag-science">情報・物理</span>
-            <div class="card-title">量子暗号と安全保障政策</div>
-            <div class="card-body">量子技術の実装と、それが国際政治・法制度に与える影響を議論する。</div>
-          </div>
-          <div class="hero-card">
-            <span class="card-tag tag-arts">法学・哲学</span>
-            <div class="card-title">法哲学とAI規制</div>
-            <div class="card-body">EU AI Actを読みながら、AIガバナンスのあり方を法・倫理・技術の三角形で考える。</div>
-          </div>
-          <div class="hero-card">
-            <span class="card-tag tag-cross">経済・情報</span>
-            <div class="card-title">行動経済学 × プロダクト設計</div>
-            <div class="card-body">カーネマンの理論をもとに、実際のUX・ビジネスモデルへ応用する。</div>
-          </div>
-        </div>
+      </div>
+    </div>
       </div>
     </div>
   </section>
@@ -721,29 +702,29 @@
           <div class="forwho-desc">情報・物理・法・経済・歴史・医学——どの専門にいても、隣の領域が気になって仕方ない人。</div>
         </div>
         <div class="forwho-item fade-in" style="transition-delay: 0.1s">
-          <div class="forwho-icon">🌏</div>
-          <div class="forwho-title">海外大学院・早期研究を視野に入れている</div>
-          <div class="forwho-desc">学部のうちから研究・留学に本気で向き合いたい人。専門は問わない。</div>
-        </div>
-        <div class="forwho-item fade-in" style="transition-delay: 0.2s">
           <div class="forwho-icon">🚀</div>
           <div class="forwho-title">起業・プロダクト開発に興味がある</div>
           <div class="forwho-desc">技術・ビジネス・社会設計を横断しながら、実際に何かを作りたい人。</div>
         </div>
-        <div class="forwho-item fade-in" style="transition-delay: 0.05s">
-          <div class="forwho-icon">💬</div>
-          <div class="forwho-title">英語で議論できる環境を求めている</div>
-          <div class="forwho-desc">arXivや海外文献・ニュースを英語で読み、議論できる仲間が欲しい人。</div>
-        </div>
-        <div class="forwho-item fade-in" style="transition-delay: 0.15s">
+        <div class="forwho-item fade-in" style="transition-delay: 0.2s">
           <div class="forwho-icon">🔗</div>
           <div class="forwho-title">異なる専門を持つ人と、深く話したことがない</div>
           <div class="forwho-desc">ゼミや学科の中だけでは出会えない視点に触れたい人。</div>
         </div>
-        <div class="forwho-item fade-in" style="transition-delay: 0.25s">
+        <div class="forwho-item fade-in" style="transition-delay: 0.05s">
           <div class="forwho-icon">⚡</div>
           <div class="forwho-title">同じ熱量の学生と繋がりたい</div>
           <div class="forwho-desc">学校や学部の外に出て、本気で考え・動ける仲間を探している人。</div>
+        </div>
+        <div class="forwho-item fade-in" style="transition-delay: 0.1s">
+          <div class="forwho-icon">🌏</div>
+          <div class="forwho-title">海外大学院を目指している</div>
+          <div class="forwho-desc">学部のうちから留学・海外研究を視野に入れ、英語発信や異分野との対話を実践したい人。</div>
+        </div>
+        <div class="forwho-item fade-in" style="transition-delay: 0.15s">
+          <div class="forwho-icon">🔬</div>
+          <div class="forwho-title">早期に研究へ踏み込みたい</div>
+          <div class="forwho-desc">研究室配属を待たず、今から論文を読み・問いを立て・動き始めたい人。</div>
         </div>
       </div>
     </div>
@@ -758,37 +739,30 @@
           <h2>アウトプットが、<br>成長を加速する。</h2>
         </div>
         <p class="activities-intro fade-in" style="transition-delay: 0.1s">
-          情報を消費するだけのコミュニティではありません。
-          輪読・議論・発表を通じて、自分の言葉で語れる力を鍛えます。
+          専門が決まっていなくていい。好奇心があれば始められる。
+          問い・発見・対話を積み重ねることで、自分の言葉で語れる力が育っていきます。
         </p>
       </div>
       <div class="activity-list">
         <div class="activity-item fade-in">
           <div class="activity-num">01</div>
           <div class="activity-content">
-            <div class="activity-title">週次テーマ投稿</div>
-            <div class="activity-desc">毎週お題を出して、各自がSlackに自分の考えを投稿する。専門が違うから、答えが一つにならない。</div>
+            <div class="activity-title">問いを持ち寄る</div>
+            <div class="activity-desc">「最近気になっていること・わからないこと」を週次でSlackに投稿する。専門知識は不要。純粋な好奇心から始まる問いに、異なる背景を持つメンバーが応答することで、越境が自然に起きる。</div>
           </div>
         </div>
         <div class="activity-item fade-in" style="transition-delay: 0.1s">
           <div class="activity-num">02</div>
           <div class="activity-content">
-            <div class="activity-title">LT（ライトニングトーク）</div>
-            <div class="activity-desc">メンバーが5〜10分で「最近学んだこと」を発表。アウトプット文化を育てる。</div>
+            <div class="activity-title">これ読んだ・観た・聞いた</div>
+            <div class="activity-desc">本・記事・動画・Podcastなど何でもOK。週次でSlackにシェアするだけ。英語・日本語問わず。インプットの習慣化と、コミュニティの知的雰囲気を同時に育てる。</div>
           </div>
         </div>
         <div class="activity-item fade-in" style="transition-delay: 0.05s">
           <div class="activity-num">03</div>
           <div class="activity-content">
-            <div class="activity-title">英語記事シェア</div>
-            <div class="activity-desc">海外メディアの記事を貼って、英語で一言コメントするスレッドを毎週立てる。読む・発信する習慣を、無理なく続ける。</div>
-          </div>
-        </div>
-        <div class="activity-item fade-in" style="transition-delay: 0.15s">
-          <div class="activity-num">04</div>
-          <div class="activity-content">
-            <div class="activity-title">越境プロジェクト</div>
-            <div class="activity-desc">異なる専門を持つメンバーでチームを組み、テーマを決めて調査・発表・プロダクト開発。</div>
+            <div class="activity-title">専門スポットライト</div>
+            <div class="activity-desc">週次で1つの専門分野を取り上げ、その面白さや意外な側面を短く紹介する。読むだけで参加OK。メンバーが増えるにつれ、専門を持つメンバー自身が発信していく場へと育てていく。</div>
           </div>
         </div>
       </div>
@@ -799,20 +773,20 @@
   <section id="topics">
     <div class="section-inner">
       <div class="section-label fade-in">扱うテーマ</div>
-      <h2 class="fade-in">一人では届かない領域へ。</h2>
+      <h2 class="fade-in">まだ知らない領域に、踏み込む。</h2>
       <div class="topics-grid fade-in">
-        <span class="topic-pill">量子コンピューティング</span>
-        <span class="topic-pill">AI・機械学習</span>
-        <span class="topic-pill">哲学・倫理</span>
-        <span class="topic-pill">海外大学院</span>
-        <span class="topic-pill">学部からの早期研究</span>
+        <span class="topic-pill">思考力・価値観</span>
+        <span class="topic-pill">社会を動かす仕組み</span>
+        <span class="topic-pill">AI時代の人間と社会</span>
+        <span class="topic-pill">グローバルキャリア</span>
         <span class="topic-pill">スタートアップ・起業</span>
+        <span class="topic-pill">言語化・発信力</span>
         <span class="topic-pill">英語・学術英語</span>
-        <span class="topic-pill">社会設計・政策</span>
-        <span class="topic-pill">認知科学</span>
+        <span class="topic-pill">ビジネスと社会課題</span>
+        <span class="topic-pill">AI・機械学習</span>
         <span class="topic-pill">数理・統計</span>
-        <span class="topic-pill">テクノロジーと社会</span>
-        <span class="topic-pill">リベラルアーツ</span>
+        <span class="topic-pill">認知科学</span>
+        <span class="topic-pill">量子コンピューティング</span>
       </div>
     </div>
   </section>
@@ -830,6 +804,16 @@
           <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </a>
+      <div style="margin-top: 1.5rem;">
+        <a href="https://www.instagram.com/nex.us_2026/?hl=ja" target="_blank" style="display:inline-flex;align-items:center;gap:0.5rem;color:rgba(253,251,248,0.6);text-decoration:none;font-size:0.85rem;transition:color 0.2s;" onmouseover="this.style.color='rgba(253,251,248,1)'" onmouseout="this.style.color='rgba(253,251,248,0.6)'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <circle cx="12" cy="12" r="4"/>
+            <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+          </svg>
+          @nex.us_2026
+        </a>
+      </div>
     </div>
   </section>
 
