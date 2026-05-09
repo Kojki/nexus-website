@@ -24,46 +24,50 @@ export default function About() {
         <div className="animate-slide-up">
           <p className="eyebrow" style={{ justifyContent: "center" }}>About Nexus</p>
           <h1>
-            あなたの専門が、<br />誰かの突破口になる。
+            専門が交わる場所。<br />
+            未来の自分に<br />
+            出会う場所。
           </h1>
         </div>
       </header>
 
       <section className="concept-container">
         <div className="concept-block animate-slide-up delay-100">
-          <span className="concept-stat-highlight">339万人</span>
+          <span className="concept-stat-highlight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+            激動の時代を生き抜くために
+          </span>
           <p>
-            <strong>経済産業省</strong>の試算では、2040年にはAI活用を担う人材がこれだけ不足するとされています。
-            これを受け、<strong>文部科学省</strong>はすでに全学部へのデータサイエンス・AI必修化を国策として推進しており、
-            専門の区分を超えた学びがかつてないほど求められています。
+            テクノロジーの進化や社会の変化がかつてなく速い現代において、「この分野だけを学んでいれば一生安泰」という保証はどこにもありません。
+          </p>
+          <p>
+            だからこそ、自分の専門領域を深めるだけでなく、<strong>関連分野やまったく異なる領域の知見を掛け合わせる能力</strong>が不可欠になります。私たちは新しい仕事や価値は、常に境界線や融合から生まれると考えています。
           </p>
         </div>
 
         <div className="concept-block animate-slide-up delay-200">
           <span className="concept-stat-highlight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-            人間中心のスキル
+            やりたいことを極める人の「共創の場」
           </span>
           <p>
-            同時に、世界経済フォーラムの「仕事の未来レポート2025」は、AI時代においても人間ならではのスキルが重要であることを示しています。
+            Nexusは、すでに専門ややりたいことがある意欲的な学生が、お互いの活動を共有したり、お互いの利点を活かして何かを作り上げていく場所です。
           </p>
           <p>
-            <strong>分析し、創造し、他者と対話する力。</strong>
-          </p>
-          <p>
-            そして学び続けながら社会に働きかける姿勢が、高度な技術力と並んで求められる時代になっています。
+            異なる視点やバックグラウンドを持つ同世代と対話することで、一人では思いつかなかったアイデアを形にし、ともに何かを創り上げる<strong>「共創」のためのハブ</strong>を目指しています。
           </p>
         </div>
 
         <div className="concept-block animate-slide-up delay-300">
           <span className="concept-stat-highlight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-            Nexusの役割
+            やりたいことを見つける人の「観察の場」
           </span>
           <p>
-            私たちは、領域を越えようとする高校生・専門学生・大学生・大学院生がそれぞれの専門を持ち寄り、
-            その<strong>「異なる知の接続」を日常にできる場</strong>でありたいと思っています。
+            一方で、高校生や大学生の中には「自分が何をしたいのかまだわからない」「実際に活動している人が何をしているのか具体的に知らない」という人も多いはずです。
+          </p>
+          <p>
+            Nexusは、そうした人たちが「何かを本気で取り組んでいる人たちのやり取り」を間近で見るための場所でもあります。活動の内容や試行錯誤のプロセスをありのままに<strong>「観察」</strong>することで、実態に近い形で世の中を知り、自分の進む道を見つけるきっかけにしてほしいと願っています。
           </p>
         </div>
-        
+
         <div style={{ textAlign: "center", marginTop: "80px", display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
           <Link className="button button-ghost animate-slide-up delay-400" href="/">
             トップページへ戻る
@@ -74,7 +78,7 @@ export default function About() {
           </a>
         </div>
       </section>
-      
+
       <footer>
         <div className="footer-brand">
           <Image src="/nexus-icon.png" alt="Nexus Logo" width={30} height={30} />

@@ -7,56 +7,41 @@ const joinUrl =
 const forWho = [
   {
     mark: "01",
-    title: "自分の専門の外に、本気で踏み込みたい",
-    text: "情報・物理・法・経済・歴史・医学。どの専門にいても、隣の領域が気になって仕方ない人。",
+    title: "自分の専門の外と繋がりたい",
+    text: "一つの専門だけで生きていく保証がない時代。関連分野や異なる領域を知ることで、新しい価値や仕事を創り出したい人。",
   },
   {
     mark: "02",
-    title: "起業・プロダクト開発に興味がある",
-    text: "技術・ビジネス・社会設計を横断しながら、実際に何かを作りたい人。",
+    title: "異なる専門を持つ仲間と共創したい",
+    text: "技術・ビジネス・表現など、自分の熱中していることを持ち寄り、同じ熱量を持つ学生と新しい何かを形にしたい人。",
   },
   {
     mark: "03",
-    title: "異なる専門を持つ人と、深く話したい",
-    text: "ゼミや学科の中だけでは出会えない視点に触れたい人。",
+    title: "何をしたいか、まだわからない",
+    text: "高校生や大学の低学年など、自分の進むべき道をこれから探したい人。（まずは読むだけ、見るだけの参加も大歓迎です）",
   },
   {
     mark: "04",
-    title: "同じ熱量の学生と繋がりたい",
-    text: "学校や学部の外に出て、本気で考え・動ける仲間を探している人。",
-  },
-  {
-    mark: "05",
-    title: "海外大学院を目指している",
-    text: "学部のうちから留学・海外研究を視野に入れ、英語発信や異分野との対話を実践したい人。",
-  },
-  {
-    mark: "06",
-    title: "早期に研究へ踏み込みたい",
-    text: "研究室配属を待たず、今から論文を読み・問いを立て・動き始めたい人。",
-  },
-  {
-    mark: "07",
-    title: "好きなことに本気で向き合っている",
-    text: "音楽・ダンス・ファッションなどの表現活動を深めながら、異なる領域の人と話したい人。",
+    title: "「本気で活動している人」のリアルを知りたい",
+    text: "世の中で実際に何かをしている人が、普段どんなことを考え、どんなやり取りをしているのか。その実態を間近で観察してみたい人。",
   },
 ];
 
 const activities = [
   {
     num: "01",
-    title: "問いを持ち寄る",
-    text: "最近気になっていること・わからないことをSlackに投稿する。純粋な好奇心から始まる問いに、異なる背景を持つメンバーが応答します。",
+    title: "問いを持ち寄る・応える",
+    text: "専門外の純粋な疑問をSlackに投稿し合う。異なる背景を持つメンバーが応答することで、そこから新しいアイデアや共創が生まれます。",
   },
   {
     num: "02",
     title: "これ読んだ・観た・聞いた",
-    text: "本・記事・動画・Podcastなど何でもOK。英語・日本語問わず、インプットの習慣化とコミュニティの知的雰囲気を育てます。",
+    text: "本・記事・動画など、日々のインプットを共有。多様な情報が行き交い、コミュニティ全体の知的な雰囲気を育てます。",
   },
   {
     num: "03",
-    title: "専門スポットライト",
-    text: "週次で1つの専門分野を取り上げ、その面白さや意外な側面を短く紹介します。読むだけで参加できます。",
+    title: "活動の「リアル」を観察する",
+    text: "何かに熱中しているメンバー同士の議論を眺める。完成品だけでなく、試行錯誤の過程を知ることで、実態に近い世界を学べます。",
   },
 ];
 
@@ -103,14 +88,14 @@ export default function Home() {
           <p className="eyebrow">専門を学ぶ、すべての学生へ。</p>
 
           <h1>
-            専門の壁を、
-            <span>対話</span>で越える。
+            やりたいことを極める人。<br />
+            やりたいことを<span>探す人。</span>
           </h1>
 
           <p className="hero-copy">
-            哲学・情報工学・経済・物理・法学・心理学・建築・医学・歴史。
-            専門が違うから、対話に意味がある。Nexus
-            は、異なる専門を持つ学生が本気で話し合う場所です。
+            変化の激しい時代に、専門性を掛け合わせる「共創の場」であり、<br />
+            これから歩む道を探すための「リアルな観察の場」。<br />
+            Nexusは、意欲あるすべての学生が交わるコミュニティです。
           </p>
 
           <div className="hero-actions">
@@ -131,16 +116,16 @@ export default function Home() {
           <div className="animate-slide-up">
             <p className="section-label">About</p>
             <h2>
-              あなたの専門が、<br />
-              誰かの突破口になる。
+              専門が交わる場所。<br />
+              未来の自分に出会う場所。
             </h2>
             <div className="divider" />
             <div className="body-copy">
               <p>
-                AIの発展により、分析し、創造し、他者と対話する「人間中心のスキル」がより一層求められる時代になりました。
+                一つの分野だけで生き抜くのは難しい時代。専門を越えた繋がりが、思いがけない突破口を生み出します。
               </p>
               <p>
-                Nexusは、領域を越えようとする学生が専門を持ち寄り、その接続を日常にできるコミュニティです。
+                Nexusは、意欲がある人がお互いの活動を共有したり、お互いの利点を活かして何かを作り上げていく「共創の場」であり、やりたいことを探している人が、情熱をもって取り組んでいることがある人のリアルな姿に触れられる「観察の場」でもあります。
               </p>
               <Link className="button button-ghost" style={{ marginTop: "16px" }} href="/about">
                 Nexusの設立背景を読む
@@ -166,9 +151,9 @@ export default function Home() {
 
           <div className="forwho-list">
             {forWho.map((item, index) => (
-              <article 
-                className="forwho-item animate-slide-up" 
-                key={item.title} 
+              <article
+                className="forwho-item animate-slide-up"
+                key={item.title}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <span>{item.mark}</span>
@@ -186,20 +171,20 @@ export default function Home() {
             <div>
               <p className="section-label">活動内容</p>
               <h2>
-                アウトプットが、<br />
+                アウトプットとインプットが、<br />
                 成長を加速する。
               </h2>
             </div>
             <p>
-              専門が決まっていなくていい。好奇心があれば始められる。
-              問い・発見・対話を積み重ねることで、自分の言葉で語れる力が育っていきます。
+              専門が決まっていなくていい。ただ好奇心があれば始められる。
+              問い・発見・対話を積み重ねる人たちを見ることで、あなたの言葉や目標も自然と育っていきます。
             </p>
           </div>
 
           <div className="activity-list">
             {activities.map((item, index) => (
-              <article 
-                className="activity-item animate-slide-up" 
+              <article
+                className="activity-item animate-slide-up"
                 key={item.title}
                 style={{ animationDelay: `${index * 150}ms` }}
               >
@@ -221,8 +206,8 @@ export default function Home() {
 
           <div className="topics-grid">
             {topics.map((topic, index) => (
-              <span 
-                key={topic} 
+              <span
+                key={topic}
                 className="animate-slide-up"
                 style={{ animationDelay: `${(index % 8) * 50}ms` }}
               >
@@ -268,4 +253,3 @@ export default function Home() {
     </main>
   );
 }
-
