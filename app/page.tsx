@@ -89,11 +89,9 @@ export default function Home() {
         </a>
 
         <div className="nav-links">
-          {/* ↓ ここから直接Aboutページへ移動できます */}
           <Link href="/about">About</Link>
           <a href="#activities">活動内容</a>
           <a href="#topics">テーマ</a>
-          {/* ↓ ここから直接Slackへ移動できるように変更しました */}
           <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">
             参加する
           </a>
@@ -124,32 +122,6 @@ export default function Home() {
             <Link className="button button-ghost" href="/about">
               詳しく見る
             </Link>
-          </div>
-        </div>
-
-        <div className="hero-panel animate-fade-in delay-200" aria-label="Nexusで交わされる問いの例">
-          <Image
-            className="hero-logo"
-            src="/nexus-icon.png"
-            alt="Nexus Logo"
-            width={118}
-            height={118}
-            priority
-          />
-
-          <div className="dialogue-card card-one">
-            <span>Science</span>
-            <p>AI時代に、専門知はどう社会へ接続されるのか。</p>
-          </div>
-
-          <div className="dialogue-card card-two">
-            <span>Arts</span>
-            <p>文化や表現は、技術の使われ方をどう変えるのか。</p>
-          </div>
-
-          <div className="dialogue-card card-three">
-            <span>Cross Field</span>
-            <p>問いを共有すると、自分の専門の輪郭が見えてくる。</p>
           </div>
         </div>
       </section>
@@ -296,3 +268,4 @@ export default function Home() {
     </main>
   );
 }
+
