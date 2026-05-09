@@ -18,7 +18,7 @@ const forWho = [
   {
     mark: "03",
     title: "何をしたいか、まだわからない",
-    text: "高校生や大学の低学年など、自分の進むべき道をこれから探したい人。（まずは読むだけ、見るだけの参加も大歓迎です）",
+    text: "高校生や大学生など、自分の進むべき道をこれから探したい人。（まずは読むだけ、見るだけの参加も大歓迎です）",
   },
   {
     mark: "04",
@@ -75,8 +75,6 @@ export default function Home() {
 
         <div className="nav-links">
           <Link href="/about">About</Link>
-          <a href="#activities">活動内容</a>
-          <a href="#topics">テーマ</a>
           <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">
             参加する
           </a>
@@ -89,12 +87,12 @@ export default function Home() {
 
           <h1>
             やりたいことを極める人。<br />
-            やりたいことを<span>探す人。</span>
+            やりたいことを探す人。
           </h1>
 
           <p className="hero-copy">
             変化の激しい時代に、専門性を掛け合わせる「共創の場」であり、<br />
-            これから歩む道を探すための「リアルな観察の場」。<br />
+            これから歩む道を探すための「観察の場」。<br />
             Nexusは、意欲あるすべての学生が交わるコミュニティです。
           </p>
 

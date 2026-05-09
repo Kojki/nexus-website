@@ -1,3 +1,4 @@
+import { GoogleAnalytics } from '@next/third-parties/google'
 import type { Metadata } from "next";
 import { DM_Serif_Display, Noto_Serif_JP, Outfit } from "next/font/google";
 import "./globals.css";
@@ -37,15 +38,16 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
     <html lang="ja">
-      <body className={`${dmSerif.variable} ${outfit.variable} ${notoSerifJp.variable}`}>
+      <body>
         {children}
       </body>
+      <GoogleAnalytics gaId="G-E20DPF436Y" /> 
     </html>
   );
 }
