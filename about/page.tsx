@@ -1,6 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
+const joinUrl =
+  "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
+
 export default function About() {
   return (
     <main>
@@ -11,12 +14,15 @@ export default function About() {
         </Link>
         <div className="nav-links">
           <Link href="/">トップへ戻る</Link>
+          <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">
+            参加する
+          </a>
         </div>
       </nav>
 
       <header className="concept-header">
         <div className="animate-slide-up">
-          <p className="eyebrow" style={{ justifyContent: "center" }}>Vision</p>
+          <p className="eyebrow" style={{ justifyContent: "center" }}>About Nexus</p>
           <h1>
             あなたの専門が、<br />誰かの突破口になる。
           </h1>
@@ -58,10 +64,14 @@ export default function About() {
           </p>
         </div>
         
-        <div style={{ textAlign: "center", marginTop: "80px" }}>
-          <Link className="button button-dark animate-slide-up delay-400" href="/">
+        <div style={{ textAlign: "center", marginTop: "80px", display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
+          <Link className="button button-ghost animate-slide-up delay-400" href="/">
             トップページへ戻る
           </Link>
+          <a className="button button-dark animate-slide-up delay-400" href={joinUrl} target="_blank" rel="noreferrer">
+            Nexus に参加する
+            <span aria-hidden="true">→</span>
+          </a>
         </div>
       </section>
       
