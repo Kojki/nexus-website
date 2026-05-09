@@ -124,7 +124,6 @@ strong {
   content: "";
 }
 
-
 .hero-content {
   position: relative;
   z-index: 1;
@@ -335,29 +334,42 @@ section {
   padding: 26px;
 }
 
+/* ==========================================================================
+   Animations & New Utilities (Nexus Redesign)
+   ========================================================================== */
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
 }
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
 .animate-fade-in {
   animation: fadeIn 1s ease-out forwards;
 }
+
 .animate-slide-up {
   opacity: 0;
   animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
 .delay-100 { animation-delay: 100ms; }
 .delay-200 { animation-delay: 200ms; }
 .delay-300 { animation-delay: 300ms; }
-/* About Concept Page Styles */
+.delay-400 { animation-delay: 400ms; }
+
+/* --------------------------------------------------------------------------
+   About Concept Page Styles
+   -------------------------------------------------------------------------- */
 .concept-header {
   padding: 180px clamp(22px, 6vw, 72px) 80px;
   text-align: center;
@@ -365,6 +377,7 @@ section {
   position: relative;
   overflow: hidden;
 }
+
 .concept-header::before {
   content: "";
   position: absolute;
@@ -377,24 +390,29 @@ section {
   background: radial-gradient(circle, rgba(124, 111, 205, 0.08) 0%, transparent 60%);
   z-index: 0;
 }
+
 .concept-header > * {
   position: relative;
   z-index: 1;
 }
+
 .concept-container {
   max-width: 860px;
   margin: 0 auto;
   padding: 60px clamp(22px, 6vw, 72px) 120px;
 }
+
 .concept-block {
   margin-bottom: 80px;
   padding-bottom: 80px;
   border-bottom: 1px solid var(--border);
   opacity: 0; /* for slide-up animation */
 }
+
 .concept-block:last-child {
   border-bottom: none;
 }
+
 .concept-stat-highlight {
   display: block;
   font-family: var(--font-display), serif;
@@ -403,16 +421,19 @@ section {
   color: var(--accent);
   margin-bottom: 24px;
 }
+
 .concept-block p {
   font-size: 1.25rem;
   line-height: 1.8;
   color: var(--ink-soft);
   margin-bottom: 24px;
 }
+
 .concept-block strong {
   color: var(--ink);
   box-shadow: inset 0 -10px 0 var(--accent-pale);
 }
+
 /* Update hero panel animations */
 .card-one { animation: float 6s ease-in-out infinite; }
 .card-two { animation: float 7s ease-in-out infinite 1s; }
