@@ -74,7 +74,7 @@ export default function Home() {
         </a>
 
         <div className="nav-links">
-          <Link href="/about">About</Link>
+          <Link href="/about">ABOUT</Link>
           <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">
             参加する
           </a>
@@ -83,7 +83,7 @@ export default function Home() {
 
       <section className="hero" id="top">
         <div className="hero-content animate-slide-up">
-          <p className="eyebrow">専門を学ぶ、すべての学生へ。</p>
+          <p className="eyebrow">意欲あるすべての学生へ。</p>
 
           <h1>
             やりたいことを極める人。<br />
@@ -112,7 +112,7 @@ export default function Home() {
       <section className="about section-band" id="about">
         <div className="section-inner about-grid">
           <div className="animate-slide-up">
-            <p className="section-label">About</p>
+            <p className="section-label">ABOUT</p>
             <h2>
               専門が交わる場所。<br />
               未来の自分に出会う場所。
@@ -123,7 +123,7 @@ export default function Home() {
                 一つの分野だけで生き抜くのは難しい時代。専門を越えた繋がりが、思いがけない突破口を生み出します。
               </p>
               <p>
-                Nexusは、意欲がある人がお互いの活動を共有したり、お互いの利点を活かして何かを作り上げていく「共創の場」であり、やりたいことを探している人が、情熱をもって取り組んでいることがある人のリアルな姿に触れられる「観察の場」でもあります。
+                Nexusは、意欲がある人がお互いの活動を共有したり、お互いの利点を活かして何かを作り上げていく「共創の場」であり、やりたいことを探している人でも、情熱をもって取り組んでいることがある人のリアルな姿に触れられる「観察の場」でもあります。
               </p>
               <Link className="button button-ghost" style={{ marginTop: "16px" }} href="/about">
                 Nexusの設立背景を読む
@@ -132,10 +132,10 @@ export default function Home() {
           </div>
 
           <div className="stats-grid animate-slide-up delay-200">
-            {["無料", "学生", "専門不問", "オンライン"].map((item, index) => (
+            {["無料", "学生", "Slack", "日本全国"].map((item, index) => (
               <div className="stat-box" key={item}>
                 <p>{item}</p>
-                <span>{index === 0 ? "参加費用" : index === 3 ? "参加形式" : "対象"}</span>
+                <span>{index === 0 ? "参加費用" : index === 1 ? "対象" : index === 2 ? "ツール" : "地域"}</span>
               </div>
             ))}
           </div>
@@ -145,13 +145,13 @@ export default function Home() {
       <section className="forwho" id="forwho">
         <div className="section-inner animate-slide-up">
           <p className="section-label">こんな人に</p>
-          <h2>「はみ出した」人たちへ。</h2>
+          <h2>好奇心があれば、始められる。</h2>
 
           <div className="forwho-list">
             {forWho.map((item, index) => (
-              <article
-                className="forwho-item animate-slide-up"
-                key={item.title}
+              <article 
+                className="forwho-item animate-slide-up" 
+                key={item.title} 
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <span>{item.mark}</span>
@@ -181,8 +181,8 @@ export default function Home() {
 
           <div className="activity-list">
             {activities.map((item, index) => (
-              <article
-                className="activity-item animate-slide-up"
+              <article 
+                className="activity-item animate-slide-up" 
                 key={item.title}
                 style={{ animationDelay: `${index * 150}ms` }}
               >
@@ -204,8 +204,8 @@ export default function Home() {
 
           <div className="topics-grid">
             {topics.map((topic, index) => (
-              <span
-                key={topic}
+              <span 
+                key={topic} 
                 className="animate-slide-up"
                 style={{ animationDelay: `${(index % 8) * 50}ms` }}
               >
@@ -220,11 +220,11 @@ export default function Home() {
         <div className="section-inner animate-slide-up">
           <Image src="/nexus-icon.png" alt="Nexus Logo" width={70} height={70} />
 
-          <p className="section-label">Join Us</p>
-          <h2>対話が、思考を変える。</h2>
-          <p>専門を学ぶ学生なら誰でも・完全無料。まず覗いてみてください。</p>
+          <p className="section-label">JOIN US</p>
+          <h2>対話が、思考を広げる。</h2>
+          <p>意欲あるすべての学生へ。完全無料。まず覗いてみてください。</p>
 
-          <a className="button button-light" href={joinUrl} target="_blank" rel="noreferrer">
+          <a className="button button-dark" href={joinUrl} target="_blank" rel="noreferrer">
             Nexus に参加する
             <span aria-hidden="true">→</span>
           </a>
