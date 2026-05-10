@@ -45,25 +45,6 @@ const activities = [
   },
 ];
 
-const topics = [
-  "思考力・価値観",
-  "社会を動かす仕組み",
-  "AI時代の人間と社会",
-  "グローバルキャリア",
-  "スタートアップ・起業",
-  "言語化・発信力",
-  "英語・学術英語",
-  "ビジネスと社会課題",
-  "AI・機械学習",
-  "数理・統計",
-  "認知科学",
-  "量子コンピューティング",
-  "音楽・サウンドデザイン",
-  "ファッション・文化",
-  "ダンス・身体表現",
-  "アート・クリエイティブ",
-];
-
 export default function Home() {
   return (
     <main>
@@ -169,8 +150,7 @@ export default function Home() {
             <div>
               <p className="section-label">活動内容</p>
               <h2>
-                アウトプットとインプットが、<br />
-                成長を加速する。
+                アウトプットとインプットが、成長を加速する。
               </h2>
             </div>
             <p>
@@ -192,25 +172,6 @@ export default function Home() {
                   <p>{item.text}</p>
                 </div>
               </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="topics" id="topics">
-        <div className="section-inner animate-slide-up">
-          <p className="section-label">扱うテーマ</p>
-          <h2>まだ知らない領域に、踏み込む。</h2>
-
-          <div className="topics-grid">
-            {topics.map((topic, index) => (
-              <span 
-                key={topic} 
-                className="animate-slide-up"
-                style={{ animationDelay: `${(index % 8) * 50}ms` }}
-              >
-                {topic}
-              </span>
             ))}
           </div>
         </div>
