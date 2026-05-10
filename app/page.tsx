@@ -147,8 +147,10 @@ export default function Home() {
       <section className="activities section-band" id="activities">
         <div className="section-inner animate-slide-up">
           <div className="section-split">
+            <div>
             <p className="section-label">活動内容</p>
             <h2>アウトプットとインプットが、成長を加速する。</h2>
+            </div>
             <p>
               日々の学びや興味を気軽に発信し、異なる分野で活動する仲間の視点に触れる。<br />
               その小さなやり取りの積み重ねが、一人では思いつかなかったアイデアや新しい繋がりを生み出します。
