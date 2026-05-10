@@ -67,14 +67,13 @@ export default function Home() {
           <p className="eyebrow">意欲あるすべての学生へ。</p>
 
           <h1>
-            やりたいことを極める人。<br />
-            やりたいことを探す人。
+            学びを、閉じたままで終わらせない。
           </h1>
 
           <p className="hero-copy">
-            変化の激しい時代に、専門性を掛け合わせる「共創の場」であり、<br />
-            これから歩む道を探すための「観察の場」です。<br />
-            Nexusは、意欲あるすべての学生が交わるコミュニティです。
+            
+            Nexusは、意欲ある学生たちが集まり、専門性や興味を持ち寄ってつながるコミュニティです。<br />
+            また、新しい分野や価値観に触れながら、自分の進みたい方向を見つけられる場を目指しています。
           </p>
 
           <div className="hero-actions">
@@ -147,15 +146,11 @@ export default function Home() {
       <section className="activities section-band" id="activities">
         <div className="section-inner animate-slide-up">
           <div className="section-split">
-            <div>
-              <p className="section-label">活動内容</p>
-              <h2>
-                アウトプットとインプットが、成長を加速する。
-              </h2>
-            </div>
+            <p className="section-label">活動内容</p>
+            <h2>アウトプットとインプットが、成長を加速する。</h2>
             <p>
-              専門が決まっていなくていい。ただ好奇心があれば始められる。
-              問い・発見・対話を積み重ねる人たちを見ることで、あなたの言葉や目標も自然と育っていきます。
+              日々の学びや興味を気軽に発信し、異なる分野で活動する仲間の視点に触れる。<br />
+              その小さなやり取りの積み重ねが、一人では思いつかなかったアイデアや新しい繋がりを生み出します。
             </p>
           </div>
 
