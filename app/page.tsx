@@ -66,8 +66,8 @@ export default function Home() {
         <div className="hero-content animate-slide-up">
           <p className="eyebrow">意欲あるすべての学生へ。</p>
 
-          <h1>
-            学びを、閉じたままで終わらせない。
+          <h1 style={{ fontSize: "clamp(2.2rem, 5.5vw, 4.2rem)" }}>
+            学びを閉じたままで終わらせない。
           </h1>
 
           <p className="hero-copy">
