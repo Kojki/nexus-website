@@ -90,12 +90,14 @@ export default function Guidelines() {
           <Image src="/nexus-icon.png" alt="Nexus Logo" width={30} height={30} />
           Nexus
         </div>
-        <p>専門を学ぶすべての学生へ</p>
+        <p>意欲あるすべての学生へ。</p>
         <nav className="footer-links" aria-label="フッターナビゲーション">
           <Link href="/">トップ</Link>
           <Link href="/about">About</Link>
           <Link href="/faq">FAQ</Link>
           <Link href="/guidelines">ガイドライン</Link>
+          <Link href="/activity-log">活動記録</Link>
+          <Link href="/contact">お問い合わせ</Link>
         </nav>
       </footer>
     </main>

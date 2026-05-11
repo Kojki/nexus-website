@@ -95,6 +95,8 @@ export default function About() {
           <Link href="/en/about">About</Link>
           <Link href="/faq">FAQ (JP)</Link>
           <Link href="/guidelines">Guidelines (JP)</Link>
+          <Link href="/activity-log">Activity Log (JP)</Link>
+          <Link href="/contact">Contact (JP)</Link>
         </nav>
       </footer>
     </main>
