@@ -22,14 +22,14 @@ const notoSerifJp = Noto_Serif_JP({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus - 文系理系が専門について話し合う場所",
+  title: "Nexus - 共に学んで、もっと先へ。",
   description:
-    "Nexus は、異なる専門を持つ学生が本気で話し合うオンラインコミュニティです。",
+    "意欲あるすべての学生へ。専門性を掛け合わせる「共創の場」であり、進む道を探すための「観察の場」。Nexusは、意欲ある学生が交わるオンラインコミュニティです。",
   metadataBase: new URL("https://nexus-connect.jp"),
   openGraph: {
-    title: "Nexus - 専門の壁を、対話で越える。",
+    title: "Nexus - 共に学んで、もっと先へ。",
     description:
-      "専門が違うから、対話に意味がある。学生のための越境コミュニティ。",
+      "やりたいことを極める人と、探す人が交わるコミュニティ。完全無料・日本全国から参加可能。",
     url: "https://nexus-connect.jp",
     siteName: "Nexus",
     locale: "ja_JP",
@@ -44,10 +44,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body>
+      <body
+        className={`${dmSerif.variable} ${outfit.variable} ${notoSerifJp.variable}`}
+      >
         {children}
       </body>
-      <GoogleAnalytics gaId="G-E20DPF436Y" /> 
+      <GoogleAnalytics gaId="G-E20DPF436Y" />
     </html>
   );
 }

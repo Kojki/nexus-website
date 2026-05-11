@@ -72,8 +72,8 @@ export default function Home() {
           <p className="eyebrow">意欲あるすべての学生へ。</p>
 
           <h1 style={{ fontSize: "clamp(2.2rem, 5.5vw, 4.2rem)" }}>
-            学びを閉じたまま<br />
-            で終わらせない。
+            共に学んで、<br />
+            もっと先へ。
           </h1>
 
           <p className="hero-copy">
