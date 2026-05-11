@@ -1,6 +1,7 @@
 import { GoogleAnalytics } from '@next/third-parties/google'
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Noto_Sans_JP, Outfit } from "next/font/google";
+import Script from 'next/script';
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Nexus - 共に学んで、もっと先へ。",
     description:
-      "やりたいことを極める人と、探す人が交わるコミュニティ。完全無料・日本全国から参加可能。",
+      "やりたいことを極める人と、探す人が交わるコミュニティ。完全無料・世界中から参加可能。",
     url: "https://nexus-connect.jp",
     siteName: "Nexus",
     locale: "ja_JP",
@@ -52,6 +53,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2998290208181592"
+     crossOrigin="anonymous"></script>
       <body
         className={`${cormorant.variable} ${outfit.variable} ${notoSansJp.variable}`}
       >
