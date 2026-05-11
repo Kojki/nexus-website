@@ -140,6 +140,7 @@ export default function ActivityLog() {
           <Link href="/guidelines">ガイドライン</Link>
           <Link href="/activity-log">活動記録</Link>
           <Link href="/contact">お問い合わせ</Link>
+          <Link href="/privacy">プライバシーポリシー</Link>
         </nav>
       </footer>
     </main>
