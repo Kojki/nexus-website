@@ -54,7 +54,7 @@ export default function FAQ() {
       <header className="concept-header">
         <div className="animate-slide-up">
           <p className="eyebrow" style={{ justifyContent: "center" }}>FAQ</p>
-          <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", justifyContent: "center" }}>
+          <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", margin: "0 auto", textAlign: "center"}}>
             よくある質問
           </h1>
           <p style={{ color: "var(--muted)", marginTop: "16px", fontSize: "1.05rem" }}>
