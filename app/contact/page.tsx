@@ -5,7 +5,7 @@ const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
 // ★ GoogleフォームのURLをここに貼り付けてください
-const googleFormUrl = "https://forms.gle/XXXXXXXXXXXXXXXXX";
+const googleFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSeSnsHqJZIojBum9DuyC5aWzTL_t6117dk4IQaUOqhaB5l_9g/viewform?usp=publish-editor";
 
 export default function Contact() {
   return (
