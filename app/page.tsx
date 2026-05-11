@@ -117,7 +117,7 @@ export default function Home() {
           </div>
 
           <div className="stats-grid animate-slide-up delay-200">
-            {["無料", "学生", "Slack", "すべての地域"].map((item, index) => (
+            {["無料", "学生", "Slack", "全ての地域"].map((item, index) => (
               <div className="stat-box" key={item}>
                 <p>{item}</p>
                 <span>{index === 0 ? "参加費用" : index === 1 ? "対象" : index === 2 ? "ツール" : "地域"}</span>
