@@ -17,6 +17,11 @@ export default function About() {
           <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">
             参加する
           </a>
+          <div className="lang-toggle" style={{ display: "flex", gap: "8px", fontSize: "0.85rem", fontWeight: 600, alignItems: "center", marginLeft: "8px" }}>
+            <span style={{ color: "var(--ink)" }}>JP</span>
+            <span style={{ color: "var(--border)" }}>|</span>
+            <Link href="/en/about" style={{ color: "var(--muted)", textDecoration: "none" }}>EN</Link>
+          </div>
         </div>
       </nav>
 

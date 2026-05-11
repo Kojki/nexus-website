@@ -59,6 +59,11 @@ export default function Home() {
           <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">
             参加する
           </a>
+          <div className="lang-toggle" style={{ display: "flex", gap: "8px", fontSize: "0.85rem", fontWeight: 600, alignItems: "center", marginLeft: "8px" }}>
+            <span style={{ color: "var(--ink)" }}>JP</span>
+            <span style={{ color: "var(--border)" }}>|</span>
+            <Link href="/en" style={{ color: "var(--muted)", textDecoration: "none" }}>EN</Link>
+          </div>
         </div>
       </nav>
 
@@ -72,7 +77,6 @@ export default function Home() {
           </h1>
 
           <p className="hero-copy">
-            
             Nexusは、意欲ある学生たちが集まり、専門性や興味を持ち寄ってつながるコミュニティです。<br />
             また、新しい分野や価値観に触れながら、自分の進みたい方向を見つけられる場を目指しています。
           </p>
@@ -148,8 +152,8 @@ export default function Home() {
         <div className="section-inner animate-slide-up">
           <div className="section-split">
             <div>
-            <p className="section-label">活動内容</p>
-            <h2>アウトプットとインプットが、成長を加速する。</h2>
+              <p className="section-label">活動内容</p>
+              <h2>アウトプットとインプットが、成長を加速する。</h2>
             </div>
             <p>
               日々の学びや興味を気軽に発信し、異なる分野で活動する仲間の視点に触れる。<br />
