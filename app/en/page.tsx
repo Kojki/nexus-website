@@ -72,8 +72,8 @@ export default function Home() {
           <p className="eyebrow">To all ambitious students.</p>
 
           <h1 style={{ fontSize: "clamp(2.2rem, 5.5vw, 4.2rem)" }}>
-            Don't let your learning<br />
-            end in isolation.
+            Learn together.<br />
+            Build further.
           </h1>
 
           <p className="hero-copy">
