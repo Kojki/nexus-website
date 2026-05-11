@@ -185,7 +185,7 @@ export default function Home() {
 
           <p className="section-label">JOIN US</p>
           <h2>対話が、思考を広げる。</h2>
-          <p>意欲あるすべての学生へ。完全無料。まず覗いてみてください。</p>
+          <p>意欲あるすべての学生へ。完全無料。まずは覗いてみてください。</p>
 
           <a className="button button-dark" href={joinUrl} target="_blank" rel="noreferrer">
             Nexus に参加する
