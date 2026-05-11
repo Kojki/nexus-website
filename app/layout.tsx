@@ -1,11 +1,11 @@
 import { GoogleAnalytics } from '@next/third-parties/google'
 import type { Metadata } from "next";
-import { DM_Serif_Display, Noto_Serif_JP, Outfit } from "next/font/google";
+import { Cormorant_Garamond, Noto_Sans_JP, Outfit } from "next/font/google";
 import "./globals.css";
 
-const dmSerif = DM_Serif_Display({
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: "400",
+  weight: ["300", "400", "500", "600"],
   variable: "--font-display"
 });
 
@@ -15,9 +15,9 @@ const outfit = Outfit({
   variable: "--font-body"
 });
 
-const notoSerifJp = Noto_Serif_JP({
+const notoSansJp = Noto_Sans_JP({
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["300", "400", "500", "700"],
   variable: "--font-jp"
 });
 
@@ -33,8 +33,16 @@ export const metadata: Metadata = {
     url: "https://nexus-connect.jp",
     siteName: "Nexus",
     locale: "ja_JP",
-    type: "website"
-  }
+    type: "website",
+    images: [
+      {
+        url: "/ogp.png",
+        width: 1200,
+        height: 630,
+        alt: "Nexus - 共に学んで、もっと先へ。",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -45,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${dmSerif.variable} ${outfit.variable} ${notoSerifJp.variable}`}
+        className={`${cormorant.variable} ${outfit.variable} ${notoSansJp.variable}`}
       >
         {children}
       </body>
