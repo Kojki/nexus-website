@@ -35,7 +35,7 @@ export default function PrivacyPolicy() {
             プライバシーポリシー
           </h1>
           <p style={{ color: "var(--muted)", marginTop: "16px", fontSize: "1.05rem" }}>
-            最終更新日：2025年5月
+            最終更新日：2026年5月
           </p>
         </div>
       </header>
