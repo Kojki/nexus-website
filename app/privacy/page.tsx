@@ -4,6 +4,14 @@ import Link from "next/link";
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
+const headingStyle = {
+  fontSize: "clamp(1.5rem, 3vw, 2rem)",
+  color: "var(--accent)",
+  marginBottom: "16px",
+  fontFamily: "var(--font-jp), sans-serif",
+  fontWeight: 700,
+};
+
 export default function PrivacyPolicy() {
   return (
     <main>
@@ -40,9 +48,7 @@ export default function PrivacyPolicy() {
         </div>
 
         <div className="concept-block animate-slide-up delay-200">
-          <span className="concept-stat-highlight" style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)" }}>
-            1. 取得する情報
-          </span>
+          <h2 style={headingStyle}>1. 取得する情報</h2>
           <p>当コミュニティは、以下の情報を取得することがあります。</p>
           <ul style={{ color: "var(--ink-soft)", lineHeight: 2, paddingLeft: "20px" }}>
             <li>お問い合わせフォームにご入力いただいた氏名・メールアドレス・お問い合わせ内容</li>
@@ -51,9 +57,7 @@ export default function PrivacyPolicy() {
         </div>
 
         <div className="concept-block animate-slide-up delay-300">
-          <span className="concept-stat-highlight" style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)" }}>
-            2. 情報の利用目的
-          </span>
+          <h2 style={headingStyle}>2. 情報の利用目的</h2>
           <p>取得した情報は、以下の目的のみに使用します。</p>
           <ul style={{ color: "var(--ink-soft)", lineHeight: 2, paddingLeft: "20px" }}>
             <li>お問い合わせへのご返信</li>
@@ -66,9 +70,7 @@ export default function PrivacyPolicy() {
         </div>
 
         <div className="concept-block animate-slide-up delay-400">
-          <span className="concept-stat-highlight" style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)" }}>
-            3. Google Analytics について
-          </span>
+          <h2 style={headingStyle}>3. Google Analytics について</h2>
           <p>
             本ウェブサイトでは、サイトの利用状況を把握するために <strong>Google Analytics</strong> を使用しています。Google Analyticsはアクセス情報の収集のためにCookieを使用しますが、個人を特定する情報は収集しません。
           </p>
@@ -82,9 +84,7 @@ export default function PrivacyPolicy() {
         </div>
 
         <div className="concept-block animate-slide-up">
-          <span className="concept-stat-highlight" style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)" }}>
-            4. お問い合わせ
-          </span>
+          <h2 style={headingStyle}>4. お問い合わせ</h2>
           <p>
             プライバシーポリシーに関するご質問・ご意見は、
             <Link href="/contact" style={{ color: "var(--accent)", textDecoration: "underline" }}>お問い合わせページ</Link>
