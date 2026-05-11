@@ -886,3 +886,29 @@ footer p {
     gap: 16px;
   }
 }
+/* Contact SNS Cards */
+.contact-sns-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 28px;
+  background: var(--warm-white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.contact-sns-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(124, 111, 205, 0.1);
+}
+.contact-sns-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
