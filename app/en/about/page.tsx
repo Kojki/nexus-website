@@ -90,6 +90,12 @@ export default function About() {
           Nexus
         </div>
         <p>To all students exploring their disciplines.</p>
+        <nav className="footer-links" aria-label="Footer Navigation">
+          <Link href="/en">Home</Link>
+          <Link href="/en/about">About</Link>
+          <Link href="/faq">FAQ (JP)</Link>
+          <Link href="/guidelines">Guidelines (JP)</Link>
+        </nav>
       </footer>
     </main>
   );

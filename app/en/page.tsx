@@ -73,12 +73,12 @@ export default function Home() {
 
           <h1 style={{ fontSize: "clamp(2.2rem, 5.5vw, 4.2rem)" }}>
             Learn together.<br />
-            Build further.
+            Go further.
           </h1>
 
           <p className="hero-copy">
             Nexus is a community where ambitious students gather to connect by bringing their expertise and interests.<br />
-            It's a place designed to help you find your path while exposing you to new fields and values.
+            It&apos;s a place designed to help you find your path while exposing you to new fields and values.
           </p>
 
           <div className="hero-actions">
@@ -105,7 +105,7 @@ export default function Home() {
             <div className="divider" />
             <div className="body-copy">
               <p>
-                In an era where it's hard to survive on a single discipline, connections beyond your specialty create unexpected breakthroughs.
+                In an era where it&apos;s hard to survive on a single discipline, connections beyond your specialty create unexpected breakthroughs.
               </p>
               <p>
                 Nexus is a &quot;Co-creation Hub&quot; where ambitious individuals share activities and leverage each other&apos;s strengths. It&apos;s also an &quot;Observation Hub&quot; for those searching for what they want to do, allowing them to witness the real lives of passionate people.
@@ -134,9 +134,9 @@ export default function Home() {
 
           <div className="forwho-list">
             {forWho.map((item, index) => (
-              <article 
-                className="forwho-item animate-slide-up" 
-                key={item.title} 
+              <article
+                className="forwho-item animate-slide-up"
+                key={item.title}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <span>{item.mark}</span>
@@ -163,8 +163,8 @@ export default function Home() {
 
           <div className="activity-list">
             {activities.map((item, index) => (
-              <article 
-                className="activity-item animate-slide-up" 
+              <article
+                className="activity-item animate-slide-up"
                 key={item.title}
                 style={{ animationDelay: `${index * 150}ms` }}
               >
@@ -208,8 +208,13 @@ export default function Home() {
           <Image src="/nexus-icon.png" alt="Nexus Logo" width={30} height={30} />
           Nexus
         </div>
-
         <p>To all students exploring their disciplines.</p>
+        <nav className="footer-links" aria-label="Footer Navigation">
+          <Link href="/en">Home</Link>
+          <Link href="/en/about">About</Link>
+          <Link href="/faq">FAQ (JP)</Link>
+          <Link href="/guidelines">Guidelines (JP)</Link>
+        </nav>
       </footer>
     </main>
   );

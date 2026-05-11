@@ -134,9 +134,9 @@ export default function Home() {
 
           <div className="forwho-list">
             {forWho.map((item, index) => (
-              <article 
-                className="forwho-item animate-slide-up" 
-                key={item.title} 
+              <article
+                className="forwho-item animate-slide-up"
+                key={item.title}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <span>{item.mark}</span>
@@ -163,8 +163,8 @@ export default function Home() {
 
           <div className="activity-list">
             {activities.map((item, index) => (
-              <article 
-                className="activity-item animate-slide-up" 
+              <article
+                className="activity-item animate-slide-up"
                 key={item.title}
                 style={{ animationDelay: `${index * 150}ms` }}
               >
@@ -208,8 +208,13 @@ export default function Home() {
           <Image src="/nexus-icon.png" alt="Nexus Logo" width={30} height={30} />
           Nexus
         </div>
-
         <p>専門を学ぶすべての学生へ</p>
+        <nav className="footer-links" aria-label="フッターナビゲーション">
+          <Link href="/">トップ</Link>
+          <Link href="/about">About</Link>
+          <Link href="/faq">FAQ</Link>
+          <Link href="/guidelines">ガイドライン</Link>
+        </nav>
       </footer>
     </main>
   );
