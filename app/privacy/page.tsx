@@ -163,8 +163,6 @@ export default function PrivacyPolicy() {
         <nav className="footer-links" aria-label="フッターナビゲーション">
           <Link href="/">トップ</Link>
           <Link href="/about">About</Link>
-          <Link href="/join">参加の流れ</Link>
-          <Link href="/members">運営メンバー</Link>
           <Link href="/faq">FAQ</Link>
           <Link href="/guidelines">ガイドライン</Link>
           <Link href="/activity-log">活動記録</Link>
