@@ -78,7 +78,7 @@ export default function Home() {
 
           <p className="hero-copy">
             Nexusは、意欲ある学生たちが集まり、専門性や興味を持ち寄ってつながるコミュニティです。<br />
-            また、新しい分野や価値観に触れながら、自分の進みたい方向を見つけられる場を目指しています。
+            新しい分野や価値観に触れながら、自分の進みたい方向を見つけられる場を目指しています。
           </p>
 
           <div className="hero-actions">
