@@ -44,10 +44,15 @@ export default function Contact() {
         <div className="nav-links"><Link href="/">トップへ戻る</Link></div>
       </nav>
 
-      <header className="concept-header">
-        <div className="animate-slide-up">
-          <p className="eyebrow" style={{ justifyContent: "center" }}>CONTACT</p>
-          <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", textAlign: "center" }}>お問い合わせ</h1>
+      <header className="concept-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <p className="eyebrow">CONTACT</p>
+          <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", margin: "0 auto" }}>
+            お問い合わせ
+          </h1>
+          <p style={{ color: "var(--muted)", marginTop: "16px", fontSize: "1.05rem" }}>
+            ご質問・ご意見・取材のご依頼など、お気軽にどうぞ。
+          </p>
         </div>
       </header>
 
