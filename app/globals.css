@@ -993,3 +993,39 @@ footer p {
   margin-left: 8px;
   vertical-align: middle;
 }
+/* Page Transition Animations */
+.page-fade-in {
+  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered entry for child elements */
+.stagger-entry > * {
+  opacity: 0;
+  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-entry > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger-entry > *:nth-child(2) { animation-delay: 0.2s; }
+.stagger-entry > *:nth-child(3) { animation-delay: 0.3s; }
+.stagger-entry > *:nth-child(4) { animation-delay: 0.4s; }
+
+/* Enhanced Button Hover */
+.button {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 25px rgba(124, 111, 205, 0.2);
+}
