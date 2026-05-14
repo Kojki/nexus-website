@@ -95,7 +95,10 @@ export default function About() {
           <Link href="/about">About</Link>
           <Link href="/faq">FAQ</Link>
           <Link href="/guidelines">ガイドライン</Link>
+          <Link href="/activity-log">活動記録</Link>
+          <Link href="/contact">お問い合わせ</Link>
           <Link href="/privacy">プライバシーポリシー</Link>
+          <Link href="/members">メンバー紹介</Link>
         </nav>
       </footer>
     </main>

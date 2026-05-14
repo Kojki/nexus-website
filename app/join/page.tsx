@@ -195,6 +195,7 @@ export default function JoinPage() {
           <Link href="/activity-log">活動記録</Link>
           <Link href="/contact">お問い合わせ</Link>
           <Link href="/privacy">プライバシーポリシー</Link>
+          <Link href="/members">メンバー紹介</Link>
         </nav>
       </footer>
     </main>

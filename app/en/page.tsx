@@ -216,7 +216,8 @@ export default function Home() {
           <Link href="/guidelines">Guidelines (JP)</Link>
           <Link href="/activity-log">Activity Log (JP)</Link>
           <Link href="/contact">Contact (JP)</Link>
-          <Link href="/privacy">Privacy Policy</Link>
+          <Link href="/privacy">Privacy Policy (JP)</Link>
+          <Link href="/members">Member Profiles (JP)</Link>
         </nav>
       </footer>
     </main>
