@@ -1,7 +1,8 @@
 import { ImageResponse } from 'next/og';
 import { supabase } from '@/lib/supabase';
 
-// 画像のサイズ
+export const dynamic = 'force-static';
+
 export const alt = 'Nexus Activity Log';
 export const size = {
   width: 1200,
