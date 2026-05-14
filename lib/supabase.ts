@@ -4,10 +4,17 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 
+
 // lib/supabase.ts
-console.log("Supabase URL initialized with:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+console.log("Supabase URL Debug:", {
+  length: url.length,
+  startsWith: url.substring(0, 8), // "https://" であるべき
+  endsWithSlash: url.endsWith("/"), // false であるべき
+  hasRestV1: url.includes("rest/v1"), // false であるべき
+});
 
 export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  url,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
