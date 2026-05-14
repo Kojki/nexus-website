@@ -1,7 +1,6 @@
 import { GoogleAnalytics } from '@next/third-parties/google'
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Noto_Sans_JP, Outfit } from "next/font/google";
-import Script from 'next/script';
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -22,11 +21,16 @@ const notoSansJp = Noto_Sans_JP({
   variable: "--font-jp"
 });
 
+export const viewport: Viewport = {
+  themeColor: "#7c6fcd",
+}
+
 export const metadata: Metadata = {
   title: "Nexus - 共に学んで、もっと先へ。",
   description:
     "意欲あるすべての学生へ。専門性を掛け合わせる「共創の場」であり、進む道を探すための「観察の場」。Nexusは、意欲ある学生が交わるオンラインコミュニティです。",
   metadataBase: new URL("https://nexus-connect.jp"),
+  manifest: "/manifest.json", 
   openGraph: {
     title: "Nexus - 共に学んで、もっと先へ。",
     description:
@@ -53,8 +57,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2998290208181592"
-     crossOrigin="anonymous"></script>
+      <head>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2998290208181592"
+          crossOrigin="anonymous"></script>
+        <link rel="apple-touch-icon" href="/nexus-icon.png" />
+      </head>
       <body
         className={`${cormorant.variable} ${outfit.variable} ${notoSansJp.variable}`}
       >
