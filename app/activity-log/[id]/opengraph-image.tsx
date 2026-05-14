@@ -1,7 +1,17 @@
 import { ImageResponse } from 'next/og';
 import { supabase } from '@/lib/supabase';
 
+// 静的エクスポートを有効にする設定
 export const dynamic = 'force-static';
+
+// ビルド対象のID（slug）リストを取得
+export async function generateStaticParams() {
+  const { data: activities } = await supabase.from('activities').select('slug');
+  if (!activities) return [];
+  return activities.map((activity) => ({
+    id: activity.slug,
+  }));
+}
 
 export const alt = 'Nexus Activity Log';
 export const size = {
