@@ -3,23 +3,41 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+// 静的書き出しを強制する設定を追加
+export const dynamicParams = false;
+
 // ビルド時にSupabaseから全記事のID（slug）を取得して、ページを生成する
 export async function generateStaticParams() {
-  const { data: activities } = await supabase.from('activities').select('slug');
-  
-  if (!activities) return [];
+  try {
+    const { data: activities, error } = await supabase.from('activities').select('slug');
+    
+    if (error || !activities) {
+      console.error("Failed to fetch activities for generateStaticParams:", error);
+      return [];
+    }
 
-  return activities.map((activity) => ({
-    id: activity.slug,
-  }));
+    return activities.map((activity) => ({
+      id: activity.slug,
+    }));
+  } catch (e) {
+    console.error("Error in generateStaticParams:", e);
+    return [];
+  }
 }
 
-export default async function ActivityDetailPage({ params }: { params: { id: string } }) {
+// Next.js 15/16 では params は Promise として渡されるため、型定義と await を修正
+export default async function ActivityDetailPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = await params;
+
   // サーバーサイドでデータを取得
   const { data: activity } = await supabase
     .from('activities')
     .select('*')
-    .eq('slug', params.id)
+    .eq('slug', id)
     .single();
 
   if (!activity) {
