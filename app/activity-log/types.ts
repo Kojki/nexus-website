@@ -7,5 +7,6 @@ export interface Activity {
   title: string;
   summary: string;
   content: string;
+  hasDetail: boolean;
   tags?: string[];
 }
