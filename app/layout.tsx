@@ -26,11 +26,19 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: "Nexus - 共に学んで、もっと先へ。",
+  // タイトルのテンプレート化（各ページでタイトルを設定すると "About | Nexus" のように表示されます）
+  title: {
+    default: "Nexus - 共に学んで、もっと先へ。",
+    template: "%s | Nexus"
+  },
   description:
     "意欲あるすべての学生へ。専門性を掛け合わせる「共創の場」であり、進む道を探すための「観察の場」。Nexusは、意欲ある学生が交わるオンラインコミュニティです。",
+  keywords: ["学生コミュニティ", "大学生 交流", "共創", "オンラインコミュニティ", "学際的", "Nexus"],
   metadataBase: new URL("https://nexus-connect.jp"),
   manifest: "/manifest.json", 
+  alternates: {
+    canonical: '/', // 重複コンテンツ対策
+  },
   openGraph: {
     title: "Nexus - 共に学んで、もっと先へ。",
     description:
@@ -47,6 +55,13 @@ export const metadata: Metadata = {
         alt: "Nexus - 共に学んで、もっと先へ。",
       },
     ],
+  },
+  // Twitter (X) での表示を最適化
+  twitter: {
+    card: "summary_large_image",
+    title: "Nexus - 共に学んで、もっと先へ。",
+    description: "やりたいことを極める人と、探す人が交わるコミュニティ。",
+    images: ["/ogp.png"],
   },
 };
 
