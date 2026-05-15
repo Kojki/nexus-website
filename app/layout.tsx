@@ -26,7 +26,6 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  // タイトルのテンプレート化（各ページでタイトルを設定すると "About | Nexus" のように表示されます）
   title: {
     default: "Nexus - 共に学んで、もっと先へ。",
     template: "%s | Nexus"
@@ -37,7 +36,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://nexus-connect.jp"),
   manifest: "/manifest.json", 
   alternates: {
-    canonical: '/', // 重複コンテンツ対策
+    canonical: '/',
   },
   openGraph: {
     title: "Nexus - 共に学んで、もっと先へ。",
@@ -56,12 +55,15 @@ export const metadata: Metadata = {
       },
     ],
   },
-  // Twitter (X) での表示を最適化
   twitter: {
     card: "summary_large_image",
     title: "Nexus - 共に学んで、もっと先へ。",
     description: "やりたいことを極める人と、探す人が交わるコミュニティ。",
     images: ["/ogp.png"],
+  },
+  
+  verification: {
+    google: "045d634d2b6551c4",
   },
 };
 
