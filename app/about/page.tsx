@@ -1,22 +1,28 @@
 import Image from "next/image";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
-export default function About() {
+export default async function About() {
+  // コンテンツ取得
+  const { data: contentData } = await supabase
+    .from('site_content')
+    .select('content_key, content_value')
+    .eq('page_path', 'about');
+
+  const content: Record<string, string> = {};
+  contentData?.forEach(item => { content[item.content_key] = item.content_value; });
+  const get = (key: string, fallback: string) => content[key] || fallback;
+
   return (
-    <main>
+    <main className="page-fade-in">
       <nav className="site-nav" aria-label="メインナビゲーション">
-        <Link className="nav-logo" href="/" aria-label="Nexus ホーム">
-          <Image src="/nexus-icon.png" alt="Nexus Logo" width={34} height={34} priority />
-          Nexus
-        </Link>
+        <Link className="nav-logo" href="/"><Image src="/nexus-icon.png" alt="Nexus Logo" width={34} height={34} priority /> Nexus</Link>
         <div className="nav-links">
           <Link href="/">トップへ戻る</Link>
-          <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">
-            参加する
-          </a>
+          <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">参加する</a>
           <div className="lang-toggle" style={{ display: "flex", gap: "8px", fontSize: "0.85rem", fontWeight: 600, alignItems: "center", marginLeft: "8px" }}>
             <span style={{ color: "var(--ink)" }}>JP</span>
             <span style={{ color: "var(--border)" }}>|</span>
@@ -29,68 +35,37 @@ export default function About() {
         <div className="animate-slide-up">
           <p className="eyebrow" style={{ justifyContent: "center" }}>About Nexus</p>
           <h1>
-            専門が交わる場所。<br />
-            未来の自分に<br />
-            出会う場所。
+            {get('hero_title', '専門が交わる場所。\n未来の自分に\n出会う場所。').split('\n').map((line, i) => (
+              <span key={i}>{line}<br /></span>
+            ))}
           </h1>
         </div>
       </header>
 
       <section className="concept-container">
-        <div className="concept-block animate-slide-up delay-100">
-          <span className="concept-stat-highlight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-            激動の時代を生き抜くために
-          </span>
-          <p>
-            テクノロジーの進化や社会の変化がかつてなく速い現代において、「この分野だけを学んでいれば一生安泰」という保証はどこにもありません。
-          </p>
-          <p>
-            だからこそ、自分の専門領域を深めるだけでなく、<strong>関連分野やまったく異なる領域の知見を掛け合わせる能力</strong>が不可欠になります。私たちは新しい仕事や価値は、常に境界線や融合から生まれると考えています。
-          </p>
-        </div>
-
-        <div className="concept-block animate-slide-up delay-200">
-          <span className="concept-stat-highlight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-            やりたいことを極める人の「共創の場」
-          </span>
-          <p>
-            Nexusは、すでに専門ややりたいことがある意欲的な学生が、お互いの活動を共有したり、お互いの利点を活かして何かを作り上げていく場所です。
-          </p>
-          <p>
-            異なる視点やバックグラウンドを持つ同世代と対話することで、一人では思いつかなかったアイデアを形にし、ともに何かを創り上げる<strong>「共創」のためのハブ</strong>を目指しています。
-          </p>
-        </div>
-
-        <div className="concept-block animate-slide-up delay-300">
-          <span className="concept-stat-highlight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-            やりたいことを見つける人の「観察の場」
-          </span>
-          <p>
-            一方で、高校生や大学生の中には「自分が何をしたいのかまだわからない」「実際に活動している人が何をしているのか具体的に知らない」という人も多いはずです。
-          </p>
-          <p>
-            Nexusは、そうした人たちが「何かを本気で取り組んでいる人たちのやり取り」を間近で見るための場所でもあります。活動の内容や試行錯誤のプロセスをありのままに<strong>「観察」</strong>することで、実態に近い形で世の中を知り、自分の進む道を見つけるきっかけにしてほしいと願っています。
-          </p>
-        </div>
+        {[1, 2, 3].map((num) => (
+          <div key={num} className={`concept-block animate-slide-up delay-${num}00`}>
+            <span className="concept-stat-highlight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+              {get(`block_${num}_title`, '...')}
+            </span>
+            <div style={{ whiteSpace: "pre-wrap" }}>
+              <p>{get(`block_${num}_body`, '...')}</p>
+            </div>
+          </div>
+        ))}
 
         <div style={{ textAlign: "center", marginTop: "80px", display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link className="button button-ghost animate-slide-up delay-400" href="/">
-            トップページへ戻る
-          </Link>
-          <a className="button button-dark animate-slide-up delay-400" href={joinUrl} target="_blank" rel="noreferrer">
-            Nexus に参加する
-            <span aria-hidden="true">→</span>
+          <Link className="button button-ghost" href="/">トップページへ戻る</Link>
+          <a className="button button-dark" href={joinUrl} target="_blank" rel="noreferrer">
+            Nexus に参加する <span aria-hidden="true">→</span>
           </a>
         </div>
       </section>
 
       <footer>
-        <div className="footer-brand">
-          <Image src="/nexus-icon.png" alt="Nexus Logo" width={30} height={30} />
-          Nexus
-        </div>
+        <div className="footer-brand"><Image src="/nexus-icon.png" alt="Logo" width={30} height={30} /> Nexus</div>
         <p>意欲あるすべての学生へ</p>
-        <nav className="footer-links" aria-label="フッターナビゲーション">
+        <nav className="footer-links">
           <Link href="/">トップ</Link>
           <Link href="/about">About</Link>
           <Link href="/faq">FAQ</Link>
@@ -99,6 +74,7 @@ export default function About() {
           <Link href="/contact">お問い合わせ</Link>
           <Link href="/privacy">プライバシーポリシー</Link>
           <Link href="/members">メンバー紹介</Link>
+          <Link href="/login" style={{ opacity: 0.3, fontSize: '0.7rem' }}>Admin</Link>
         </nav>
       </footer>
     </main>
