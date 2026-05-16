@@ -178,7 +178,7 @@ export default function NexusStudioPro() {
 
         </div>
 
-        <PreviewPanel activePage={activePage} liveData={liveData} title={title} imageUrl={imageUrl} />
+        <PreviewPanel activeTab={activeTab} activePage={activePage} liveData={liveData} title={title} imageUrl={imageUrl} summary={summary} />
       </div>
     </main>
   );
