@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 // 静的エクスポート時に未定義のパスを許可しない設定
 export const dynamicParams = false;
@@ -44,12 +46,7 @@ export default async function ActivityDetailPage({
 
   return (
     <main>
-      <nav className="site-nav">
-        <Link className="nav-logo" href="/">
-          <Image src="/nexus-icon.png" alt="Logo" width={34} height={34} /> Nexus
-        </Link>
-        <div className="nav-links"><Link href="/activity-log">一覧に戻る</Link></div>
-      </nav>
+      <Navbar />
 
       <article className="concept-container" style={{ paddingTop: "120px", maxWidth: "800px" }}>
         <div className="animate-slide-up">
@@ -76,6 +73,7 @@ export default async function ActivityDetailPage({
           </div>
         </div>
       </article>
+      <Footer />
     </main>
   );
 }

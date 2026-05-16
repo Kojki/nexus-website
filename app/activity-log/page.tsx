@@ -6,6 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Activity } from "./types";
 import { activities as staticActivities } from "./data";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const joinUrl = "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
@@ -42,13 +44,7 @@ export default function ActivityLogIndex() {
 
   return (
     <main className="page-fade-in">
-      <nav className="site-nav">
-        <Link className="nav-logo" href="/"><Image src="/nexus-icon.png" alt="Logo" width={34} height={34} /> Nexus</Link>
-        <div className="nav-links">
-          <Link href="/">トップへ戻る</Link>
-          <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">参加する</a>
-        </div>
-      </nav>
+      <Navbar />
 
       <header className="concept-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
         <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -100,19 +96,7 @@ export default function ActivityLogIndex() {
         )}
       </section>
 
-      <footer>
-        <div className="footer-brand"><Image src="/nexus-icon.png" alt="Logo" width={30} height={30} /> Nexus</div>
-        <nav className="footer-links">
-          <Link href="/">トップ</Link>
-          <Link href="/about">About</Link>
-          <Link href="/faq">FAQ</Link>
-          <Link href="/guidelines">ガイドライン</Link>
-          <Link href="/activity-log">活動記録</Link>
-          <Link href="/contact">お問い合わせ</Link>
-          <Link href="/privacy">プライバシーポリシー</Link>
-          <Link href="/members">メンバー紹介</Link>
-        </nav>
-      </footer>
+      <Footer />
     </main>
   );
 }

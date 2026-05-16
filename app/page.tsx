@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
@@ -28,24 +30,7 @@ export default async function Home() {
 
   return (
     <main className="page-fade-in">
-      <nav className="site-nav" aria-label="メインナビゲーション">
-        <Link className="nav-logo" href="/" aria-label="Nexus ホーム">
-          <Image src="/nexus-icon.png" alt="Nexus Logo" width={34} height={34} priority />
-          Nexus
-        </Link>
-
-        <div className="nav-links">
-          <Link href="/about">ABOUT</Link>
-          <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">
-            参加する
-          </a>
-          <div className="lang-toggle" style={{ display: "flex", gap: "8px", fontSize: "0.85rem", fontWeight: 600, alignItems: "center", marginLeft: "8px" }}>
-            <span style={{ color: "var(--ink)" }}>JP</span>
-            <span style={{ color: "var(--border)" }}>|</span>
-            <Link href="/en" style={{ color: "var(--muted)", textDecoration: "none" }}>EN</Link>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* HERO SECTION */}
       <header className="hero" id="top">
@@ -179,24 +164,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <footer>
-        <div className="footer-brand">
-          <Image src="/nexus-icon.png" alt="Nexus Logo" width={30} height={30} />
-          Nexus
-        </div>
-        <p>意欲あるすべての学生へ</p>
-        <nav className="footer-links" aria-label="フッターナビゲーション">
-          <Link href="/">トップ</Link>
-          <Link href="/about">About</Link>
-          <Link href="/faq">FAQ</Link>
-          <Link href="/guidelines">ガイドライン</Link>
-          <Link href="/activity-log">活動記録</Link>
-          <Link href="/contact">お問い合わせ</Link>
-          <Link href="/privacy">プライバシーポリシー</Link>
-          <Link href="/members">メンバー紹介</Link>
-          <Link href="/login" style={{ opacity: 0.3, fontSize: '0.7rem', marginLeft: '10px' }}>Admin</Link>
-        </nav>
-      </footer>
+      <Footer />
     </main>
   );
 }

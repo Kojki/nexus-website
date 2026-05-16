@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
@@ -36,19 +38,7 @@ const channels = [
 export default function JoinPage() {
   return (
     <main>
-      <nav className="site-nav" aria-label="メインナビゲーション">
-        <Link className="nav-logo" href="/" aria-label="Nexus ホーム">
-          <Image src="/nexus-icon.png" alt="Nexus Logo" width={34} height={34} priority />
-          Nexus
-        </Link>
-        <div className="nav-links">
-          <Link href="/">トップへ戻る</Link>
-          <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">
-            参加する
-          </a>
-        </div>
-      </nav>
-
+      <Navbar />
       <header className="concept-header">
         <div className="animate-slide-up">
           <p className="eyebrow" style={{ justifyContent: "center" }}>HOW TO JOIN</p>
@@ -181,23 +171,7 @@ export default function JoinPage() {
 
       </section>
 
-      <footer>
-        <div className="footer-brand">
-          <Image src="/nexus-icon.png" alt="Nexus Logo" width={30} height={30} />
-          Nexus
-        </div>
-        <p>意欲あるすべての学生へ</p>
-        <nav className="footer-links" aria-label="フッターナビゲーション">
-          <Link href="/">トップ</Link>
-          <Link href="/about">About</Link>
-          <Link href="/faq">FAQ</Link>
-          <Link href="/guidelines">ガイドライン</Link>
-          <Link href="/activity-log">活動記録</Link>
-          <Link href="/contact">お問い合わせ</Link>
-          <Link href="/privacy">プライバシーポリシー</Link>
-          <Link href="/members">メンバー紹介</Link>
-        </nav>
-      </footer>
+      <Footer />
     </main>
   );
 }

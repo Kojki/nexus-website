@@ -4,6 +4,8 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const joinUrl = "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
@@ -38,12 +40,7 @@ export default function Contact() {
 
   return (
     <main>
-      {/* ナビゲーションとヘッダーは既存のものを維持 */}
-      <nav className="site-nav">
-        <Link className="nav-logo" href="/"><Image src="/nexus-icon.png" alt="Logo" width={34} height={34} /> Nexus</Link>
-        <div className="nav-links"><Link href="/">トップへ戻る</Link></div>
-      </nav>
-
+      <Navbar />
       <header className="concept-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
         <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <p className="eyebrow">CONTACT</p>
@@ -141,6 +138,7 @@ export default function Contact() {
           </form>
         )}
       </section>
+      <Footer />
     </main>
   );
 }
