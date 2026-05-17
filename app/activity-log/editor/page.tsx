@@ -5,10 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-// キャッシュクリア用のサーバーアクションを読み込み（追加）
 import { revalidateSite } from "@/app/actions";
 
-// コンポーネントの読み込み
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab } from "./components/EditorTabs";
@@ -22,21 +20,18 @@ export default function NexusStudioPro() {
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  // トースト通知用の状態
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // --- Data States ---
   const [siteContents, setSiteContents] = useState<Record<string, Record<string, string>>>({});
   const [liveData, setLiveData] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<any[]>([]);
   const [faqs, setFaqs] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
 
-  // --- Form States ---
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toLocaleDateString('ja-JP').replace(/\//g, '.'));
   const [category, setCategory] = useState("NEWS");
@@ -89,7 +84,6 @@ export default function NexusStudioPro() {
     setLiveData(siteContents[activePage] || {});
   }, [activePage, siteContents]);
 
-  // --- Handlers ---
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -107,28 +101,27 @@ export default function NexusStudioPro() {
     try {
       const { error } = await supabase.from('site_content').upsert({ page_path: activePage, content_key: key, content_value: value }, { onConflict: 'page_path,content_key' });
       if (error) throw error;
-      
-      await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
-
+      await revalidateSite();
       showToast("保存しました");
       fetchData();
     } catch (e: any) {
-      showToast("保存に失敗しました: " + e.message, "error");
+      showToast("保存に失敗しました", "error");
     }
   };
 
-  const handlePublishActivity = async () => {
+  // ▼ 活動記録に「下書きフラグ」を渡せるように修正 ▼
+  const handlePublishActivity = async (isPublished: boolean = true) => {
     setPublishing(true);
     try {
-      const { error } = await supabase.from('activities').insert([{ title, date, category, summary, content, slug, image_url: imageUrl, has_detail: !!content }]);
+      const { error } = await supabase.from('activities').insert([{ 
+        title, date, category, summary, content, slug, image_url: imageUrl, has_detail: !!content, is_published: isPublished 
+      }]);
       if (error) throw error;
-      
-      await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
-
-      showToast("公開が完了しました！"); 
+      await revalidateSite();
+      showToast(isPublished ? "公開が完了しました！" : "下書きとして保存しました"); 
       setTitle(""); setImageUrl(""); fetchData();
     } catch (e: any) {
-      showToast("公開に失敗しました", "error");
+      showToast("保存に失敗しました", "error");
     } finally {
       setPublishing(false);
     }
@@ -138,9 +131,7 @@ export default function NexusStudioPro() {
     try {
       const { error } = await supabase.from('members').insert([{ name: mName, role: mRole, affiliation: mAffiliation, field: mField, message: mMessage, photo_url: mPhotoUrl, order_index: members.length + 1 }]);
       if (error) throw error;
-
-      await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
-
+      await revalidateSite();
       setMName(""); setMMessage(""); setMPhotoUrl(""); fetchData();
       showToast("メンバーを追加しました");
     } catch (e: any) {
@@ -152,13 +143,24 @@ export default function NexusStudioPro() {
     try {
       const { error } = await supabase.from('faqs').insert([{ question: fQuestion, answer: fAnswer, order_index: faqs.length + 1 }]);
       if (error) throw error;
-
-      await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
-
+      await revalidateSite();
       setFQuestion(""); setFAnswer(""); fetchData();
       showToast("FAQを追加しました");
     } catch (e: any) {
       showToast("追加に失敗しました", "error");
+    }
+  };
+
+  // ▼ 新機能：公開・非公開の切り替えトグル ▼
+  const handleTogglePublish = async (table: string, id: string, isPublished: boolean) => {
+    try {
+      const { error } = await supabase.from(table).update({ is_published: isPublished }).eq('id', id);
+      if (error) throw error;
+      await revalidateSite();
+      fetchData();
+      showToast(isPublished ? "公開状態にしました" : "非公開にしました");
+    } catch (e: any) {
+      showToast("更新に失敗しました", "error");
     }
   };
 
@@ -167,9 +169,7 @@ export default function NexusStudioPro() {
       try {
         const { error } = await supabase.from(table).delete().eq('id', id);
         if (error) throw error;
-
-        await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
-
+        await revalidateSite();
         fetchData();
         showToast("削除しました");
       } catch (e: any) {
@@ -182,37 +182,15 @@ export default function NexusStudioPro() {
 
   return (
     <main style={{ background: "#f8f7f4", minHeight: "100vh", color: "#1a1a1a" }}>
-      
-      {/* ▼ スマホ用レスポンシブCSS ▼ */}
       <style>{`
         @media (max-width: 900px) {
-          .dashboard-header {
-            flex-direction: column !important;
-            padding: 16px 20px !important;
-            gap: 16px !important;
-          }
-          .dashboard-nav {
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-          }
-          .dashboard-layout {
-            grid-template-columns: 1fr !important;
-            height: auto !important;
-          }
-          .dashboard-editor {
-            padding: 20px !important;
-            border-right: none !important;
-            overflow-y: visible !important;
-          }
-          .dashboard-preview {
-            position: static !important;
-            height: auto !important;
-            padding: 20px !important;
-            border-top: 4px dashed #ddd !important;
-          }
+          .dashboard-header { flex-direction: column !important; padding: 16px 20px !important; gap: 16px !important; }
+          .dashboard-nav { flex-wrap: wrap !important; justify-content: center !important; }
+          .dashboard-layout { grid-template-columns: 1fr !important; height: auto !important; }
+          .dashboard-editor { padding: 20px !important; border-right: none !important; overflow-y: visible !important; }
+          .dashboard-preview { position: static !important; height: auto !important; padding: 20px !important; border-top: 4px dashed #ddd !important; }
         }
       `}</style>
-
       <header className="dashboard-header" style={S.header}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <Image src="/nexus-icon.png" alt="Logo" width={28} height={28} />
@@ -232,67 +210,28 @@ export default function NexusStudioPro() {
 
       <div className="dashboard-layout" style={{ display: "grid", gridTemplateColumns: "1fr 450px", height: "calc(100vh - 70px)" }}>
         <div className="dashboard-editor" style={{ padding: "40px", overflowY: "auto", borderRight: "1px solid #e5e0d8", boxSizing: "border-box" }}>
-          
           {activeTab === "content" && (
             <ContentTab activePage={activePage} setActivePage={setActivePage} siteContents={siteContents} liveData={liveData} setLiveData={setLiveData} handleUpdateContent={handleUpdateContent} />
           )}
-
           {activeTab === "activity" && (
-            <ActivityTab 
-              state={{ title, date, category, slug, summary, content, publishing, uploading }} 
-              setters={{ setTitle, setDate, setCategory, setSlug, setSummary, setContent, setImageUrl }} 
-              handlers={{ handleUpload, handlePublishActivity }} 
-            />
+            <ActivityTab state={{ title, date, category, slug, summary, content, publishing, uploading }} setters={{ setTitle, setDate, setCategory, setSlug, setSummary, setContent, setImageUrl }} handlers={{ handleUpload, handlePublishActivity }} />
           )}
-
           {activeTab === "members" && (
-            <MembersTab 
-              state={{ members, mName, mRole, mAffiliation, mMessage }} 
-              setters={{ setMName, setMRole, setMAffiliation, setMMessage, setMPhotoUrl }} 
-              handlers={{ handleAddMember, handleUpload, handleDelete }} 
-            />
+            <MembersTab state={{ members, mName, mRole, mAffiliation, mMessage }} setters={{ setMName, setMRole, setMAffiliation, setMMessage, setMPhotoUrl }} handlers={{ handleAddMember, handleUpload, handleDelete, handleTogglePublish }} />
           )}
-
           {activeTab === "faq" && (
-            <FaqTab 
-              state={{ faqs, fQuestion, fAnswer }} 
-              setters={{ setFQuestion, setFAnswer }} 
-              handlers={{ handleAddFaq, handleDelete }} 
-            />
+            <FaqTab state={{ faqs, fQuestion, fAnswer }} setters={{ setFQuestion, setFAnswer }} handlers={{ handleAddFaq, handleDelete, handleTogglePublish }} />
           )}
-
           {activeTab === "inquiries" && <InquiriesTab inquiries={inquiries} />}
-
         </div>
-
         <PreviewPanel 
-          activeTab={activeTab} 
-          activePage={activePage} 
-          liveData={liveData} 
-          title={title} 
-          imageUrl={imageUrl} 
-          summary={summary}
-          faqs={faqs}
-          fQuestion={fQuestion}
-          fAnswer={fAnswer}
-          members={members}
-          mName={mName}
-          mRole={mRole}
-          mMessage={mMessage}
-          mPhotoUrl={mPhotoUrl}
+          activeTab={activeTab} activePage={activePage} liveData={liveData} title={title} imageUrl={imageUrl} summary={summary}
+          faqs={faqs} fQuestion={fQuestion} fAnswer={fAnswer} members={members} mName={mName} mRole={mRole} mMessage={mMessage} mPhotoUrl={mPhotoUrl}
         />
       </div>
 
-      {/* トースト通知 (画面右下に表示) */}
       {toast && (
-        <div style={{
-          position: "fixed", bottom: "30px", right: "30px",
-          background: toast.type === "success" ? "#1a1a1a" : "#e53e3e",
-          color: "white", padding: "16px 24px", borderRadius: "12px",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.2)", fontWeight: 700, fontSize: "0.95rem",
-          display: "flex", alignItems: "center", gap: "10px",
-          zIndex: 9999, transition: "all 0.3s ease"
-        }}>
+        <div style={{ position: "fixed", bottom: "30px", right: "30px", background: toast.type === "success" ? "#1a1a1a" : "#e53e3e", color: "white", padding: "16px 24px", borderRadius: "12px", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", fontWeight: 700, fontSize: "0.95rem", display: "flex", alignItems: "center", gap: "10px", zIndex: 9999, transition: "all 0.3s ease" }}>
           {toast.type === "success" ? "✅" : "⚠️"} {toast.msg}
         </div>
       )}
