@@ -205,7 +205,7 @@ export default async function HomeEn() {
               <div style={{ color: "var(--muted)", padding: "20px" }}>No posts found.</div>
             ) : (
               activitiesData.map((act) => (
-                <div key={act.id} className="card" style={{ background: 'white', padding: '32px', borderRadius: '24px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyBetween: 'space-between', transition: 'all 0.3s ease' }}>
+                <div key={act.id} className="card" style={{ background: 'white', padding: '32px', borderRadius: '24px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', transition: 'all 0.3s ease' }}>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                       <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 800, background: 'var(--accent-pale)', padding: '4px 10px', borderRadius: '99px' }}>
@@ -245,5 +245,3 @@ export default async function HomeEn() {
     </main>
   );
 }
-
-
