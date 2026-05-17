@@ -38,6 +38,7 @@ export default async function ActivityDetailPage({
     .from('activities')
     .select('*')
     .eq('slug', id)
+    .eq('is_published', true) // ▼ 今回の追加部分
     .single();
 
   if (!activity) {

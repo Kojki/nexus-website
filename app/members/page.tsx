@@ -11,6 +11,7 @@ export default async function Members() {
   const { data: members } = await supabase
     .from('members')
     .select('*')
+    .eq('is_published', true) // ▼ 今回の追加部分
     .order('order_index', { ascending: true });
 
   return (

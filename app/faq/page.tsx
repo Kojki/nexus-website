@@ -11,6 +11,7 @@ export default async function FAQ() {
   const { data: faqs } = await supabase
     .from('faqs')
     .select('*')
+    .eq('is_published', true) // ▼ 今回の追加部分
     .order('order_index', { ascending: true });
 
   return (

@@ -20,6 +20,7 @@ export default function ActivityLogIndex() {
       const { data, error } = await supabase
         .from('activities')
         .select('*')
+        .eq('is_published', true) // ▼ 今回の追加部分
         .order('date', { ascending: false });
 
       if (error) {

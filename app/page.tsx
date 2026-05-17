@@ -20,6 +20,7 @@ export default async function Home() {
   const { data: activitiesData } = await supabase
     .from('activities')
     .select('*')
+    .eq('is_published', true) // ▼ 今回の追加部分
     .order('date', { ascending: false })
     .limit(3);
 
