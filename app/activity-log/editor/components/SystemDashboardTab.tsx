@@ -9,13 +9,14 @@ interface Props {
     popularPages: any[];
   };
   logs: any[];
-  userRole: "owner" | "editor" | null;
+  userRole: "owner" | "editor" | "proposer" | null;
   allowedUsers: any[];
   currentUserEmail: string;
   onAddUser: (email: string, role: string) => Promise<void>;
   onRemoveUser: (email: string) => Promise<void>;
   onChangeRole: (email: string, role: string) => Promise<void>;
-  // 🗑️ ゴミ箱データの引継ぎ用Props
+  
+  // 🗑️ ゴミ箱用Props
   trashItems?: {
     activities: any[];
     members: any[];
@@ -24,6 +25,16 @@ interface Props {
   };
   onRestoreItem?: (table: string, id: string) => Promise<void>;
   onPermanentDelete?: (table: string, id: string) => Promise<void>;
+
+  // 📬 承認待ち（提案ボックス）用Props
+  pendingProposals?: {
+    activities: any[];
+    members: any[];
+    projects: any[];
+    faqs: any[];
+  };
+  onApproveProposal?: (table: string, id: string) => Promise<void>;
+  onRejectProposal?: (table: string, id: string) => Promise<void>;
 }
 
 export function SystemDashboardTab({ 
@@ -37,21 +48,22 @@ export function SystemDashboardTab({
   onChangeRole,
   trashItems = { activities: [], members: [], projects: [], faqs: [] },
   onRestoreItem,
-  onPermanentDelete
+  onPermanentDelete,
+  pendingProposals = { activities: [], members: [], projects: [], faqs: [] },
+  onApproveProposal,
+  onRejectProposal
 }: Props) {
-  // 🚀 運営伝言板管理用ステート
   const [bulletin, setBulletin] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
   const [tempContent, setTempContent] = useState("");
   const [updating, setUpdating] = useState(false);
 
-  // 🚀 エンゲージメントクリック分析用ステート
   const [clickStats, setClickStats] = useState<{
     projects: { name: string; clicks: number }[];
     members: { name: string; type: string; clicks: number }[];
   }>({ projects: [], members: [] });
 
-  // 📢 伝言板データの読み込み
+  // 📢 伝言板の読み込み
   const fetchBulletin = async () => {
     try {
       const { data, error } = await supabase
@@ -73,16 +85,14 @@ export function SystemDashboardTab({
     }
   };
 
-  // 📈 クリックイベント統計の読み込み＆集計
+  // 📈 クリックイベント統計の集計
   const fetchClickStats = async () => {
     try {
       const { data, error } = await supabase.from('click_events').select('*');
       if (error) throw error;
       if (!data) return;
 
-      // 1. プロジェクト参画クリックの集計
       const projMap: Record<string, number> = {};
-      // 2. メンバーリンク（GitHub & Portfolio）クリックの集計
       const memMap: Record<string, { type: string; clicks: number }> = {};
 
       data.forEach((evt) => {
@@ -98,16 +108,15 @@ export function SystemDashboardTab({
         }
       });
 
-      // 配列化して降順ソート
       const sortedProjs = Object.keys(projMap)
         .map(name => ({ name, clicks: projMap[name] }))
         .sort((a, b) => b.clicks - a.clicks)
-        .slice(0, 5); // 上位5件
+        .slice(0, 5);
 
       const sortedMems = Object.keys(memMap)
         .map(key => ({ name: key.replace(/ \(.*\)/, ""), type: memMap[key].type, clicks: memMap[key].clicks }))
         .sort((a, b) => b.clicks - a.clicks)
-        .slice(0, 5); // 上位5件
+        .slice(0, 5);
 
       setClickStats({ projects: sortedProjs, members: sortedMems });
     } catch (err) {
@@ -120,7 +129,6 @@ export function SystemDashboardTab({
     fetchClickStats();
   }, []);
 
-  // 📝 伝言板の保存処理
   const handleSaveBulletin = async () => {
     setUpdating(true);
     try {
@@ -144,14 +152,20 @@ export function SystemDashboardTab({
     }
   };
 
-  // ゴミ箱に入っている全アイテム数をカウント
+  // ゴミ箱のアイテム総数
   const totalTrashCount = 
     (trashItems.activities?.length || 0) + 
     (trashItems.members?.length || 0) + 
     (trashItems.projects?.length || 0) + 
     (trashItems.faqs?.length || 0);
 
-  // プロジェクト統計グラフ描画用の最大クリック値算出（比率計算用）
+  // 📬 届いた提案（承認待ち）のアイテム総数
+  const totalProposalCount = 
+    (pendingProposals.activities?.length || 0) + 
+    (pendingProposals.members?.length || 0) + 
+    (pendingProposals.projects?.length || 0) + 
+    (pendingProposals.faqs?.length || 0);
+
   const maxProjClicks = Math.max(...clickStats.projects.map(p => p.clicks), 1);
   const maxMemClicks = Math.max(...clickStats.members.map(m => m.clicks), 1);
 
@@ -159,7 +173,7 @@ export function SystemDashboardTab({
     <div>
       <h2 style={S.sectionTitle}>システム情報 ＆ アクセス解析</h2>
       
-      {/* 📌 運営伝言板（Admin Bulletin Board） */}
+      {/* 📌 運営伝言板 */}
       <div style={{ 
         background: "linear-gradient(135deg, #fffaf0, #fff5e6)", 
         border: "1px solid #ffe0b3", 
@@ -203,7 +217,7 @@ export function SystemDashboardTab({
                 border: "1px solid #ffe0b3", outline: "none", fontSize: "0.95rem",
                 fontFamily: "inherit", lineHeight: 1.6, boxSizing: "border-box", marginBottom: "16px"
               }}
-              placeholder="伝言内容を記入してください（マークダウンや改行がそのまま反映されます）"
+              placeholder="伝言内容を記入してください"
             />
             <div style={{ display: "flex", gap: "10px" }}>
               <button 
@@ -238,9 +252,89 @@ export function SystemDashboardTab({
         )}
       </div>
 
-      {/* 1. アクセス数概要カード */}
+      {/* 📊 届いた提案ボックス (管理者 ＆ 編集者のみ表示) */}
+      {(userRole === "owner" || userRole === "editor") && (
+        <div style={{ 
+          background: "white", 
+          padding: "32px", 
+          borderRadius: "24px", 
+          border: totalProposalCount > 0 ? "2px solid #0055ff" : "1px solid var(--border)",
+          boxShadow: totalProposalCount > 0 ? "0 10px 30px rgba(0, 85, 255, 0.05)" : "none",
+          marginBottom: "40px"
+        }}>
+          <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+            📬 届いた編集提案・承認待ちリスト ({totalProposalCount} 件)
+          </h3>
+          <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "20px" }}>
+            提案者（proposer）から届いた作成・編集申請です。承認されると本番サイトに自動公開されます。
+          </p>
+
+          {totalProposalCount === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "#aaa", fontSize: "0.85rem", background: "#fcfcfa", borderRadius: "16px", border: "1px solid #f2ede4" }}>
+              ☕ 承認待ちの提案はありません。すべて最新です。
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {[
+                { table: 'activities', label: '✍️ 活動記録', items: pendingProposals.activities },
+                { table: 'members', label: '👤 メンバー', items: pendingProposals.members },
+                { table: 'projects', label: '🚀 プロジェクト', items: pendingProposals.projects },
+                { table: 'faqs', label: '❓ FAQ質問', items: pendingProposals.faqs }
+              ].map(({ table, label, items }) => {
+                if (!items || items.length === 0) return null;
+                return items.map((item: any) => {
+                  const displayTitle = item.title || item.name || item.question || "提案データ";
+                  return (
+                    <div 
+                      key={table + item.id} 
+                      style={{ 
+                        display: "flex", justifyContent: "space-between", alignItems: "center", 
+                        padding: "14px 20px", background: "#f5f9ff", borderRadius: "14px", 
+                        border: "1px solid #d9e8ff", flexWrap: "wrap", gap: "12px" 
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <span style={{ fontSize: "0.7rem", fontWeight: 900, background: "#e1eeff", color: "#0055ff", padding: "3px 8px", borderRadius: "6px" }}>
+                          {label}
+                        </span>
+                        <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "#111" }}>
+                          {displayTitle.length > 25 ? `${displayTitle.slice(0, 25)}...` : displayTitle}
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        <button 
+                          onClick={() => onApproveProposal && onApproveProposal(table, item.id)}
+                          style={{
+                            background: "#0055ff", color: "white", border: "none",
+                            padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
+                            cursor: "pointer"
+                          }}
+                        >
+                          ✅ 承認して公開
+                        </button>
+                        <button 
+                          onClick={() => onRejectProposal && onRejectProposal(table, item.id)}
+                          style={{
+                            background: "white", color: "#666", border: "1px solid #ccc",
+                            padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
+                            cursor: "pointer"
+                          }}
+                        >
+                          ❌ 却下する
+                        </button>
+                      </div>
+                    </div>
+                  );
+                });
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* アクセス数概要カード */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "40px" }}>
-        
         <div style={{ background: "white", padding: "28px", borderRadius: "20px", border: "1px solid var(--border)", boxShadow: "0 4px 15px rgba(0,0,0,0.01)" }}>
           <div style={{ fontSize: "0.8rem", fontWeight: 800, color: "var(--muted)", letterSpacing: "0.1em", marginBottom: "8px" }}>TODAY'S VIEWS</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
@@ -258,24 +352,20 @@ export function SystemDashboardTab({
           </div>
           <p style={{ fontSize: "0.75rem", color: "#888", margin: "12px 0 0" }}>計測開始からの累計PV数です</p>
         </div>
-
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "40px" }}>
 
-        {/* ==========================================
-            📈 [新設] ユーザーエンゲージメント分析パネル
-           ========================================== */}
+        {/* 📈 ユーザーエンゲージメント分析 */}
         <div style={{ background: "white", padding: "32px", borderRadius: "24px", border: "1px solid var(--border)" }}>
           <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
             📈 ユーザーアクション・エンゲージメント分析
           </h3>
           <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "24px" }}>
-            公開サイトで学生たちが実際にとった行動ログを匿名で集計しています。コミュニティの関心度合いを科学的に追跡できます。
+            公開サイトで学生たちが実際にとった行動ログを匿名で集計しています。
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
-            {/* プロジェクト参画希望 */}
             <div>
               <h4 style={{ fontSize: "0.85rem", fontWeight: 800, color: "var(--muted)", marginBottom: "16px" }}>🚀 参画申請の多いプロジェクト</h4>
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -290,7 +380,6 @@ export function SystemDashboardTab({
                           <span style={{ color: "#333" }}>{item.name}</span>
                           <span style={{ color: "#e65c00" }}>{item.clicks} 回申請</span>
                         </div>
-                        {/* 美しいゲージバー */}
                         <div style={{ width: "100%", height: "8px", background: "#f2ede4", borderRadius: "4px", overflow: "hidden" }}>
                           <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #e65c00, #ff8000)", borderRadius: "4px" }} />
                         </div>
@@ -301,7 +390,6 @@ export function SystemDashboardTab({
               </div>
             </div>
 
-            {/* メンバーポートフォリオ訪問数 */}
             <div>
               <h4 style={{ fontSize: "0.85rem", fontWeight: 800, color: "var(--muted)", marginBottom: "16px" }}>👤 訪問の多いメンバーリンク</h4>
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -316,7 +404,6 @@ export function SystemDashboardTab({
                           <span style={{ color: "#333" }}>{item.name} <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: 400 }}>[{item.type}]</span></span>
                           <span style={{ color: "#111" }}>{item.clicks} クリック</span>
                         </div>
-                        {/* 美しいゲージバー */}
                         <div style={{ width: "100%", height: "8px", background: "#f2ede4", borderRadius: "4px", overflow: "hidden" }}>
                           <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #333, #666)", borderRadius: "4px" }} />
                         </div>
@@ -329,30 +416,26 @@ export function SystemDashboardTab({
           </div>
         </div>
 
-        {/* ==========================================
-            🗑️ [新設] データ回復用ゴミ箱（Trash Bin）
-           ========================================== */}
+        {/* 🗑️ データ回復用ゴミ箱 */}
         <div style={{ 
           background: "white", 
           padding: "32px", 
           borderRadius: "24px", 
           border: totalTrashCount > 0 ? "2px dashed #ffb3b3" : "1px solid var(--border)",
-          boxShadow: totalTrashCount > 0 ? "0 10px 25px rgba(255, 0, 0, 0.02)" : "none"
         }}>
           <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
             🗑️ データゴミ箱 (論理削除データのリカバリー)
           </h3>
           <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "20px" }}>
-            間違って削除されたデータはここに一時保存されます。いつでも復元してサイトに再公開できます。
+            間違って削除されたデータはここに一時保存されます。いつでも復元できます。
           </p>
 
           {totalTrashCount === 0 ? (
             <div style={{ textAlign: "center", padding: "40px", color: "#aaa", fontSize: "0.85rem", background: "#fcfcfa", borderRadius: "16px", border: "1px solid #f2ede4" }}>
-              ✨ 現在、ゴミ箱は空っぽです。データはクリーンに保たれています！
+              ✨ 現在、ゴミ箱は空っぽです。データは安全に保護されています！
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {/* 各テーブルの削除済みレコードをループ描画 */}
               {[
                 { table: 'activities', label: '✍️ 活動記録', items: trashItems.activities },
                 { table: 'members', label: '👤 メンバー', items: trashItems.members },
@@ -410,14 +493,14 @@ export function SystemDashboardTab({
           )}
         </div>
         
-        {/* 2. 👑 【オーナー専用】権限・ログイン許可リスト管理 */}
+        {/* 👑 権限・ログイン許可リスト管理 */}
         {userRole === "owner" && (
           <div style={{ background: "white", padding: "32px", borderRadius: "24px", border: "2px solid var(--accent)", boxShadow: "0 10px 30px rgba(0,0,0,0.02)" }}>
             <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "var(--accent)" }}>
               🔑 権限・ログイン許可リスト管理 (オーナー専用)
             </h3>
             <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "24px" }}>
-              管理画面にログインを許可するGoogleアカウントの登録、および操作権限の強さをコントロールします。
+              ログインを許可するGoogleアカウントの管理および権限割当を行います。
             </p>
             
             <form onSubmit={(e) => {
@@ -436,8 +519,9 @@ export function SystemDashboardTab({
                 style={{ ...S.select, flex: 1, minWidth: "220px", padding: "10px 16px", height: "auto" }}
               />
               <select name="role" style={{ ...S.select, width: "auto", padding: "10px 16px", height: "auto" }}>
-                <option value="editor">📝 一般編集者 (editor)</option>
-                <option value="owner">👑 共同オーナー (owner)</option>
+                <option value="proposer">💡 提案者 (proposer)</option>
+                <option value="editor">📝 編集者 (editor)</option>
+                <option value="owner">👑 オーナー (owner)</option>
               </select>
               <button type="submit" style={{ ...S.primaryBtn, width: "auto", padding: "10px 24px" }}>
                 ➕ 許可リストに追加
@@ -463,6 +547,7 @@ export function SystemDashboardTab({
                         onChange={(e) => onChangeRole(u.email, e.target.value)}
                         style={{ ...S.select, width: "auto", padding: "6px 12px", fontSize: "0.8rem", height: "auto", background: u.role === "owner" ? "#fff0f0" : "white" }}
                       >
+                        <option value="proposer">💡 提案者</option>
                         <option value="editor">📝 編集者</option>
                         <option value="owner">👑 オーナー</option>
                       </select>
@@ -487,7 +572,7 @@ export function SystemDashboardTab({
           </div>
         )}
 
-        {/* 3. 人気ページランキング */}
+        {/* 人気ページランキング */}
         <div style={{ background: "white", padding: "32px", borderRadius: "24px", border: "1px solid var(--border)" }}>
           <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
             🔥 人気ページランキング
@@ -511,7 +596,7 @@ export function SystemDashboardTab({
           </div>
         </div>
 
-        {/* 4. セキュリティ操作履歴 (監査ログタイムライン) */}
+        {/* セキュリティ操作履歴 */}
         <div style={{ background: "white", padding: "32px", borderRadius: "24px", border: "1px solid var(--border)" }}>
           <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
             🛡️ セキュリティ監査ログ (操作履歴)
@@ -542,3 +627,4 @@ export function SystemDashboardTab({
     </div>
   );
 }
+
