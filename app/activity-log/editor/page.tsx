@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 import { revalidateSite } from "@/app/actions";
-// ▼ 新規機能：ブラウザ側圧縮のインポートを追加
 import { compressImage } from "@/lib/image";
 
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
@@ -22,6 +21,9 @@ export default function NexusStudioPro() {
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
+  // ▼ 新規機能：認証ガード状態の追加（null = チェック中, true = ログイン済, false = 未ログインでリダイレクト中）
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -73,10 +75,16 @@ export default function NexusStudioPro() {
     }
   };
 
+  // ▼ 強固な認証チェックとリダイレクト処理 ▼
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push("/login"); return; }
+      if (!session) {
+        setIsAuthenticated(false);
+        router.push("/login");
+        return;
+      }
+      setIsAuthenticated(true);
       fetchData();
     };
     init();
@@ -86,15 +94,13 @@ export default function NexusStudioPro() {
     setLiveData(siteContents[activePage] || {});
   }, [activePage, siteContents]);
 
-  // ▼ 画像がアップロードされる前に自動で圧縮を実行するように修正 ▼
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
     let file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
 
-    // ▼ 画像をアップロードする前にブラウザ側で圧縮（例: 5MB -> 150KB）
     try {
-      file = await compressImage(file, 1000, 0.75); // 横幅最大1000px, 画質75%で圧縮
+      file = await compressImage(file, 1000, 0.75);
     } catch (err) {
       console.error("画像の圧縮に失敗しました。オリジナルの画像をアップロードします:", err);
     }
@@ -186,6 +192,12 @@ export default function NexusStudioPro() {
       }
     }
   };
+
+  // ▼ セッション確認中のローディング表示 ▼
+  if (isAuthenticated === null) return <div style={S.loading}>NEXUS STUDIO INITIALIZING...</div>;
+
+  // ▼ 未ログイン時の画面チラつき防止用の緊急遮断ガード ▼
+  if (isAuthenticated === false) return null;
 
   if (loading) return <div style={S.loading}>NEXUS STUDIO INITIALIZING...</div>;
 
