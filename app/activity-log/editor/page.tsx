@@ -21,7 +21,6 @@ export default function NexusStudioPro() {
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  // ▼ 新規機能：認証ガード状態の追加（null = チェック中, true = ログイン済, false = 未ログインでリダイレクト中）
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
@@ -51,6 +50,9 @@ export default function NexusStudioPro() {
   const [mPhotoUrl, setMPhotoUrl] = useState("");
   const [fQuestion, setFQuestion] = useState("");
   const [fAnswer, setFAnswer] = useState("");
+  
+  // ▼ 新規機能：現在編集中のFAQのID管理用ステート
+  const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -75,7 +77,6 @@ export default function NexusStudioPro() {
     }
   };
 
-  // ▼ 強固な認証チェックとリダイレクト処理 ▼
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -102,7 +103,7 @@ export default function NexusStudioPro() {
     try {
       file = await compressImage(file, 1000, 0.75);
     } catch (err) {
-      console.error("画像の圧縮に失敗しました。オリジナルの画像をアップロードします:", err);
+      console.error("画像の圧縮に失敗しました:", err);
     }
 
     const fileName = `${Date.now()}-${file.name}`;
@@ -155,15 +156,57 @@ export default function NexusStudioPro() {
     }
   };
 
-  const handleAddFaq = async () => {
+  // ▼ 新規・編集の両方に対応させたFAQ保存処理 ▼
+  const handleSaveFaq = async () => {
     try {
-      const { error } = await supabase.from('faqs').insert([{ question: fQuestion, answer: fAnswer, order_index: faqs.length + 1 }]);
+      if (editingFaqId) {
+        // 編集（更新）処理
+        const { error } = await supabase.from('faqs').update({ question: fQuestion, answer: fAnswer }).eq('id', editingFaqId);
+        if (error) throw error;
+        showToast("FAQを更新しました");
+      } else {
+        // 新規追加処理
+        const { error } = await supabase.from('faqs').insert([{ question: fQuestion, answer: fAnswer, order_index: faqs.length + 1 }]);
+        if (error) throw error;
+        showToast("FAQを追加しました");
+      }
+      await revalidateSite();
+      setFQuestion(""); setFAnswer(""); setEditingFaqId(null); fetchData();
+    } catch (e: any) {
+      showToast("保存に失敗しました", "error");
+    }
+  };
+
+  // ▼ 編集モードの開始処理
+  const startEditFaq = (faq: any) => {
+    setEditingFaqId(faq.id);
+    setFQuestion(faq.question);
+    setFAnswer(faq.answer);
+    showToast("編集モードを開始しました");
+  };
+
+  // ▼ 編集モードのキャンセル
+  const cancelEditFaq = () => {
+    setEditingFaqId(null);
+    setFQuestion("");
+    setFAnswer("");
+  };
+
+  // ▼ 新規機能：初期データの一括投入処理
+  const handleInsertDefaultFaqs = async () => {
+    try {
+      const defaults = [
+        { question: "Nexus とは何ですか？", answer: "意欲ある学生たちが集まり、専門性や興味を持ち寄ってつながる共創型のコミュニティです。Slackでの議論やプロジェクト活動を行っています。", order_index: 1 },
+        { question: "参加費用はかかりますか？", answer: "完全無料です。学生のコミュニティであるため、どなたでも一切の費用をかけずに参加いただけます。", order_index: 2 },
+        { question: "誰でも参加できますか？", answer: "高校生、専門学校生、大学生、大学院生など、学びやものづくりに意欲のあるすべての学生の方々が参加対象です。", order_index: 3 }
+      ];
+      const { error } = await supabase.from('faqs').insert(defaults);
       if (error) throw error;
       await revalidateSite();
-      setFQuestion(""); setFAnswer(""); fetchData();
-      showToast("FAQを追加しました");
+      fetchData();
+      showToast("初期データを投入しました！");
     } catch (e: any) {
-      showToast("追加に失敗しました", "error");
+      showToast("データの投入に失敗しました", "error");
     }
   };
 
@@ -193,12 +236,8 @@ export default function NexusStudioPro() {
     }
   };
 
-  // ▼ セッション確認中のローディング表示 ▼
   if (isAuthenticated === null) return <div style={S.loading}>NEXUS STUDIO INITIALIZING...</div>;
-
-  // ▼ 未ログイン時の画面チラつき防止用の緊急遮断ガード ▼
   if (isAuthenticated === false) return null;
-
   if (loading) return <div style={S.loading}>NEXUS STUDIO INITIALIZING...</div>;
 
   return (
@@ -241,7 +280,11 @@ export default function NexusStudioPro() {
             <MembersTab state={{ members, mName, mRole, mAffiliation, mMessage }} setters={{ setMName, setMRole, setMAffiliation, setMMessage, setMPhotoUrl }} handlers={{ handleAddMember, handleUpload, handleDelete, handleTogglePublish }} />
           )}
           {activeTab === "faq" && (
-            <FaqTab state={{ faqs, fQuestion, fAnswer }} setters={{ setFQuestion, setFAnswer }} handlers={{ handleAddFaq, handleDelete, handleTogglePublish }} />
+            <FaqTab 
+              state={{ faqs, fQuestion, fAnswer, editingFaqId }} 
+              setters={{ setFQuestion, setFAnswer }} 
+              handlers={{ handleSaveFaq, handleDelete, handleTogglePublish, startEditFaq, cancelEditFaq, handleInsertDefaultFaqs }} 
+            />
           )}
           {activeTab === "inquiries" && <InquiriesTab inquiries={inquiries} />}
         </div>

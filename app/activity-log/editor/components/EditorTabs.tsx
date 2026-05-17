@@ -33,7 +33,6 @@ export function ActivityTab({ state, setters, handlers }: any) {
     <div>
       <h2 style={S.sectionTitle}>活動記録の作成</h2>
       
-      {/* 運用者向けの説明メモ */}
       <div style={{ background: "#fdfbf8", borderLeft: "4px solid var(--accent)", padding: "16px", marginBottom: "32px", fontSize: "0.8rem", color: "#666", lineHeight: 1.6 }}>
         <strong style={{ color: "#333" }}>💡 カテゴリの使い分け</strong><br />
         ・<strong>NEWS</strong> : イベントの告知やメディア掲載などのお知らせ。<br />
@@ -63,7 +62,6 @@ export function ActivityTab({ state, setters, handlers }: any) {
         <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="活動の詳しい内容を記述します..." />
         <InputField label="URLスラッグ (例: project-kickoff) ※任意" value={state.slug} onChange={setters.setSlug} />
         
-        {/* ▼ 新規機能：下書き保存ボタンを追加 ▼ */}
         <div style={{ display: "flex", gap: "16px", marginTop: "20px" }}>
           <button onClick={() => handlers.handlePublishActivity(false)} style={{...S.primaryBtn, background: "white", color: "#111", border: "2px solid #111"}} disabled={state.publishing || !state.title}>
             {state.publishing ? "処理中..." : "下書き保存する"}
@@ -102,15 +100,13 @@ export function MembersTab({ state, setters, handlers }: any) {
               <img src={m.photo_url || "/nexus-icon.png"} style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>{m.name}</div>
-                {/* ▼ 新規機能：公開状態ラベル ▼ */}
                 <div style={{ fontSize: "0.75rem", color: "#888", marginBottom: "4px", display: "flex", gap: "8px", alignItems: "center" }}>
                   <span>{m.role}</span>
                   <span style={{ background: m.is_published ? "#e6ffe6" : "#f0f0f0", color: m.is_published ? "#006600" : "#666", padding: "2px 6px", borderRadius: "8px", fontSize: "0.6rem", fontWeight: 800 }}>
-                    {m.is_published ? "🟢 公開中" : "⚪️ 非公開"}
+                    {m.is_published ? "公開中" : "非公開"}
                   </span>
                 </div>
               </div>
-              {/* ▼ 新規機能：公開/非公開トグルボタン ▼ */}
               <div style={{ display: "flex", gap: "8px", flexDirection: "column", alignItems: "flex-end" }}>
                 <button onClick={() => handlers.handleTogglePublish('members', m.id, !m.is_published)} style={{...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px"}}>
                   {m.is_published ? "非公開にする" : "公開する"}
@@ -129,30 +125,75 @@ export function FaqTab({ state, setters, handlers }: any) {
   return (
     <div>
       <h2 style={S.sectionTitle}>FAQ管理</h2>
+
+      {/* ▼ データが完全に空の場合のみ表示される「初期データ投入」用コンポーネント */}
+      {state.faqs.length === 0 && (
+        <div style={{ background: "#fdfbf8", border: "1px dashed var(--accent)", padding: "20px", borderRadius: "12px", marginBottom: "32px", textAlign: "center" }}>
+          <p style={{ fontSize: "0.85rem", color: "#555", marginBottom: "16px" }}>
+            💡 現在、FAQデータが1件もありません。初期の標準テンプレートを自動投入しますか？
+          </p>
+          <button 
+            onClick={handlers.handleInsertDefaultFaqs} 
+            style={{ ...S.primaryBtn, display: "inline-flex", width: "auto", padding: "10px 24px" }}
+          >
+            初期データ（3件）を投入する
+          </button>
+        </div>
+      )}
+
       <div style={{ ...S.editorCard, marginBottom: "40px" }}>
-        <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>FAQの追加</h3>
+        {/* ▼ 状態に応じてタイトルとボタンを切り替え */}
+        <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>
+          {state.editingFaqId ? "📝 FAQの編集" : "FAQの追加"}
+        </h3>
         <div style={S.formStack}>
           <InputField label="質問 *" value={state.fQuestion} onChange={setters.setFQuestion} textarea />
           <InputField label="回答 *" value={state.fAnswer} onChange={setters.setFAnswer} textarea />
-          <button onClick={handlers.handleAddFaq} style={S.primaryBtn} disabled={!state.fQuestion || !state.fAnswer}>追加する</button>
+          
+          <div style={{ display: "flex", gap: "12px" }}>
+            <button 
+              onClick={handlers.handleSaveFaq} 
+              style={S.primaryBtn} 
+              disabled={!state.fQuestion || !state.fAnswer}
+            >
+              {state.editingFaqId ? "更新して保存" : "追加する"}
+            </button>
+            {state.editingFaqId && (
+              <button 
+                onClick={handlers.cancelEditFaq} 
+                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white" }}
+              >
+                キャンセル
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
       <div style={S.listContainer}>
         {state.faqs.length === 0 ? <div style={S.emptyState}>登録FAQがありません</div> : 
           state.faqs.map((f: any) => (
             <div key={f.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start" }}>
-              {/* ▼ 新規機能：公開状態ラベル ▼ */}
               <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
                 <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>Q: {f.question}</div>
                 <span style={{ background: f.is_published ? "#e6ffe6" : "#f0f0f0", color: f.is_published ? "#006600" : "#666", padding: "2px 6px", borderRadius: "8px", fontSize: "0.6rem", fontWeight: 800 }}>
-                  {f.is_published ? "🟢 公開中" : "⚪️ 非公開"}
+                  {f.is_published ? "公開中" : "非公開"}
                 </span>
               </div>
               <div style={{ fontSize: "0.85rem", color: "#666", lineHeight: 1.5, marginTop: "8px" }}>A: {f.answer}</div>
               
-              {/* ▼ 新規機能：公開/非公開トグルボタン ▼ */}
-              <div style={{ display: "flex", gap: "12px", marginTop: "12px", width: "100%", justifyContent: "flex-end" }}>
-                <button onClick={() => handlers.handleTogglePublish('faqs', f.id, !f.is_published)} style={{...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px"}}>
+              {/* ▼ 編集・非公開トグル・削除のコントロール群 */}
+              <div style={{ display: "flex", gap: "8px", marginTop: "12px", width: "100%", justifyContent: "flex-end" }}>
+                <button 
+                  onClick={() => handlers.startEditFaq(f)} 
+                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px" }}
+                >
+                  📝 編集
+                </button>
+                <button 
+                  onClick={() => handlers.handleTogglePublish('faqs', f.id, !f.is_published)} 
+                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px" }}
+                >
                   {f.is_published ? "非公開にする" : "公開する"}
                 </button>
                 <button onClick={() => handlers.handleDelete('faqs', f.id)} style={S.dangerBtn}>削除</button>
@@ -172,7 +213,6 @@ export function InquiriesTab({ inquiries }: { inquiries: any[] }) {
       {inquiries.length === 0 ? (
         <div style={S.emptyState}>メッセージはありません。</div>
       ) : inquiries.map((i: any) => {
-        // メーラー起動用のリンク作成
         const subject = encodeURIComponent(`【Nexus】お問い合わせへのご返信（件名: ${i.category}）`);
         const body = encodeURIComponent(`${i.name} 様\n\nお問い合わせいただきありがとうございます。\nNexus運営チームです。\n\n---\n\n`);
         const mailtoLink = `mailto:${i.email}?subject=${subject}&body=${body}`;
