@@ -7,6 +7,14 @@ import Footer from "@/components/Footer";
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
+// 追加: 改行（\n）を正しく <br /> に変換する共通関数
+const renderText = (text: string) => {
+  if (!text) return null;
+  return text.split(/(?:\r\n|\r|\n|\\n)/).map((line, i) => (
+    <span key={i}>{line}<br /></span>
+  ));
+};
+
 export default async function Home() {
   // 1. 最新の活動記録を取得
   const { data: activitiesData } = await supabase
@@ -38,13 +46,11 @@ export default async function Home() {
           <p className="eyebrow">意欲あるすべての学生へ。</p>
 
           <h1 style={{ fontSize: "clamp(2.2rem, 5.5vw, 4.2rem)" }}>
-            {get('hero_title', '共に学んで、\nもっと先へ。').split('\n').map((line, i) => (
-              <span key={i}>{line}<br /></span>
-            ))}
+            {renderText(get('hero_title', '共に学んで、\nもっと先へ。'))}
           </h1>
 
           <p className="hero-copy">
-            {get('hero_copy', 'Nexusは、意欲ある学生たちが集まり、専門性や興味を持ち寄ってつながるコミュニティです。\n新しい分野や価値観に触れながら、自分の進みたい方向を見つけられる場を目指しています。')}
+            {renderText(get('hero_copy', 'Nexusは、意欲ある学生たちが集まり、専門性や興味を持ち寄ってつながるコミュニティです。\n新しい分野や価値観に触れながら、自分の進みたい方向を見つけられる場を目指しています。'))}
           </p>
 
           <div className="hero-actions">
@@ -66,14 +72,12 @@ export default async function Home() {
           <div className="animate-slide-up">
             <p className="section-label">ABOUT</p>
             <h2>
-              {get('about_title', '専門が交わる場所。\n未来の自分に出会う場所。').split('\n').map((line, i) => (
-                <span key={i}>{line}<br /></span>
-              ))}
+              {renderText(get('about_title', '専門が交わる場所。\n未来の自分に出会う場所。'))}
             </h2>
             <div className="divider" />
             <div className="body-copy">
-              <p>{get('about_body_1', '一つの分野だけで生き抜くのは難しい時代。専門を越えた繋がりが、思いがけない突破口を生み出します。')}</p>
-              <p>{get('about_body_2', 'Nexusは、意欲がある人がお互いの活動を共有したり、お互いの利点を活かして何かを作り上げていく「共創の場」であり、やりたいことを探している人でも、情熱をもって取り組んでいることがある人のリアルな姿に触れられる「観察の場」でもあります。')}</p>
+              <p>{renderText(get('about_body_1', '一つの分野だけで生き抜くのは難しい時代。専門を越えた繋がりが、思いがけない突破口を生み出します。'))}</p>
+              <p>{renderText(get('about_body_2', 'Nexusは、意欲がある人がお互いの活動を共有したり、お互いの利点を活かして何かを作り上げていく「共創の場」であり、やりたいことを探している人でも、情熱をもって取り組んでいることがある人のリアルな姿に触れられる「観察の場」でもあります。'))}</p>
               <Link className="button button-ghost" style={{ marginTop: "16px" }} href="/about">
                 Nexusの設立背景を読む
               </Link>
@@ -124,9 +128,9 @@ export default async function Home() {
           <div className="section-split">
             <div>
               <p className="section-label">活動内容</p>
-              <h2>{get('activity_title', 'アウトプットとインプットが、成長を加速する。')}</h2>
+              <h2>{renderText(get('activity_title', 'アウトプットとインプットが、成長を加速する。'))}</h2>
             </div>
-            <p>{get('activity_copy', '日々の学びや興味を気軽に発信し、異なる分野で活動する仲間の視点に触れる。その小さなやり取りの積み重ねが、一人では思いつかなかったアイデアや新しい繋がりを生み出します。')}</p>
+            <p>{renderText(get('activity_copy', '日々の学びや興味を気軽に発信し、異なる分野で活動する仲間の視点に触れる。その小さなやり取りの積み重ねが、一人では思いつかなかったアイデアや新しい繋がりを生み出します。'))}</p>
           </div>
 
           <div className="activity-list">
@@ -156,8 +160,8 @@ export default async function Home() {
         <div className="section-inner animate-slide-up">
           <Image src="/nexus-icon.png" alt="Nexus Logo" width={70} height={70} />
           <p className="section-label">JOIN US</p>
-          <h2>{get('join_title', '対話が、思考を広げる。')}</h2>
-          <p>{get('join_copy', '意欲あるすべての学生へ。完全無料。まずは覗いてみてください。')}</p>
+          <h2>{renderText(get('join_title', '対話が、思考を広げる。'))}</h2>
+          <p>{renderText(get('join_copy', '意欲あるすべての学生へ。完全無料。まずは覗いてみてください。'))}</p>
           <a className="button button-dark" href={joinUrl} target="_blank" rel="noreferrer">
             Nexus に参加する →
           </a>

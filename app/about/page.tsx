@@ -7,6 +7,13 @@ import Footer from "@/components/Footer";
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
+const renderText = (text: string) => {
+  if (!text) return null;
+  return text.split(/(?:\r\n|\r|\n|\\n)/).map((line, i) => (
+    <span key={i}>{line}<br /></span>
+  ));
+};
+
 export default async function About() {
   // コンテンツ取得
   const { data: contentData } = await supabase
@@ -26,9 +33,7 @@ export default async function About() {
         <div className="animate-slide-up">
           <p className="eyebrow" style={{ justifyContent: "center" }}>About Nexus</p>
           <h1>
-            {get('hero_title', '専門が交わる場所。\n未来の自分に\n出会う場所。').split('\n').map((line, i) => (
-              <span key={i}>{line}<br /></span>
-            ))}
+            {renderText(get('hero_title', '専門が交わる場所。\n未来の自分に\n出会う場所。'))}
           </h1>
         </div>
       </header>
@@ -37,10 +42,10 @@ export default async function About() {
         {[1, 2, 3].map((num) => (
           <div key={num} className={`concept-block animate-slide-up delay-${num}00`}>
             <span className="concept-stat-highlight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-              {get(`block_${num}_title`, '...')}
+              {renderText(get(`block_${num}_title`, '...'))}
             </span>
-            <div style={{ whiteSpace: "pre-wrap" }}>
-              <p>{get(`block_${num}_body`, '...')}</p>
+            <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
+              <p>{renderText(get(`block_${num}_body`, '...'))}</p>
             </div>
           </div>
         ))}
