@@ -5,6 +5,9 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+// キャッシュクリア用のサーバーアクションを読み込み（追加）
+import { revalidateSite } from "@/app/actions";
+
 // コンポーネントの読み込み
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
@@ -104,6 +107,9 @@ export default function NexusStudioPro() {
     try {
       const { error } = await supabase.from('site_content').upsert({ page_path: activePage, content_key: key, content_value: value }, { onConflict: 'page_path,content_key' });
       if (error) throw error;
+      
+      await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
+
       showToast("保存しました");
       fetchData();
     } catch (e: any) {
@@ -116,6 +122,9 @@ export default function NexusStudioPro() {
     try {
       const { error } = await supabase.from('activities').insert([{ title, date, category, summary, content, slug, image_url: imageUrl, has_detail: !!content }]);
       if (error) throw error;
+      
+      await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
+
       showToast("公開が完了しました！"); 
       setTitle(""); setImageUrl(""); fetchData();
     } catch (e: any) {
@@ -129,6 +138,9 @@ export default function NexusStudioPro() {
     try {
       const { error } = await supabase.from('members').insert([{ name: mName, role: mRole, affiliation: mAffiliation, field: mField, message: mMessage, photo_url: mPhotoUrl, order_index: members.length + 1 }]);
       if (error) throw error;
+
+      await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
+
       setMName(""); setMMessage(""); setMPhotoUrl(""); fetchData();
       showToast("メンバーを追加しました");
     } catch (e: any) {
@@ -140,6 +152,9 @@ export default function NexusStudioPro() {
     try {
       const { error } = await supabase.from('faqs').insert([{ question: fQuestion, answer: fAnswer, order_index: faqs.length + 1 }]);
       if (error) throw error;
+
+      await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
+
       setFQuestion(""); setFAnswer(""); fetchData();
       showToast("FAQを追加しました");
     } catch (e: any) {
@@ -152,6 +167,9 @@ export default function NexusStudioPro() {
       try {
         const { error } = await supabase.from(table).delete().eq('id', id);
         if (error) throw error;
+
+        await revalidateSite(); // ▼ 追加: サイト全体のキャッシュを即座に破棄
+
         fetchData();
         showToast("削除しました");
       } catch (e: any) {
