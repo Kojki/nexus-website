@@ -216,7 +216,23 @@ export default function NexusStudioPro() {
 
         </div>
 
-        <PreviewPanel activeTab={activeTab} activePage={activePage} liveData={liveData} title={title} imageUrl={imageUrl} summary={summary} />
+                <PreviewPanel 
+          activeTab={activeTab} 
+          activePage={activePage} 
+          liveData={liveData} 
+          title={title} 
+          imageUrl={imageUrl} 
+          summary={summary}
+          faqs={faqs}
+          fQuestion={fQuestion}
+          fAnswer={fAnswer}
+          members={members}
+          mName={mName}
+          mRole={mRole}
+          mMessage={mMessage}
+          mPhotoUrl={mPhotoUrl}
+        />
+
       </div>
 
       {/* トースト通知 (画面右下に表示) */}

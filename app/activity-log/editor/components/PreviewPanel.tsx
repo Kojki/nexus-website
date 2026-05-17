@@ -8,16 +8,29 @@ interface Props {
   title: string;
   imageUrl: string;
   summary: string;
+  // ▼ 追加 ▼
+  faqs?: any[];
+  fQuestion?: string;
+  fAnswer?: string;
+  members?: any[];
+  mName?: string;
+  mRole?: string;
+  mMessage?: string;
+  mPhotoUrl?: string;
 }
 
-const renderText = (text: string) => {
+const renderText = (text?: string | null) => {
   if (!text) return null;
   return text.split(/(?:\r\n|\r|\n|\\n)/).map((line, i) => (
     <span key={i}>{line}<br /></span>
   ));
 };
 
-export function PreviewPanel({ activeTab, activePage, liveData, title, imageUrl, summary }: Props) {
+
+export function PreviewPanel({ 
+  activeTab, activePage, liveData, title, imageUrl, summary,
+  faqs, fQuestion, fAnswer, members, mName, mRole, mMessage, mPhotoUrl
+}: Props) {
   return (
     <div style={{ background: "#f0efeb", padding: "24px", position: "sticky", top: "70px", height: "calc(100vh - 70px)", boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
@@ -31,11 +44,10 @@ export function PreviewPanel({ activeTab, activePage, liveData, title, imageUrl,
         <div style={{ animation: "fadeIn 0.4s" }}>
           
           {/* =========================================
-              1. 文言編集タブのプレビュー（ページごとに分岐）
+              1. 文言編集タブのプレビュー
              ========================================= */}
           {activeTab === "content" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-              
               {/* --- HOME プレビュー --- */}
               {activePage === "home" && (
                 <>
@@ -129,11 +141,75 @@ export function PreviewPanel({ activeTab, activePage, liveData, title, imageUrl,
           )}
 
           {/* =========================================
-              3. その他のタブのプレビュー
+              3. メンバータブのプレビュー (NEW)
              ========================================= */}
-          {activeTab !== "content" && activeTab !== "activity" && (
+          {activeTab === "members" && (
+            <div style={{ marginTop: "10px" }}>
+              <h3 style={{ fontSize: "1.2rem", fontWeight: 900, marginBottom: "20px", color: "var(--accent)" }}>MEMBER PROFILE</h3>
+              
+              {/* 入力中のプレビュー */}
+              {(mName || mRole || mMessage) && (
+                <div style={{ marginBottom: "32px", padding: "20px", background: "#fdfbf8", border: "1px dashed #ccc", borderRadius: "8px" }}>
+                  <p style={{ fontSize: "0.7rem", color: "#e53e3e", fontWeight: 800, marginBottom: "12px", letterSpacing: "0.1em" }}>▶ 登録プレビュー</p>
+                  <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "16px" }}>
+                    <img src={mPhotoUrl || "/nexus-icon.png"} alt="preview" style={{ width: "64px", height: "64px", borderRadius: "50%", objectFit: "cover" }} />
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: "1.2rem" }}>{mName || "氏名"}</div>
+                      <div style={{ fontSize: "0.8rem", color: "#888", fontWeight: 600 }}>{mRole || "役割"}</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: "0.85rem", color: "#444", lineHeight: 1.7 }}>{renderText(mMessage) || "メッセージ文"}</div>
+                </div>
+              )}
+
+              {/* 登録済みリスト */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {members?.map(m => (
+                  <div key={m.id} style={{ display: "flex", gap: "16px", paddingBottom: "24px", borderBottom: "1px solid #eee" }}>
+                    <img src={m.photo_url || "/nexus-icon.png"} alt={m.name} style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} />
+                    <div>
+                      <div style={{ fontWeight: 800 }}>{m.name}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#888", marginBottom: "8px" }}>{m.role}</div>
+                      <div style={{ fontSize: "0.85rem", color: "#444", lineHeight: 1.7 }}>{renderText(m.message)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* =========================================
+              4. FAQタブのプレビュー (NEW)
+             ========================================= */}
+          {activeTab === "faq" && (
+            <div style={{ marginTop: "10px" }}>
+              <h3 style={{ fontSize: "1.2rem", fontWeight: 900, marginBottom: "20px", color: "var(--accent)" }}>FAQ (よくある質問)</h3>
+              
+              {/* 入力中のプレビュー */}
+              {(fQuestion || fAnswer) && (
+                <div style={{ marginBottom: "32px", padding: "20px", background: "#fdfbf8", border: "1px dashed #ccc", borderRadius: "8px" }}>
+                  <p style={{ fontSize: "0.7rem", color: "#e53e3e", fontWeight: 800, marginBottom: "12px", letterSpacing: "0.1em" }}>▶ 登録プレビュー</p>
+                  <div style={{ fontWeight: 800, fontSize: "1.05rem", marginBottom: "8px" }}>Q: {fQuestion || "質問を入力..."}</div>
+                  <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.7 }}>A: {renderText(fAnswer) || "回答を入力..."}</div>
+                </div>
+              )}
+
+              {/* 登録済みリスト */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                {faqs?.map(f => (
+                  <div key={f.id} style={{ paddingBottom: "20px", borderBottom: "1px solid #eee" }}>
+                    <div style={{ fontWeight: 800, fontSize: "1.05rem", marginBottom: "8px" }}>Q: {f.question}</div>
+                    <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.7 }}>A: {renderText(f.answer)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* その他のタブ（お問い合わせ等） */}
+          {activeTab === "inquiries" && (
             <div style={{ textAlign: "center", padding: "60px 0", color: "#ccc", fontSize: "0.85rem" }}>
-              このタブのプレビューは現在ありません
+              お問い合わせは左側のリストから確認できます
             </div>
           )}
 
