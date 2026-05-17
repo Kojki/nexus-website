@@ -7,18 +7,17 @@ import Image from "next/image";
 
 import { revalidateSite } from "@/app/actions";
 import { compressImage } from "@/lib/image";
-import { logAdminAction } from "@/lib/analytics"; // 監査ログ機能のインポート
+import { logAdminAction } from "@/lib/analytics"; 
 
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab } from "./components/EditorTabs";
 
-// 新しく「Analytics & Security Tab」を EditorTabs からインポートします
 import { SystemDashboardTab } from "./components/SystemDashboardTab";
 
 export default function NexusStudioPro() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab | "system">("content"); // 'system' タブを追加
+  const [activeTab, setActiveTab] = useState<Tab | "system">("content"); 
   const [activePage, setActivePage] = useState<PagePath>("home");
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
@@ -26,6 +25,11 @@ export default function NexusStudioPro() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // 🔑 Wikipedia運用のための権限ステート
+  const [userRole, setUserRole] = useState<"owner" | "editor" | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
+  const [allowedUsers, setAllowedUsers] = useState<any[]>([]);
 
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -36,13 +40,11 @@ export default function NexusStudioPro() {
   const [siteContents, setSiteContents] = useState<Record<string, Record<string, string>>>({});
   const [liveData, setLiveData] = useState<Record<string, string>>({});
   
-  // 一覧データ用ステート
   const [activities, setActivities] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [faqs, setFaqs] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
 
-  // アクセスログ ＆ 監査ログのデータステート
   const [analyticsData, setAnalyticsData] = useState<{ totalViews: number; todayViews: number; popularPages: any[] }>({ totalViews: 0, todayViews: 0, popularPages: [] });
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
@@ -106,9 +108,13 @@ export default function NexusStudioPro() {
         setAnalyticsData({ totalViews: total, todayViews: today, popularPages: popular });
       }
 
-      // 操作監査ログ（最新20件）の読み込み
+      // 操作監査ログの読み込み
       const { data: logs } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(20);
       setAuditLogs(logs || []);
+
+      // 🔑 ログイン許可メンバーのリストを取得
+      const { data: allowedList } = await supabase.from('allowed_users').select('*').order('email');
+      setAllowedUsers(allowedList || []);
 
     } catch (e: any) {
       setErrorMsg(e.message);
@@ -121,14 +127,32 @@ export default function NexusStudioPro() {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
+      
+      const email = session.user.email || "";
+      setCurrentUserEmail(email);
+
+      // 🔐 ログイン権限＆ロールの自動検証
+      const { data: userData, error: userError } = await supabase
+        .from('allowed_users')
+        .select('role')
+        .eq('email', email)
+        .single();
+
+      if (userError || !userData) {
+        alert(`アクセス権限がありません。\n登録メールアドレス: ${email}\n管理者に追加を依頼してください。`);
+        await supabase.auth.signOut();
+        router.push("/login");
+        return;
+      }
+
       setIsAuthenticated(true);
+      setUserRole(userData.role);
       fetchData();
 
-      // ▼ 【改良】リロード連打によるログスパムを防ぐため、セッション単位で最初の1回のみ記録する ▼
       const sessionKey = "nexus_admin_session_logged";
       if (!sessionStorage.getItem(sessionKey)) {
         logAdminAction("login", "管理システムにログイン（セッション開始）しました");
-        sessionStorage.setItem(sessionKey, "true"); // ブラウザのタブを閉じるまでこのフラグを維持
+        sessionStorage.setItem(sessionKey, "true"); 
       }
     };
     init();
@@ -137,6 +161,72 @@ export default function NexusStudioPro() {
   useEffect(() => {
     setLiveData(siteContents[activePage] || {});
   }, [activePage, siteContents]);
+
+  // 🔑 ログイン許可リストの追加操作
+  const handleAddAllowedUser = async (email: string, role: string) => {
+    if (!email) return;
+    if (userRole !== "owner") {
+      showToast("操作権限がありません", "error");
+      return;
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    try {
+      const { error } = await supabase.from('allowed_users').insert([{ email: cleanEmail, role }]);
+      if (error) throw error;
+      
+      logAdminAction("add_allowed_user", `ユーザー「${cleanEmail}」に「${role}」権限を付与してログインを許可しました`);
+      showToast(`${cleanEmail} を追加しました`);
+      fetchData();
+    } catch (e: any) {
+      showToast("追加に失敗しました。すでに登録されている可能性があります。", "error");
+    }
+  };
+
+  // 🔑 ログイン許可リストの削除操作
+  const handleRemoveAllowedUser = async (email: string) => {
+    if (userRole !== "owner") {
+      showToast("操作権限がありません", "error");
+      return;
+    }
+    if (email.toLowerCase() === currentUserEmail.toLowerCase()) {
+      showToast("自分自身の権限を削除することはできません", "error");
+      return;
+    }
+    if (confirm(`本当に「${email}」のログイン許可を剥奪しますか？\nこのユーザーは即座にログインできなくなります。`)) {
+      try {
+        const { error } = await supabase.from('allowed_users').delete().eq('email', email);
+        if (error) throw error;
+        
+        logAdminAction("remove_allowed_user", `ユーザー「${email}」のログイン権限を剥奪しました`);
+        showToast(`${email} を削除しました`);
+        fetchData();
+      } catch (e: any) {
+        showToast("削除に失敗しました", "error");
+      }
+    }
+  };
+
+  // 🔑 ユーザー権限（Owner/Editor）の変更操作
+  const handleChangeUserRole = async (email: string, role: string) => {
+    if (userRole !== "owner") {
+      showToast("操作権限がありません", "error");
+      return;
+    }
+    if (email.toLowerCase() === currentUserEmail.toLowerCase()) {
+      showToast("自分自身のロールは変更できません", "error");
+      return;
+    }
+    try {
+      const { error } = await supabase.from('allowed_users').update({ role }).eq('email', email);
+      if (error) throw error;
+
+      logAdminAction("change_user_role", `ユーザー「${email}」のロールを「${role}」に変更しました`);
+      showToast(`${email} の権限を変更しました`);
+      fetchData();
+    } catch (e: any) {
+      showToast("権限の変更に失敗しました", "error");
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
     let file = e.target.files?.[0];
@@ -444,7 +534,13 @@ export default function NexusStudioPro() {
           {activeTab === "system" && (
             <SystemDashboardTab 
               analytics={analyticsData} 
-              logs={auditLogs} 
+              logs={auditLogs}
+              userRole={userRole}
+              allowedUsers={allowedUsers}
+              currentUserEmail={currentUserEmail}
+              onAddUser={handleAddAllowedUser}
+              onRemoveUser={handleRemoveAllowedUser}
+              onChangeRole={handleChangeUserRole}
             />
           )}
           {activeTab === "content" && (

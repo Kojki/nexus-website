@@ -173,17 +173,55 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
         
         <div style={S.formStack}>
           <InputField label="タイトル *" value={state.title} onChange={setters.setTitle} placeholder="第1回アイデア会議を開催しました" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <InputField label="日付 *" value={state.date} onChange={setters.setDate} />
-            <div style={S.group}>
-              <label style={S.fieldLabel}>カテゴリ *</label>
-              <select style={S.select} value={state.category} onChange={(e) => setters.setCategory(e.target.value)}>
-                <option value="NEWS">NEWS</option>
-                <option value="PROJECT">PROJECT</option>
-                <option value="DIALOGUE">DIALOGUE</option>
-              </select>
+            
+            {/* ✅ [超改善] ドロップダウンを廃止し、説明付きの極上インタラクティブカード型セレクターに変更 */}
+            <div style={{ marginBottom: "8px" }}>
+              <label style={{ ...S.fieldLabel, marginBottom: "12px", display: "block" }}>カテゴリ選択 *</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
+                {[
+                  { value: "NEWS", emoji: "📰", title: "NEWS", desc: "お知らせ・活動速報・イベント告知など" },
+                  { value: "PROJECT", emoji: "🚀", title: "PROJECT", desc: "共同開発・ものづくりの進捗・成果報告" },
+                  { value: "DIALOGUE", emoji: "💬", title: "DIALOGUE", desc: "対談・インタビュー・メンバー議論の記録" }
+                ].map(cat => {
+                  const isSelected = state.category === cat.value;
+                  return (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => setters.setCategory(cat.value)}
+                      style={{
+                        background: isSelected ? "var(--accent-pale)" : "white",
+                        border: isSelected ? "2px solid var(--accent)" : "1px solid var(--border)",
+                        borderRadius: "14px",
+                        padding: "16px",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                        boxShadow: isSelected ? "0 4px 12px rgba(0,0,0,0.03)" : "none"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "1.2rem" }}>{cat.emoji}</span>
+                        <span style={{ fontSize: "0.95rem", fontWeight: 800, color: isSelected ? "var(--accent)" : "var(--ink)" }}>
+                          {cat.title}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: "0.75rem", color: isSelected ? "var(--ink)" : "var(--ink-soft)", lineHeight: 1.4 }}>
+                        {cat.desc}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
+          
           <InputField label="要約 (一覧に表示されます) *" value={state.summary} onChange={setters.setSummary} textarea placeholder="**太字** や [リンク](URL) などのマークダウン記法が使えます" />
           
           <div style={S.group}>
@@ -197,7 +235,7 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
             )}
           </div>
           
-          <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="## 大見出し&#13;### 中見出し&#13;- 箇条書き&#13;**太字** などが使用できます。" />
+          <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="## 大見出し&#13;### 中見出し&#13;- 箇流書き&#13;**太字** などが使用できます。" />
           <InputField label="URLスラッグ (例: project-kickoff) ※任意" value={state.slug} onChange={setters.setSlug} />
           
           <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
