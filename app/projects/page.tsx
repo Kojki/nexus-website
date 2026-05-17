@@ -14,6 +14,15 @@ interface Project {
   created_at: string;
 }
 
+// 📈 クリックイベント統計のログ記録用ヘルパー
+const logClickEvent = async (type: string, name: string) => {
+  try {
+    await supabase.from("click_events").insert([{ event_type: type, target_name: name }]);
+  } catch (err) {
+    console.error("Failed to log event:", err);
+  }
+};
+
 // 🟢 ホバーアニメーションを完全保証するためのProjectCard子コンポーネント
 function ProjectCard({ proj }: { proj: Project }) {
   const [hover, setHover] = useState(false);
@@ -97,6 +106,7 @@ function ProjectCard({ proj }: { proj: Project }) {
         {proj.status === 'open' ? (
           <Link 
             href={`/contact?category=project&title=${encodeURIComponent(proj.title)}`}
+            onClick={() => logClickEvent('project_apply', proj.title)} // 🚀 クリック時に統計データを蓄積
             style={{ 
               display: "flex", 
               alignItems: "center", 
@@ -144,16 +154,29 @@ export default function ProjectsPage() {
   const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('all');
   const [loading, setLoading] = useState(true);
 
+  const cacheKey = "nexus_projects_cache";
+
   useEffect(() => {
+    // 🚀 1. キャッシュがあれば即時レンダリング (ロード時間0秒を達成)
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      setProjects(JSON.parse(cached));
+      setLoading(false);
+    }
+
     const fetchProjects = async () => {
       try {
         const { data, error } = await supabase
           .from("projects")
           .select("*")
+          .eq("is_deleted", false) // 🗑️ 論理削除されていないデータのみ取得
           .order("order_index", { ascending: true });
         
         if (error) throw error;
         setProjects(data || []);
+        
+        // 🚀 キャッシュを裏側で静かにアップデート
+        localStorage.setItem(cacheKey, JSON.stringify(data || []));
       } catch (err) {
         console.error("プロジェクトデータの取得に失敗しました:", err);
       } finally {

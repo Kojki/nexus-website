@@ -20,15 +20,49 @@ export default function Contact() {
     content: "",
   });
 
+  // 🤖 ボット検知用の見えないハニーポットフィールド
+  const [honeypot, setHoneypot] = useState("");
+
   const categories = ["ご質問", "ご意見・ご感想", "取材のご依頼", "企業・大学関係者の方", "その他"];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    // 🤖 もしハニーポットに何かが入力されていたら、スパムボットと判定して送信処理をスキップ
+    if (honeypot !== "") {
+      console.log("Bot spam inquiry blocked successfully.");
+      // ボット側には「成功した」と思い込ませるために、成功画面だけを見せます
+      setTimeout(() => {
+        setIsSubmitted(true);
+        setIsSubmitting(false);
+      }, 800);
+      return;
+    }
+
     try {
+      // 1. Supabaseへ書き込み
       const { error } = await supabase.from("inquiries").insert([formData]);
       if (error) throw error;
+
+      // 2. 運営Slackへの即時リアルタイム通知 (環境変数から安全に取得)
+      try {
+        const slackWebhookUrl = process.env.NEXT_PUBLIC_SLACK_WEBHOOK_URL || "";
+        
+        if (slackWebhookUrl) {
+          const messageText = `📩 *【新規お問い合わせ】* \n----------------------------------------\n*カテゴリ:* ${formData.category}\n*お名前:* ${formData.name}\n*所属/組織:* ${formData.organization || "未入力"}\n*返信用アドレス:* ${formData.email}\n*本文:*\n${formData.content}\n----------------------------------------\n⚡️ _Nexus Connect Studio システム即時通知_`;
+          
+          await fetch(slackWebhookUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: messageText })
+          });
+        }
+      } catch (slackErr) {
+        console.error("Slack通知に失敗しました:", slackErr);
+      }
+
       setIsSubmitted(true);
     } catch (error) {
       alert("送信に失敗しました。時間をおいて再度お試しください。");
@@ -58,10 +92,24 @@ export default function Contact() {
           <div className="success-state">
             <div className="success-icon">✓</div>
             <h2>送信が完了しました</h2>
+            <p style={{ color: "var(--muted)", marginBottom: "30px", fontSize: "0.95rem" }}>お問い合わせいただきありがとうございます。内容を確認の上、担当者より返信いたします。</p>
             <Link href="/" className="button button-dark">トップページに戻る</Link>
           </div>
         ) : (
           <form className="contact-form animate-slide-up" onSubmit={handleSubmit}>
+            
+            {/* 🤖 スパムトラップ（人間には表示されない、ボットだけが入力する罠） */}
+            <div style={{ display: "none" }} aria-hidden="true">
+              <input 
+                type="text" 
+                name="website_hidden_trap_field" 
+                value={honeypot} 
+                onChange={(e) => setHoneypot(e.target.value)} 
+                tabIndex={-1} 
+                placeholder="Do not fill this field if you are a human" 
+              />
+            </div>
+
             {/* カテゴリ選択 */}
             <div className="form-group">
               <label htmlFor="category">お問い合わせカテゴリ</label>
@@ -142,3 +190,4 @@ export default function Contact() {
     </main>
   );
 }
+

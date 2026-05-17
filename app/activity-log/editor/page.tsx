@@ -17,7 +17,7 @@ import { SystemDashboardTab } from "./components/SystemDashboardTab";
 
 export default function NexusStudioPro() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<any>("content"); // 🚀 TSコンパイラのキャッシュバグを完全回避するために any に拡張
+  const [activeTab, setActiveTab] = useState<any>("content"); 
   const [activePage, setActivePage] = useState<PagePath>("home");
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
@@ -45,6 +45,12 @@ export default function NexusStudioPro() {
   const [faqs, setFaqs] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]); 
+
+  // 🗑️ ゴミ箱（論理削除済みデータ）用ステート
+  const [deletedActivities, setDeletedActivities] = useState<any[]>([]);
+  const [deletedMembers, setDeletedMembers] = useState<any[]>([]);
+  const [deletedProjects, setDeletedProjects] = useState<any[]>([]);
+  const [deletedFaqs, setDeletedFaqs] = useState<any[]>([]);
 
   const [analyticsData, setAnalyticsData] = useState<{ totalViews: number; todayViews: number; popularPages: any[] }>({ totalViews: 0, todayViews: 0, popularPages: [] });
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -94,21 +100,35 @@ export default function NexusStudioPro() {
       setSiteContents(cMap);
       setLiveData(cMap[activePage] || {});
 
-      const { data: aData } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
+      // 🗑️ アクティブなデータ（is_deleted = false）のみフェッチするように変更
+      const { data: aData } = await supabase.from('activities').select('*').eq('is_deleted', false).order('created_at', { ascending: false });
       setActivities(aData || []);
 
-      const { data: mData } = await supabase.from('members').select('*').order('order_index', { ascending: true });
+      const { data: mData } = await supabase.from('members').select('*').eq('is_deleted', false).order('order_index', { ascending: true });
       setMembers(mData || []);
 
-      const { data: fData } = await supabase.from('faqs').select('*').order('order_index');
+      const { data: fData } = await supabase.from('faqs').select('*').eq('is_deleted', false).order('order_index');
       setFaqs(fData || []);
 
+      const { data: pData } = await supabase.from('projects').select('*').eq('is_deleted', false).order('order_index', { ascending: true });
+      setProjects(pData || []);
+
+      // 🗑️ ゴミ箱用データ（is_deleted = true）を非同期フェッチ
+      const { data: delA } = await supabase.from('activities').select('*').eq('is_deleted', true);
+      setDeletedActivities(delA || []);
+
+      const { data: delM } = await supabase.from('members').select('*').eq('is_deleted', true);
+      setDeletedMembers(delM || []);
+
+      const { data: delF } = await supabase.from('faqs').select('*').eq('is_deleted', true);
+      setDeletedFaqs(delF || []);
+
+      const { data: delP } = await supabase.from('projects').select('*').eq('is_deleted', true);
+      setDeletedProjects(delP || []);
+
+      // お問い合わせ一覧
       const { data: iData } = await supabase.from('inquiries').select('*').order('created_at', { ascending: false });
       setInquiries(iData || []);
-
-      // 🚀 プロジェクトデータの読み込み
-      const { data: pData } = await supabase.from('projects').select('*').order('order_index', { ascending: true });
-      setProjects(pData || []);
 
       // アクセス統計データの集計
       const { data: pvData } = await supabase.from('page_views').select('*');
@@ -149,7 +169,6 @@ export default function NexusStudioPro() {
       const email = session.user.email || "";
       setCurrentUserEmail(email);
 
-      // 🔐 ログイン権限＆ロールの自動検証
       const { data: userData, error: userError } = await supabase
         .from('allowed_users')
         .select('role')
@@ -180,7 +199,7 @@ export default function NexusStudioPro() {
     setLiveData(siteContents[activePage] || {});
   }, [activePage, siteContents]);
 
-  // 🔑 ログイン許可リストの操作ハンドラー (既存)
+  // 🔑 ログイン許可リストの操作ハンドラー
   const handleAddAllowedUser = async (email: string, role: string) => {
     if (!email) return;
     if (userRole !== "owner") {
@@ -301,7 +320,7 @@ export default function NexusStudioPro() {
     }
   };
 
-  // 活动記録の保存
+  // 活動記録の保存
   const handleSaveActivity = async (isPublished: boolean = true) => {
     setPublishing(true);
     try {
@@ -435,7 +454,7 @@ export default function NexusStudioPro() {
     showToast("表示順序を変更しました");
   };
 
-  // 🚀 [新設] プロジェクト保存処理
+  // プロジェクト保存処理
   const handleSaveProject = async () => {
     try {
       const payload = {
@@ -481,7 +500,6 @@ export default function NexusStudioPro() {
     setPStatus("open");
   };
 
-  // 🚀 [新設] プロジェクト表示順の入れ替え処理
   const handleMoveProject = async (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= projects.length) return; 
@@ -587,17 +605,68 @@ export default function NexusStudioPro() {
     }
   };
 
+  // 🗑️ 【論理削除対応】削除ボタン処理のアップグレード
   const handleDelete = async (table: string, id: string) => {
-    if (confirm("本当に削除しますか？")) {
+    // お問い合わせだけは個人情報保持防止のため物理削除
+    if (table === 'inquiries') {
+      if (confirm("お問合せ履歴を永久に消去しますか？")) {
+        try {
+          const { error } = await supabase.from(table).delete().eq('id', id);
+          if (error) throw error;
+          logAdminAction("delete_row", `お問合せ (ID: ${id}) を完全に削除しました`);
+          fetchData();
+          showToast("削除しました");
+        } catch (e) {
+          showToast("削除に失敗しました", "error");
+        }
+      }
+      return;
+    }
+
+    // それ以外の通常の編集データは「ゴミ箱へ移動（論理削除）」
+    if (confirm("本当に削除しますか？\n(データは一旦ゴミ箱へ移動され、後から安全に復元可能です)")) {
+      try {
+        const { error } = await supabase.from(table).update({ is_deleted: true }).eq('id', id);
+        if (error) throw error;
+        
+        logAdminAction("soft_delete", `「${table}」テーブルのアイテム (ID: ${id}) をゴミ箱に移動しました`);
+        await revalidateSite();
+        fetchData();
+        showToast("ゴミ箱へ移動しました");
+      } catch (e: any) {
+        showToast("削除に失敗しました", "error");
+      }
+    }
+  };
+
+  // 🗑️ 【新設】データゴミ箱からの復元処理
+  const handleRestoreItem = async (table: string, id: string) => {
+    try {
+      const { error } = await supabase.from(table).update({ is_deleted: false }).eq('id', id);
+      if (error) throw error;
+
+      logAdminAction("restore_item", `「${table}」テーブルのアイテム (ID: ${id}) をゴミ箱から復元しました`);
+      await revalidateSite();
+      fetchData();
+      showToast("データを復元しました！");
+    } catch (e) {
+      showToast("復元に失敗しました", "error");
+    }
+  };
+
+  // 🗑️ 【新設】データゴミ箱からの「永久消去（物理削除）」
+  const handlePermanentDelete = async (table: string, id: string) => {
+    if (confirm("🚨警告: この操作は取り消せません。\nこのデータを完全に消去しますか？")) {
       try {
         const { error } = await supabase.from(table).delete().eq('id', id);
         if (error) throw error;
-        logAdminAction("delete_row", `${table} テーブルのID: ${id} を完全に削除しました`);
+
+        logAdminAction("hard_delete", `「${table}」テーブルのアイテム (ID: ${id}) を完全に消去しました`);
         await revalidateSite();
         fetchData();
-        showToast("削除しました");
-      } catch (e: any) {
-        showToast("削除に失敗しました", "error");
+        showToast("データを永久消去しました");
+      } catch (e) {
+        showToast("消去に失敗しました", "error");
       }
     }
   };
@@ -648,6 +717,15 @@ export default function NexusStudioPro() {
               onAddUser={handleAddAllowedUser}
               onRemoveUser={handleRemoveAllowedUser}
               onChangeRole={handleChangeUserRole}
+              // 🗑️ ゴミ箱と復元ハンドラーを SystemDashboardTab へ引き渡し
+              trashItems={{
+                activities: deletedActivities,
+                members: deletedMembers,
+                projects: deletedProjects,
+                faqs: deletedFaqs
+              }}
+              onRestoreItem={handleRestoreItem}
+              onPermanentDelete={handlePermanentDelete}
             />
           )}
           {activeTab === "content" && (
@@ -710,3 +788,4 @@ export default function NexusStudioPro() {
     </main>
   );
 }
+

@@ -20,6 +20,15 @@ interface Member {
   order_index: number;
 }
 
+// 📈 クリックイベント統計のログ記録用ヘルパー
+const logClickEvent = async (type: string, name: string) => {
+  try {
+    await supabase.from("click_events").insert([{ event_type: type, target_name: name }]);
+  } catch (err) {
+    console.error("Failed to log event:", err);
+  }
+};
+
 // 🟢 ホバーアニメーションを完全保証するためのMemberCard子コンポーネント
 function MemberCard({ member, onClick }: { member: Member; onClick: () => void }) {
   const [hover, setHover] = useState(false);
@@ -67,17 +76,30 @@ export default function Members() {
   const [loading, setLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
+  const cacheKey = "nexus_members_cache";
+
   useEffect(() => {
+    // 🚀 1. キャッシュがあれば即時レンダリング (ロード時間0秒を達成)
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      setMembers(JSON.parse(cached));
+      setLoading(false);
+    }
+
     const fetchMembers = async () => {
       try {
         const { data, error } = await supabase
           .from('members')
           .select('*')
           .eq('is_published', true)
+          .eq('is_deleted', false) // 🗑️ 論理削除されていないメンバーのみ取得
           .order('order_index', { ascending: true });
         
         if (error) throw error;
         setMembers(data || []);
+        
+        // 🚀 キャッシュを裏側で静かにアップデート
+        localStorage.setItem(cacheKey, JSON.stringify(data || []));
       } catch (err) {
         console.error("メンバーデータの取得に失敗しました:", err);
       } finally {
@@ -212,6 +234,7 @@ export default function Members() {
                       href={selectedMember.github_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
+                      onClick={() => logClickEvent('member_github', selectedMember.name)} // 🚀 GitHubクリック数を計測
                       style={{ 
                         display: "inline-flex", alignItems: "center", gap: "8px", 
                         background: "#111", color: "white", padding: "10px 18px", 
@@ -229,6 +252,7 @@ export default function Members() {
                       href={selectedMember.portfolio_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
+                      onClick={() => logClickEvent('member_portfolio', selectedMember.name)} // 🚀 ポートフォリオクリック数を計測
                       style={{ 
                         display: "inline-flex", alignItems: "center", gap: "8px", 
                         background: "white", color: "#111", border: "1px solid #e0dacb", 
