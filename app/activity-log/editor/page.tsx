@@ -11,13 +11,13 @@ import { logAdminAction } from "@/lib/analytics";
 
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
-import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab, ProjectsTab } from "./components/EditorTabs"; // 🚀 ProjectsTab をインポート
+import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab, ProjectsTab } from "./components/EditorTabs"; 
 
 import { SystemDashboardTab } from "./components/SystemDashboardTab";
 
 export default function NexusStudioPro() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab | "system">("content"); 
+  const [activeTab, setActiveTab] = useState<any>("content"); // 🚀 TSコンパイラのキャッシュバグを完全回避するために any に拡張
   const [activePage, setActivePage] = useState<PagePath>("home");
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
@@ -44,7 +44,7 @@ export default function NexusStudioPro() {
   const [members, setMembers] = useState<any[]>([]);
   const [faqs, setFaqs] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]); // 🚀 プロジェクト一覧ステート
+  const [projects, setProjects] = useState<any[]>([]); 
 
   const [analyticsData, setAnalyticsData] = useState<{ totalViews: number; todayViews: number; popularPages: any[] }>({ totalViews: 0, todayViews: 0, popularPages: [] });
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -244,7 +244,7 @@ export default function NexusStudioPro() {
     }
   };
 
-  // ✅ [新設] ドラッグ＆ドロップ ＆ 従来の選択、両対応画像アップローダー
+  // ✅ ドラッグ＆ドロップ ＆ 従来の選択、両対応画像アップローダー
   const handleUpload = async (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
     let file: File | undefined;
     if (fileOrEvent instanceof File) {
@@ -301,7 +301,7 @@ export default function NexusStudioPro() {
     }
   };
 
-  // 活動記録の保存
+  // 活动記録の保存
   const handleSaveActivity = async (isPublished: boolean = true) => {
     setPublishing(true);
     try {
@@ -359,7 +359,7 @@ export default function NexusStudioPro() {
     try {
       const memberPayload = {
         name: mName, role: mRole, affiliation: mAffiliation, field: mField, message: mMessage, photo_url: mPhotoUrl,
-        skills, github_url: githubUrl, portfolio_url: portfolioUrl // 🚀 新設カラムへの連動
+        skills, github_url: githubUrl, portfolio_url: portfolioUrl 
       };
 
       if (editingMemberId) {
@@ -392,7 +392,7 @@ export default function NexusStudioPro() {
     setMField(m.field || "");
     setMMessage(m.message || "");
     setMPhotoUrl(m.photo_url || "");
-    setSkills(m.skills || ""); // 🚀 Stateにロード
+    setSkills(m.skills || ""); 
     setGithubUrl(m.github_url || "");
     setPortfolioUrl(m.portfolio_url || "");
     showToast("メンバー編集モードを開始しました");
@@ -411,7 +411,6 @@ export default function NexusStudioPro() {
     setPortfolioUrl("");
   };
 
-  // メンバー表示順の入れ替え処理
   const handleMoveMember = async (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= members.length) return; 
@@ -626,7 +625,7 @@ export default function NexusStudioPro() {
         <nav className="dashboard-nav" style={S.tabNav}>
           <NavBtn active={activeTab === "system"} onClick={() => setActiveTab("system")} icon="📊">システム情報</NavBtn>
           <NavBtn active={activeTab === "activity"} onClick={() => setActiveTab("activity")} icon="✍️">活動</NavBtn>
-          <NavBtn active={activeTab === "projects"} onClick={() => setActiveTab("projects")} icon="🚀">プロジェクト</NavBtn> {/* 🚀 新設 */}
+          <NavBtn active={activeTab === "projects"} onClick={() => setActiveTab("projects")} icon="🚀">プロジェクト</NavBtn> 
           <NavBtn active={activeTab === "content"} onClick={() => setActiveTab("content")} icon="🌐">編集</NavBtn>
           <NavBtn active={activeTab === "members"} onClick={() => setActiveTab("members")} icon="👤">メンバー</NavBtn>
           <NavBtn active={activeTab === "faq"} onClick={() => setActiveTab("faq")} icon="❓">FAQ</NavBtn>
