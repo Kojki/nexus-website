@@ -18,6 +18,13 @@ export default function NexusStudioPro() {
   const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  // トースト通知用の状態
+  const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // --- Data States ---
   const [siteContents, setSiteContents] = useState<Record<string, Record<string, string>>>({});
@@ -94,31 +101,62 @@ export default function NexusStudioPro() {
   };
 
   const handleUpdateContent = async (key: string, value: string) => {
-    const { error } = await supabase.from('site_content').upsert({ page_path: activePage, content_key: key, content_value: value }, { onConflict: 'page_path,content_key' });
-    if (!error) fetchData();
+    try {
+      const { error } = await supabase.from('site_content').upsert({ page_path: activePage, content_key: key, content_value: value }, { onConflict: 'page_path,content_key' });
+      if (error) throw error;
+      showToast("保存しました");
+      fetchData();
+    } catch (e: any) {
+      showToast("保存に失敗しました: " + e.message, "error");
+    }
   };
 
   const handlePublishActivity = async () => {
     setPublishing(true);
-    const { error } = await supabase.from('activities').insert([{ title, date, category, summary, content, slug, image_url: imageUrl, has_detail: !!content }]);
-    if (!error) { alert("公開完了"); setTitle(""); setImageUrl(""); fetchData(); }
-    setPublishing(false);
+    try {
+      const { error } = await supabase.from('activities').insert([{ title, date, category, summary, content, slug, image_url: imageUrl, has_detail: !!content }]);
+      if (error) throw error;
+      showToast("公開が完了しました！"); 
+      setTitle(""); setImageUrl(""); fetchData();
+    } catch (e: any) {
+      showToast("公開に失敗しました", "error");
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const handleAddMember = async () => {
-    const { error } = await supabase.from('members').insert([{ name: mName, role: mRole, affiliation: mAffiliation, field: mField, message: mMessage, photo_url: mPhotoUrl, order_index: members.length + 1 }]);
-    if (!error) { setMName(""); setMMessage(""); setMPhotoUrl(""); fetchData(); }
+    try {
+      const { error } = await supabase.from('members').insert([{ name: mName, role: mRole, affiliation: mAffiliation, field: mField, message: mMessage, photo_url: mPhotoUrl, order_index: members.length + 1 }]);
+      if (error) throw error;
+      setMName(""); setMMessage(""); setMPhotoUrl(""); fetchData();
+      showToast("メンバーを追加しました");
+    } catch (e: any) {
+      showToast("追加に失敗しました", "error");
+    }
   };
 
   const handleAddFaq = async () => {
-    const { error } = await supabase.from('faqs').insert([{ question: fQuestion, answer: fAnswer, order_index: faqs.length + 1 }]);
-    if (!error) { setFQuestion(""); setFAnswer(""); fetchData(); }
+    try {
+      const { error } = await supabase.from('faqs').insert([{ question: fQuestion, answer: fAnswer, order_index: faqs.length + 1 }]);
+      if (error) throw error;
+      setFQuestion(""); setFAnswer(""); fetchData();
+      showToast("FAQを追加しました");
+    } catch (e: any) {
+      showToast("追加に失敗しました", "error");
+    }
   };
 
   const handleDelete = async (table: string, id: string) => {
-    if (confirm("削除しますか？")) {
-      await supabase.from(table).delete().eq('id', id);
-      fetchData();
+    if (confirm("本当に削除しますか？")) {
+      try {
+        const { error } = await supabase.from(table).delete().eq('id', id);
+        if (error) throw error;
+        fetchData();
+        showToast("削除しました");
+      } catch (e: any) {
+        showToast("削除に失敗しました", "error");
+      }
     }
   };
 
@@ -180,6 +218,20 @@ export default function NexusStudioPro() {
 
         <PreviewPanel activeTab={activeTab} activePage={activePage} liveData={liveData} title={title} imageUrl={imageUrl} summary={summary} />
       </div>
+
+      {/* トースト通知 (画面右下に表示) */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: "30px", right: "30px",
+          background: toast.type === "success" ? "#1a1a1a" : "#e53e3e",
+          color: "white", padding: "16px 24px", borderRadius: "12px",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.2)", fontWeight: 700, fontSize: "0.95rem",
+          display: "flex", alignItems: "center", gap: "10px",
+          zIndex: 9999, transition: "all 0.3s ease"
+        }}>
+          {toast.type === "success" ? "✅" : "⚠️"} {toast.msg}
+        </div>
+      )}
     </main>
   );
 }
