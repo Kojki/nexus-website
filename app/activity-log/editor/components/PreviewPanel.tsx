@@ -141,6 +141,13 @@ export function PreviewPanel({
             <div style={{ marginTop: "10px" }}>
               <h3 style={{ fontSize: "1.2rem", fontWeight: 900, marginBottom: "20px", color: "var(--accent)" }}>MEMBER PROFILE</h3>
               
+              {/* ▼ 入力中、または登録済みのデータがない場合のメッセージ ▼ */}
+              {(!members || members.length === 0) && !mName && !mRole && !mMessage && (
+                <div style={{ textAlign: "center", padding: "40px", color: "#aaa", border: "2px dashed #e5e0d8", borderRadius: "12px", fontSize: "0.85rem", lineHeight: 1.6 }}>
+                  まだ登録されているメンバーはいません。<br />左側のフォームに入力すると、ここにプレビューが表示されます。
+                </div>
+              )}
+
               {(mName || mRole || mMessage) && (
                 <div style={{ marginBottom: "32px", padding: "20px", background: "#fdfbf8", border: "1px dashed #ccc", borderRadius: "8px" }}>
                   <p style={{ fontSize: "0.7rem", color: "#e53e3e", fontWeight: 800, marginBottom: "12px", letterSpacing: "0.1em" }}>▶ 登録プレビュー</p>
@@ -177,6 +184,13 @@ export function PreviewPanel({
             <div style={{ marginTop: "10px" }}>
               <h3 style={{ fontSize: "1.2rem", fontWeight: 900, marginBottom: "20px", color: "var(--accent)" }}>FAQ (よくある質問)</h3>
               
+              {/* ▼ 入力中、または登録済みのデータがない場合のメッセージ ▼ */}
+              {(!faqs || faqs.length === 0) && !fQuestion && !fAnswer && (
+                <div style={{ textAlign: "center", padding: "40px", color: "#aaa", border: "2px dashed #e5e0d8", borderRadius: "12px", fontSize: "0.85rem", lineHeight: 1.6 }}>
+                  まだ登録されているFAQはありません。<br />左側のフォームに入力すると、ここにプレビューが表示されます。
+                </div>
+              )}
+
               {(fQuestion || fAnswer) && (
                 <div style={{ marginBottom: "32px", padding: "20px", background: "#fdfbf8", border: "1px dashed #ccc", borderRadius: "8px" }}>
                   <p style={{ fontSize: "0.7rem", color: "#e53e3e", fontWeight: 800, marginBottom: "12px", letterSpacing: "0.1em" }}>▶ 登録プレビュー</p>
