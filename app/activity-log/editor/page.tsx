@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 import { revalidateSite } from "@/app/actions";
+// ▼ 新規機能：ブラウザ側圧縮のインポートを追加
+import { compressImage } from "@/lib/image";
 
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
@@ -84,10 +86,19 @@ export default function NexusStudioPro() {
     setLiveData(siteContents[activePage] || {});
   }, [activePage, siteContents]);
 
+  // ▼ 画像がアップロードされる前に自動で圧縮を実行するように修正 ▼
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
-    const file = e.target.files?.[0];
+    let file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+
+    // ▼ 画像をアップロードする前にブラウザ側で圧縮（例: 5MB -> 150KB）
+    try {
+      file = await compressImage(file, 1000, 0.75); // 横幅最大1000px, 画質75%で圧縮
+    } catch (err) {
+      console.error("画像の圧縮に失敗しました。オリジナルの画像をアップロードします:", err);
+    }
+
     const fileName = `${Date.now()}-${file.name}`;
     const { error } = await supabase.storage.from('activity-images').upload(fileName, file);
     if (!error) {
@@ -109,7 +120,6 @@ export default function NexusStudioPro() {
     }
   };
 
-  // ▼ 活動記録に「下書きフラグ」を渡せるように修正 ▼
   const handlePublishActivity = async (isPublished: boolean = true) => {
     setPublishing(true);
     try {
@@ -151,7 +161,6 @@ export default function NexusStudioPro() {
     }
   };
 
-  // ▼ 新機能：公開・非公開の切り替えトグル ▼
   const handleTogglePublish = async (table: string, id: string, isPublished: boolean) => {
     try {
       const { error } = await supabase.from(table).update({ is_published: isPublished }).eq('id', id);
