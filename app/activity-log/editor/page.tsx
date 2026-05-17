@@ -11,7 +11,7 @@ import { logAdminAction } from "@/lib/analytics";
 
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
-import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab } from "./components/EditorTabs";
+import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab, ProjectsTab } from "./components/EditorTabs"; // 🚀 ProjectsTab をインポート
 
 import { SystemDashboardTab } from "./components/SystemDashboardTab";
 
@@ -44,11 +44,12 @@ export default function NexusStudioPro() {
   const [members, setMembers] = useState<any[]>([]);
   const [faqs, setFaqs] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]); // 🚀 プロジェクト一覧ステート
 
   const [analyticsData, setAnalyticsData] = useState<{ totalViews: number; todayViews: number; popularPages: any[] }>({ totalViews: 0, todayViews: 0, popularPages: [] });
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
-  // 入力フォーム用ステート
+  // 入力フォーム用ステート (既存)
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toLocaleDateString('ja-JP').replace(/\//g, '.'));
   const [category, setCategory] = useState("NEWS");
@@ -64,6 +65,19 @@ export default function NexusStudioPro() {
   const [mPhotoUrl, setMPhotoUrl] = useState("");
   const [fQuestion, setFQuestion] = useState("");
   const [fAnswer, setFAnswer] = useState("");
+
+  // 🚀 プロジェクト管理用ステート
+  const [pTitle, setPTitle] = useState("");
+  const [pDescription, setPDescription] = useState("");
+  const [pTechStack, setPTechStack] = useState("");
+  const [pRolesNeeded, setPRolesNeeded] = useState("");
+  const [pStatus, setPStatus] = useState("open");
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+
+  // 👤 メンバープロフィール拡張ステート
+  const [skills, setSkills] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [portfolioUrl, setPortfolioUrl] = useState("");
   
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -91,6 +105,10 @@ export default function NexusStudioPro() {
 
       const { data: iData } = await supabase.from('inquiries').select('*').order('created_at', { ascending: false });
       setInquiries(iData || []);
+
+      // 🚀 プロジェクトデータの読み込み
+      const { data: pData } = await supabase.from('projects').select('*').order('order_index', { ascending: true });
+      setProjects(pData || []);
 
       // アクセス統計データの集計
       const { data: pvData } = await supabase.from('page_views').select('*');
@@ -162,7 +180,7 @@ export default function NexusStudioPro() {
     setLiveData(siteContents[activePage] || {});
   }, [activePage, siteContents]);
 
-  // 🔑 ログイン許可リストの追加操作
+  // 🔑 ログイン許可リストの操作ハンドラー (既存)
   const handleAddAllowedUser = async (email: string, role: string) => {
     if (!email) return;
     if (userRole !== "owner") {
@@ -182,7 +200,6 @@ export default function NexusStudioPro() {
     }
   };
 
-  // 🔑 ログイン許可リストの削除操作
   const handleRemoveAllowedUser = async (email: string) => {
     if (userRole !== "owner") {
       showToast("操作権限がありません", "error");
@@ -192,7 +209,7 @@ export default function NexusStudioPro() {
       showToast("自分自身の権限を削除することはできません", "error");
       return;
     }
-    if (confirm(`本当に「${email}」のログイン許可を剥奪しますか？\nこのユーザーは即座にログインできなくなります。`)) {
+    if (confirm(`本当に「${email}」のログイン許可を剥奪しますか？`)) {
       try {
         const { error } = await supabase.from('allowed_users').delete().eq('email', email);
         if (error) throw error;
@@ -206,7 +223,6 @@ export default function NexusStudioPro() {
     }
   };
 
-  // 🔑 ユーザー権限（Owner/Editor）の変更操作
   const handleChangeUserRole = async (email: string, role: string) => {
     if (userRole !== "owner") {
       showToast("操作権限がありません", "error");
@@ -228,8 +244,14 @@ export default function NexusStudioPro() {
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
-    let file = e.target.files?.[0];
+  // ✅ [新設] ドラッグ＆ドロップ ＆ 従来の選択、両対応画像アップローダー
+  const handleUpload = async (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
+    let file: File | undefined;
+    if (fileOrEvent instanceof File) {
+      file = fileOrEvent;
+    } else {
+      file = fileOrEvent.target.files?.[0];
+    }
     if (!file) return;
     setUploading(true);
 
@@ -244,6 +266,9 @@ export default function NexusStudioPro() {
     if (!error) {
       const { data } = supabase.storage.from('activity-images').getPublicUrl(fileName);
       setUrl(data.publicUrl);
+      showToast("画像をアップロードしました！");
+    } else {
+      showToast("画像の送信に失敗しました", "error");
     }
     setUploading(false);
   };
@@ -333,7 +358,8 @@ export default function NexusStudioPro() {
   const handleSaveMember = async () => {
     try {
       const memberPayload = {
-        name: mName, role: mRole, affiliation: mAffiliation, field: mField, message: mMessage, photo_url: mPhotoUrl
+        name: mName, role: mRole, affiliation: mAffiliation, field: mField, message: mMessage, photo_url: mPhotoUrl,
+        skills, github_url: githubUrl, portfolio_url: portfolioUrl // 🚀 新設カラムへの連動
       };
 
       if (editingMemberId) {
@@ -349,7 +375,9 @@ export default function NexusStudioPro() {
       }
 
       await revalidateSite();
-      setMName(""); setMRole(""); setMAffiliation(""); setMMessage(""); setMPhotoUrl(""); setEditingMemberId(null);
+      setMName(""); setMRole(""); setMAffiliation(""); setMField(""); setMMessage(""); setMPhotoUrl("");
+      setSkills(""); setGithubUrl(""); setPortfolioUrl("");
+      setEditingMemberId(null);
       fetchData();
     } catch (e: any) {
       showToast("保存に失敗しました", "error");
@@ -361,8 +389,12 @@ export default function NexusStudioPro() {
     setMName(m.name);
     setMRole(m.role || "");
     setMAffiliation(m.affiliation || "");
+    setMField(m.field || "");
     setMMessage(m.message || "");
     setMPhotoUrl(m.photo_url || "");
+    setSkills(m.skills || ""); // 🚀 Stateにロード
+    setGithubUrl(m.github_url || "");
+    setPortfolioUrl(m.portfolio_url || "");
     showToast("メンバー編集モードを開始しました");
   };
 
@@ -371,8 +403,12 @@ export default function NexusStudioPro() {
     setMName("");
     setMRole("");
     setMAffiliation("");
+    setMField("");
     setMMessage("");
     setMPhotoUrl("");
+    setSkills("");
+    setGithubUrl("");
+    setPortfolioUrl("");
   };
 
   // メンバー表示順の入れ替え処理
@@ -395,6 +431,77 @@ export default function NexusStudioPro() {
     }
 
     logAdminAction("reorder_members", `メンバーの表示順序を入れ替えました (${currentMember.name} ➔ ${direction === 'up' ? '上へ' : '下へ'})`);
+    await revalidateSite();
+    fetchData();
+    showToast("表示順序を変更しました");
+  };
+
+  // 🚀 [新設] プロジェクト保存処理
+  const handleSaveProject = async () => {
+    try {
+      const payload = {
+        title: pTitle, description: pDescription, tech_stack: pTechStack, roles_needed: pRolesNeeded, status: pStatus
+      };
+
+      if (editingProjectId) {
+        const { error } = await supabase.from('projects').update(payload).eq('id', editingProjectId);
+        if (error) throw error;
+        logAdminAction("update_project", `プロジェクト「${pTitle}」の情報を更新しました`);
+        showToast("プロジェクトを更新しました");
+      } else {
+        const { error } = await supabase.from('projects').insert([{ ...payload, order_index: projects.length + 1 }]);
+        if (error) throw error;
+        logAdminAction("create_project", `新規共創プロジェクト「${pTitle}」を登録しました`);
+        showToast("プロジェクトを登録しました！");
+      }
+
+      await revalidateSite();
+      setPTitle(""); setPDescription(""); setPTechStack(""); setPRolesNeeded(""); setPStatus("open"); setEditingProjectId(null);
+      fetchData();
+    } catch (e: any) {
+      showToast("保存に失敗しました", "error");
+    }
+  };
+
+  const startEditProject = (proj: any) => {
+    setEditingProjectId(proj.id);
+    setPTitle(proj.title);
+    setPDescription(proj.description);
+    setPTechStack(proj.tech_stack || "");
+    setPRolesNeeded(proj.roles_needed || "");
+    setPStatus(proj.status || "open");
+    showToast("プロジェクト編集モードを開始しました");
+  };
+
+  const cancelEditProject = () => {
+    setEditingProjectId(null);
+    setPTitle("");
+    setPDescription("");
+    setPTechStack("");
+    setPRolesNeeded("");
+    setPStatus("open");
+  };
+
+  // 🚀 [新設] プロジェクト表示順の入れ替え処理
+  const handleMoveProject = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= projects.length) return; 
+
+    const currentProj = projects[index];
+    const targetProj = projects[targetIndex];
+
+    const currentOrder = currentProj.order_index ?? (index + 1);
+    const targetOrder = targetProj.order_index ?? (targetIndex + 1);
+
+    const { error: err1 } = await supabase.from('projects').update({ order_index: targetOrder }).eq('id', currentProj.id);
+    const { error: err2 } = await supabase.from('projects').update({ order_index: currentOrder }).eq('id', targetProj.id);
+
+    if (err1 || err2) {
+      showToast("順序の入れ替えに失敗しました", "error");
+      return;
+    }
+
+    logAdminAction("reorder_projects", `プロジェクトの表示順序を入れ替えました (${currentProj.title} ➔ ${direction === 'up' ? '上へ' : '下へ'})`);
     await revalidateSite();
     fetchData();
     showToast("表示順序を変更しました");
@@ -519,6 +626,7 @@ export default function NexusStudioPro() {
         <nav className="dashboard-nav" style={S.tabNav}>
           <NavBtn active={activeTab === "system"} onClick={() => setActiveTab("system")} icon="📊">システム情報</NavBtn>
           <NavBtn active={activeTab === "activity"} onClick={() => setActiveTab("activity")} icon="✍️">活動</NavBtn>
+          <NavBtn active={activeTab === "projects"} onClick={() => setActiveTab("projects")} icon="🚀">プロジェクト</NavBtn> {/* 🚀 新設 */}
           <NavBtn active={activeTab === "content"} onClick={() => setActiveTab("content")} icon="🌐">編集</NavBtn>
           <NavBtn active={activeTab === "members"} onClick={() => setActiveTab("members")} icon="👤">メンバー</NavBtn>
           <NavBtn active={activeTab === "faq"} onClick={() => setActiveTab("faq")} icon="❓">FAQ</NavBtn>
@@ -559,10 +667,18 @@ export default function NexusStudioPro() {
               activities={activities}
             />
           )}
+          {activeTab === "projects" && (
+            <ProjectsTab 
+              state={{ pTitle, pDescription, pTechStack, pRolesNeeded, pStatus, editingProjectId }}
+              setters={{ setPTitle, setPDescription, setPTechStack, setPRolesNeeded, setPStatus }}
+              handlers={{ handleSaveProject, startEditProject, cancelEditProject, handleDelete, handleMoveProject }}
+              projects={projects}
+            />
+          )}
           {activeTab === "members" && (
             <MembersTab 
-              state={{ members, mName, mRole, mAffiliation, mMessage, mPhotoUrl, editingMemberId }} 
-              setters={{ setMName, setMRole, setMAffiliation, setMMessage, setMPhotoUrl }} 
+              state={{ members, mName, mRole, mAffiliation, mMessage, mPhotoUrl, editingMemberId, skills, githubUrl, portfolioUrl, uploading }} 
+              setters={{ setMName, setMRole, setMAffiliation, setMMessage, setMPhotoUrl, setSkills, setGithubUrl, setPortfolioUrl }} 
               handlers={{ handleSaveMember, handleUpload, handleDelete, handleTogglePublish, startEditMember, cancelEditMember, handleMoveMember }} 
             />
           )}
@@ -581,7 +697,7 @@ export default function NexusStudioPro() {
           )}
         </div>
         <PreviewPanel 
-          activeTab={activeTab === "system" ? "content" : activeTab}
+          activeTab={activeTab === "system" || activeTab === "projects" ? "content" : activeTab}
           activePage={activePage} liveData={liveData} title={title} imageUrl={imageUrl} summary={summary}
           faqs={faqs} fQuestion={fQuestion} fAnswer={fAnswer} members={members} mName={mName} mRole={mRole} mMessage={mMessage} mPhotoUrl={mPhotoUrl}
         />

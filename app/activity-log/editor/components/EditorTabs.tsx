@@ -1,6 +1,75 @@
-import React from "react";
+import React, { useState } from "react";
 import { PageTabBtn, InputField, S, PagePath } from "./SharedUI";
 
+// 🟢 [新設] 共通の超プレミアム画像ドラッグ＆ドロップ・アップローダー
+function DragDropImageZone({ label, imageUrl, uploading, onUpload, onClear }: any) {
+  const [dragging, setDragging] = useState(false);
+  
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      onUpload(file);
+    }
+  };
+
+  return (
+    <div style={S.group}>
+      <label style={S.fieldLabel}>{label}</label>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        style={{
+          border: dragging ? "2px dashed var(--accent)" : "2px dashed var(--border)",
+          background: dragging ? "var(--accent-pale)" : "white",
+          borderRadius: "16px",
+          padding: "24px",
+          textAlign: "center",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          position: "relative"
+        }}
+      >
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onUpload(file);
+          }}
+          style={{
+            position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
+            opacity: 0, cursor: "pointer", zIndex: 5
+          }}
+        />
+        {uploading ? (
+          <span style={{ fontSize: "0.85rem", color: "#888" }}>⚡ 画像を圧縮してアップロード中...</span>
+        ) : imageUrl ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", position: "relative", zIndex: 10 }}>
+            <img src={imageUrl} style={{ height: "100px", borderRadius: "10px", objectFit: "cover" }} alt="Uploaded" />
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClear(); }}
+              style={{ ...S.dangerBtn, padding: "6px 14px", fontSize: "0.75rem", background: "white", border: "1px solid #ddd" }}
+            >
+              🗑️ 画像を削除する
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", pointerEvents: "none" }}>
+            <span style={{ fontSize: "1.8rem" }}>🖼️</span>
+            <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "var(--ink)" }}>画像をドラッグ＆ドロップ</span>
+            <span style={{ fontSize: "0.75rem", color: "var(--ink-soft)" }}>または、ここをクリックしてファイルを選択</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 🌐 サイト文言編集タブ
 export function ContentTab({ activePage, setActivePage, liveData, handleUpdateContent }: any) {
   return (
     <div>
@@ -94,7 +163,7 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
           </>
         )}
 
-        {/* --- ENGLISH (EN) ページ（すべてのセクションをカード型でフル編集可能） --- */}
+        {/* --- ENGLISH (EN) ページ --- */}
         {activePage === "en" && (
           <>
             <div style={S.editorCard}>
@@ -113,40 +182,24 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>🙋 FOR WHO AREA (ENGLISH)</h3>
               <InputField label="Main Heading" value={liveData.forwho_title || ""} onChange={(v: string) => handleUpdateContent("forwho_title", v)} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
-                <InputField label="01. Title" value={liveData.forwho_1_title || ""} onChange={(v: string) => handleUpdateContent("forwho_1_title", v)} />
-                <InputField label="01. Description" value={liveData.forwho_1_text || ""} onChange={(v: string) => handleUpdateContent("forwho_1_text", v)} />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
-                <InputField label="02. Title" value={liveData.forwho_2_title || ""} onChange={(v: string) => handleUpdateContent("forwho_2_title", v)} />
-                <InputField label="02. Description" value={liveData.forwho_2_text || ""} onChange={(v: string) => handleUpdateContent("forwho_2_text", v)} />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
-                <InputField label="03. Title" value={liveData.forwho_3_title || ""} onChange={(v: string) => handleUpdateContent("forwho_3_title", v)} />
-                <InputField label="03. Description" value={liveData.forwho_3_text || ""} onChange={(v: string) => handleUpdateContent("forwho_3_text", v)} />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
-                <InputField label="04. Title" value={liveData.forwho_4_title || ""} onChange={(v: string) => handleUpdateContent("forwho_4_title", v)} />
-                <InputField label="04. Description" value={liveData.forwho_4_text || ""} onChange={(v: string) => handleUpdateContent("forwho_4_text", v)} />
-              </div>
+              {[1, 2, 3, 4].map(num => (
+                <div key={num} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
+                  <InputField label={`0${num}. Title`} value={liveData[`forwho_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`forwho_${num}_title`, v)} />
+                  <InputField label={`0${num}. Description`} value={liveData[`forwho_${num}_text`] || ""} onChange={(v: string) => handleUpdateContent(`forwho_${num}_text`, v)} />
+                </div>
+              ))}
             </div>
 
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>⚡ ACTIVITIES AREA (ENGLISH)</h3>
               <InputField label="Section Title" value={liveData.activity_title || ""} onChange={(v: string) => handleUpdateContent("activity_title", v)} />
               <InputField label="Activities Main Copy" value={liveData.activity_copy || ""} onChange={(v: string) => handleUpdateContent("activity_copy", v)} textarea />
-              <div style={{ marginTop: "16px" }}>
-                <InputField label="01. Title" value={liveData.activity_1_title || ""} onChange={(v: string) => handleUpdateContent("activity_1_title", v)} />
-                <InputField label="01. Description" value={liveData.activity_1_text || ""} onChange={(v: string) => handleUpdateContent("activity_1_text", v)} textarea />
-              </div>
-              <div style={{ marginTop: "16px" }}>
-                <InputField label="02. Title" value={liveData.activity_2_title || ""} onChange={(v: string) => handleUpdateContent("activity_2_title", v)} />
-                <InputField label="02. Description" value={liveData.activity_2_text || ""} onChange={(v: string) => handleUpdateContent("activity_2_text", v)} textarea />
-              </div>
-              <div style={{ marginTop: "16px" }}>
-                <InputField label="03. Title" value={liveData.activity_3_title || ""} onChange={(v: string) => handleUpdateContent("activity_3_title", v)} />
-                <InputField label="03. Description" value={liveData.activity_3_text || ""} onChange={(v: string) => handleUpdateContent("activity_3_text", v)} textarea />
-              </div>
+              {[1, 2, 3].map(num => (
+                <div key={num} style={{ marginTop: "16px" }}>
+                  <InputField label={`0${num}. Title`} value={liveData[`activity_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`activity_${num}_title`, v)} />
+                  <InputField label={`0${num}. Description`} value={liveData[`activity_${num}_text`] || ""} onChange={(v: string) => handleUpdateContent(`activity_${num}_text`, v)} textarea />
+                </div>
+              ))}
             </div>
 
             <div style={S.editorCard}>
@@ -161,6 +214,7 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
   );
 }
 
+// ✍️ 活動記録管理タブ
 export function ActivityTab({ state, setters, handlers, activities }: any) {
   return (
     <div>
@@ -177,7 +231,7 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <InputField label="日付 *" value={state.date} onChange={setters.setDate} />
             
-            {/* ✅ [超改善] ドロップダウンを廃止し、説明付きの極上インタラクティブカード型セレクターに変更 */}
+            {/* カテゴリビジュアルカード */}
             <div style={{ marginBottom: "8px" }}>
               <label style={{ ...S.fieldLabel, marginBottom: "12px", display: "block" }}>カテゴリ選択 *</label>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
@@ -224,16 +278,14 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
           
           <InputField label="要約 (一覧に表示されます) *" value={state.summary} onChange={setters.setSummary} textarea placeholder="**太字** や [リンク](URL) などのマークダウン記法が使えます" />
           
-          <div style={S.group}>
-            <label style={S.fieldLabel}>サムネイル画像</label>
-            <input type="file" accept="image/*" onChange={(e) => handlers.handleUpload(e, setters.setImageUrl)} style={{ fontSize: "0.85rem" }} />
-            {state.uploading && <span style={{ fontSize: "0.75rem", color: "#888" }}>アップロード中...</span>}
-            {state.imageUrl && (
-              <div style={{ marginTop: "12px" }}>
-                <img src={state.imageUrl} style={{ width: "120px", height: "67px", objectFit: "cover", borderRadius: "6px" }} />
-              </div>
-            )}
-          </div>
+          {/* ✅ ドラッグ＆ドロップアップローダーにアップグレード */}
+          <DragDropImageZone 
+            label="サムネイル画像"
+            imageUrl={state.imageUrl}
+            uploading={state.uploading}
+            onUpload={(file: File) => handlers.handleUpload(file, setters.setImageUrl)}
+            onClear={() => setters.setImageUrl("")}
+          />
           
           <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="## 大見出し&#13;### 中見出し&#13;- 箇流書き&#13;**太字** などが使用できます。" />
           <InputField label="URLスラッグ (例: project-kickoff) ※任意" value={state.slug} onChange={setters.setSlug} />
@@ -272,7 +324,7 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
             <div key={act.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", gap: "12px" }}>
               <div style={{ display: "flex", width: "100%", gap: "16px" }}>
                 {act.image_url ? (
-                  <img src={act.image_url} style={{ width: "90px", height: "50px", objectFit: "cover", borderRadius: "6px" }} />
+                  <img src={act.image_url} style={{ width: "90px", height: "50px", objectFit: "cover", borderRadius: "6px" }} alt="Thumb" />
                 ) : (
                   <div style={{ width: "90px", height: "50px", background: "#eee", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", color: "#999" }}>No Image</div>
                 )}
@@ -311,6 +363,7 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
   );
 }
 
+// 👤 メンバー管理タブ
 export function MembersTab({ state, setters, handlers }: any) {
   return (
     <div>
@@ -321,19 +374,26 @@ export function MembersTab({ state, setters, handlers }: any) {
           {state.editingMemberId ? "📝 メンバー情報の編集" : "メンバーの追加"}
         </h3>
         <div style={S.formStack}>
-          <div style={S.group}>
-            <label style={S.fieldLabel}>顔写真</label>
-            <input type="file" accept="image/*" onChange={(e) => handlers.handleUpload(e, setters.setMPhotoUrl)} />
-            {state.mPhotoUrl && (
-              <div style={{ marginTop: "12px" }}>
-                <img src={state.mPhotoUrl} style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover" }} />
-              </div>
-            )}
-          </div>
+          {/* ✅ ドラッグ＆ドロップアップローダーにアップグレード */}
+          <DragDropImageZone 
+            label="顔写真 *"
+            imageUrl={state.mPhotoUrl}
+            uploading={state.uploading}
+            onUpload={(file: File) => handlers.handleUpload(file, setters.setMPhotoUrl)}
+            onClear={() => setters.setMPhotoUrl("")}
+          />
+
           <InputField label="氏名 *" value={state.mName} onChange={setters.setMName} />
           <InputField label="役割 (例: Founder)" value={state.mRole} onChange={setters.setMRole} />
           <InputField label="所属 (例: 〇〇大学)" value={state.mAffiliation} onChange={setters.setMAffiliation} />
-          <InputField label="メッセージ" value={state.mMessage} onChange={setters.setMMessage} textarea />
+          <InputField label="活動領域/専門 (例: 量子物理、フロントエンド開発)" value={state.mField} onChange={setters.setMField} />
+          
+          {/* ✅ スキル・GitHub・ポートフォリオ入力欄の拡張 */}
+          <InputField label="保有スキルタグ (カンマ区切り。例: React, Python, UI/UX)" value={state.skills || ""} onChange={setters.setSkills} placeholder="スキルをカンマで並べます" />
+          <InputField label="GitHub プロフィール URL (任意)" value={state.githubUrl || ""} onChange={setters.setGithubUrl} placeholder="https://github.com/..." />
+          <InputField label="ポートフォリオ URL (任意)" value={state.portfolioUrl || ""} onChange={setters.setPortfolioUrl} placeholder="https://..." />
+
+          <InputField label="自己紹介・メンバーへのメッセージ" value={state.mMessage} onChange={setters.setMMessage} textarea />
           
           <div style={{ display: "flex", gap: "12px" }}>
             <button 
@@ -359,7 +419,7 @@ export function MembersTab({ state, setters, handlers }: any) {
         {state.members.length === 0 ? <div style={S.emptyState}>登録メンバーがいません</div> : 
           state.members.map((m: any, index: number) => (
             <div key={m.id} style={S.listItem}>
-              <img src={m.photo_url || "/nexus-icon.png"} style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} />
+              <img src={m.photo_url || "/nexus-icon.png"} style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} alt="Photo" />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>{m.name}</div>
                 <div style={{ fontSize: "0.75rem", color: "#888", marginBottom: "4px", display: "flex", gap: "8px", alignItems: "center" }}>
@@ -408,6 +468,112 @@ export function MembersTab({ state, setters, handlers }: any) {
   );
 }
 
+// 🚀 [新設] プロジェクト募集管理タブ (CRUD)
+export function ProjectsTab({ state, setters, handlers, projects }: any) {
+  return (
+    <div>
+      <h2 style={S.sectionTitle}>共創プロジェクト管理</h2>
+
+      <div style={{ ...S.editorCard, marginBottom: "40px" }}>
+        <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>
+          {state.editingProjectId ? "📝 プロジェクトの編集" : "新規プロジェクトの登録"}
+        </h3>
+        <div style={S.formStack}>
+          <InputField label="プロジェクトタイトル *" value={state.pTitle} onChange={setters.setPTitle} placeholder="学生向け量子計算体験ツールの開発" />
+          <InputField label="プロジェクト詳細説明 * (マークダウン可)" value={state.pDescription} onChange={setters.setPDescription} textarea large placeholder="プロジェクトの概要、ゴール、求めている内容など" />
+          <InputField label="使用する技術スタック (カンマ区切り)" value={state.pTechStack} onChange={setters.setPTechStack} placeholder="Next.js, Tailwind, Rust, Qiskit" />
+          <InputField label="募集するメンバーの役割 (カンマ区切り)" value={state.pRolesNeeded} onChange={setters.setPRolesNeeded} placeholder="Frontend Developer, Quantum Researcher" />
+          
+          <div style={S.group}>
+            <label style={S.fieldLabel}>募集ステータス *</label>
+            <select 
+              value={state.pStatus} 
+              onChange={(e) => setters.setPStatus(e.target.value)} 
+              style={{ ...S.select, width: "100%", padding: "10px 16px", height: "auto" }}
+            >
+              <option value="open">🟢 メンバー募集中 (open)</option>
+              <option value="closed">🔴 募集終了 (closed)</option>
+            </select>
+          </div>
+
+          <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
+            <button 
+              onClick={handlers.handleSaveProject} 
+              style={S.primaryBtn} 
+              disabled={!state.pTitle || !state.pDescription}
+            >
+              {state.editingProjectId ? "更新して保存" : "プロジェクトを登録する"}
+            </button>
+            {state.editingProjectId && (
+              <button 
+                onClick={handlers.cancelEditProject} 
+                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white" }}
+              >
+                キャンセル
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "16px" }}>登録プロジェクト一覧</h3>
+      <div style={S.listContainer}>
+        {projects.length === 0 ? <div style={S.emptyState}>登録されているプロジェクトはありません</div> : 
+          projects.map((proj: any, index: number) => (
+            <div key={proj.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", gap: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                <div>
+                  <span style={{ 
+                    fontSize: "0.65rem", fontWeight: 800, padding: "2px 6px", borderRadius: "4px", marginRight: "8px",
+                    background: proj.status === 'open' ? "#e6ffe6" : "#f5f5f5", color: proj.status === 'open' ? "#006600" : "#666" 
+                  }}>
+                    {proj.status === 'open' ? "募集中" : "募集終了"}
+                  </span>
+                  <span style={{ fontWeight: 800, fontSize: "1.05rem" }}>{proj.title}</span>
+                </div>
+                
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button 
+                    onClick={() => handlers.handleMoveProject(index, 'up')} 
+                    disabled={index === 0} 
+                    style={{ background: index === 0 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem" }}
+                  >
+                    ⬆️
+                  </button>
+                  <button 
+                    onClick={() => handlers.handleMoveProject(index, 'down')} 
+                    disabled={index === projects.length - 1} 
+                    style={{ background: index === projects.length - 1 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === projects.length - 1 ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem" }}
+                  >
+                    ⬇️
+                  </button>
+                </div>
+              </div>
+
+              {proj.tech_stack && (
+                <div style={{ fontSize: "0.75rem", color: "#666" }}>
+                  <strong>Tech:</strong> {proj.tech_stack}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "8px", width: "100%", justifyContent: "flex-end" }}>
+                <button 
+                  onClick={() => handlers.startEditProject(proj)} 
+                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px" }}
+                >
+                  📝 編集
+                </button>
+                <button onClick={() => handlers.handleDelete('projects', proj.id)} style={S.dangerBtn}>削除</button>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+}
+
+// ❓ FAQ管理タブ
 export function FaqTab({ state, setters, handlers }: any) {
   return (
     <div>
@@ -490,6 +656,7 @@ export function FaqTab({ state, setters, handlers }: any) {
   );
 }
 
+// 📩 お問い合わせ履歴タブ
 export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any[], handleUpdateStatus: (id: string, status: string) => void }) {
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -510,7 +677,7 @@ export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any
       ) : inquiries.map((i: any) => {
         const subject = encodeURIComponent(`【Nexus】お問い合わせへのご返信（件名: ${i.category}）`);
         const body = encodeURIComponent(`${i.name} 様\n\nお問い合わせいただきありがとうございます。\nNexus運営チームです。\n\n---\n\n`);
-        const mailtoLink = `mailto:${i.email}?subject=${subject}&body=${body}`;
+        const mailtoLink = `mailto:${i.email}?subject=${subject}?body=${body}`;
 
         return (
           <div key={i.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", marginBottom: "24px", gap: "12px" }}>
@@ -563,3 +730,4 @@ export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any
     </div>
   );
 }
+

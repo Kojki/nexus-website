@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase"; // 🚀 Supabaseをインポート
 import { S } from "./SharedUI";
 
 interface Props {
@@ -26,10 +27,149 @@ export function SystemDashboardTab({
   onRemoveUser,
   onChangeRole
 }: Props) {
+  // 🚀 運営伝言板管理用ステート
+  const [bulletin, setBulletin] = useState<string>("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempContent, setTempContent] = useState("");
+  const [updating, setUpdating] = useState(false);
+
+  // 📢 伝言板データの読み込み
+  const fetchBulletin = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_bulletins')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        setBulletin(data[0].content);
+        setTempContent(data[0].content);
+      } else {
+        const defaultMsg = "📢 運営伝言板へようこそ！ここにはオーナーからの重要な連絡事項や指示がピン留め表示されます。";
+        setBulletin(defaultMsg);
+        setTempContent(defaultMsg);
+      }
+    } catch (err) {
+      console.error("伝言板の取得に失敗しました:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBulletin();
+  }, []);
+
+  // 📝 伝言板の保存処理
+  const handleSaveBulletin = async () => {
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('admin_bulletins')
+        .insert([{ content: tempContent, is_pinned: true }]);
+
+      if (error) throw error;
+      setBulletin(tempContent);
+      setIsEditing(false);
+      
+      // 親の監査ログにも自動反映させるため、アクションログを残す
+      await supabase.from('audit_logs').insert([{
+        actor_email: currentUserEmail,
+        action: "bulletin_update",
+        details: "運営伝言板の内容を更新しました"
+      }]);
+    } catch (err) {
+      alert("伝言の更新に失敗しました");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
     <div>
       <h2 style={S.sectionTitle}>システム情報 ＆ アクセス解析</h2>
       
+      {/* ==========================================
+          📢 [新設] 運営伝言板（Admin Bulletin Board）
+         ========================================== */}
+      <div style={{ 
+        background: "linear-gradient(135deg, #fffaf0, #fff5e6)", 
+        border: "1px solid #ffe0b3", 
+        borderRadius: "24px", 
+        padding: "30px", 
+        marginBottom: "40px",
+        boxShadow: "0 10px 25px rgba(230, 92, 0, 0.03)",
+        position: "relative"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "1.3rem" }}>📌</span>
+            <span style={{ fontSize: "0.85rem", fontWeight: 900, color: "#e65c00", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              Admin Bulletin Board / 運営伝言板
+            </span>
+          </div>
+          
+          {/* オーナーのみ編集ボタンを表示 */}
+          {userRole === "owner" && !isEditing && (
+            <button 
+              onClick={() => setIsEditing(true)}
+              style={{
+                background: "white", border: "1px solid #ffe0b3", padding: "6px 14px",
+                borderRadius: "10px", fontSize: "0.75rem", fontWeight: 800, color: "#e65c00",
+                cursor: "pointer", transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#e65c00"; e.currentTarget.style.color = "white"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.color = "#e65c00"; }}
+            >
+              📝 伝言を編集する
+            </button>
+          )}
+        </div>
+
+        {isEditing ? (
+          <div>
+            <textarea 
+              value={tempContent}
+              onChange={(e) => setTempContent(e.target.value)}
+              style={{
+                width: "100%", minHeight: "120px", padding: "14px", borderRadius: "14px",
+                border: "1px solid #ffe0b3", outline: "none", fontSize: "0.95rem",
+                fontFamily: "inherit", lineHeight: 1.6, boxSizing: "border-box", marginBottom: "16px"
+              }}
+              placeholder="伝言内容を記入してください（マークダウンや改行がそのまま反映されます）"
+            />
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button 
+                onClick={handleSaveBulletin}
+                disabled={updating}
+                style={{
+                  background: "#e65c00", color: "white", border: "none", padding: "8px 20px",
+                  borderRadius: "10px", fontSize: "0.8rem", fontWeight: 800, cursor: "pointer"
+                }}
+              >
+                {updating ? "保存中..." : "保存してピン留め"}
+              </button>
+              <button 
+                onClick={() => { setIsEditing(false); setTempContent(bulletin); }}
+                style={{
+                  background: "white", color: "#666", border: "1px solid #ddd", padding: "8px 20px",
+                  borderRadius: "10px", fontSize: "0.8rem", fontWeight: 800, cursor: "pointer"
+                }}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ 
+            fontSize: "0.95rem", color: "#5c3d14", lineHeight: 1.8, 
+            whiteSpace: "pre-wrap", background: "rgba(255, 255, 255, 0.5)", 
+            padding: "20px", borderRadius: "16px", border: "1px solid rgba(230, 92, 0, 0.05)" 
+          }}>
+            {bulletin}
+          </div>
+        )}
+      </div>
+
       {/* 1. アクセス数概要カード */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "40px" }}>
         
@@ -107,7 +247,7 @@ export function SystemDashboardTab({
                       {/* ロール変更セレクタ */}
                       <select 
                         value={u.role} 
-                        disabled={isSelf} // 自身のロックアウトを防ぐ
+                        disabled={isSelf} 
                         onChange={(e) => onChangeRole(u.email, e.target.value)}
                         style={{ ...S.select, width: "auto", padding: "6px 12px", fontSize: "0.8rem", height: "auto", background: u.role === "owner" ? "#fff0f0" : "white" }}
                       >
@@ -118,7 +258,7 @@ export function SystemDashboardTab({
                       {/* 削除ボタン */}
                       <button 
                         onClick={() => onRemoveUser(u.email)}
-                        disabled={isSelf} // 自身のロックアウトを防ぐ
+                        disabled={isSelf} 
                         style={{ 
                           ...S.dangerBtn, 
                           padding: "6px 12px", 
