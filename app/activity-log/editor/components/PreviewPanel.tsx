@@ -8,7 +8,6 @@ interface Props {
   title: string;
   imageUrl: string;
   summary: string;
-  // ▼ 追加 ▼
   faqs?: any[];
   fQuestion?: string;
   fAnswer?: string;
@@ -26,13 +25,12 @@ const renderText = (text?: string | null) => {
   ));
 };
 
-
 export function PreviewPanel({ 
   activeTab, activePage, liveData, title, imageUrl, summary,
   faqs, fQuestion, fAnswer, members, mName, mRole, mMessage, mPhotoUrl
 }: Props) {
   return (
-    <div style={{ background: "#f0efeb", padding: "24px", position: "sticky", top: "70px", height: "calc(100vh - 70px)", boxSizing: "border-box" }}>
+    <div className="dashboard-preview" style={{ background: "#f0efeb", padding: "24px", position: "sticky", top: "70px", height: "calc(100vh - 70px)", boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
         <span style={{ fontSize: "0.65rem", fontWeight: 900, color: "#999", letterSpacing: "0.15em" }}>LIVE PREVIEW</span>
         <span style={{ background: "#111", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "0.6rem", fontWeight: 800 }}>
@@ -48,7 +46,6 @@ export function PreviewPanel({
              ========================================= */}
           {activeTab === "content" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-              {/* --- HOME プレビュー --- */}
               {activePage === "home" && (
                 <>
                   <div style={{ paddingBottom: "24px", borderBottom: "1px dashed #ddd" }}>
@@ -70,7 +67,6 @@ export function PreviewPanel({
                 </>
               )}
 
-              {/* --- ABOUT プレビュー --- */}
               {activePage === "about" && (
                 <>
                   <div style={{ paddingBottom: "24px", borderBottom: "1px dashed #ddd" }}>
@@ -87,7 +83,6 @@ export function PreviewPanel({
                 </>
               )}
 
-              {/* --- GUIDELINES / PRIVACY プレビュー --- */}
               {(activePage === "guidelines" || activePage === "privacy") && (
                 <>
                   <h3 style={{ fontSize: "1.6rem", fontWeight: 900, lineHeight: 1.25, marginBottom: "16px" }}>{renderText(liveData.hero_title)}</h3>
@@ -109,7 +104,6 @@ export function PreviewPanel({
                 </>
               )}
 
-              {/* --- EN プレビュー --- */}
               {activePage === "en" && (
                 <>
                   <h3 style={{ fontSize: "1.6rem", fontWeight: 900, lineHeight: 1.25, marginBottom: "16px" }}>{renderText(liveData.hero_title)}</h3>
@@ -141,13 +135,12 @@ export function PreviewPanel({
           )}
 
           {/* =========================================
-              3. メンバータブのプレビュー (NEW)
+              3. メンバータブのプレビュー
              ========================================= */}
           {activeTab === "members" && (
             <div style={{ marginTop: "10px" }}>
               <h3 style={{ fontSize: "1.2rem", fontWeight: 900, marginBottom: "20px", color: "var(--accent)" }}>MEMBER PROFILE</h3>
               
-              {/* 入力中のプレビュー */}
               {(mName || mRole || mMessage) && (
                 <div style={{ marginBottom: "32px", padding: "20px", background: "#fdfbf8", border: "1px dashed #ccc", borderRadius: "8px" }}>
                   <p style={{ fontSize: "0.7rem", color: "#e53e3e", fontWeight: 800, marginBottom: "12px", letterSpacing: "0.1em" }}>▶ 登録プレビュー</p>
@@ -162,7 +155,6 @@ export function PreviewPanel({
                 </div>
               )}
 
-              {/* 登録済みリスト */}
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                 {members?.map(m => (
                   <div key={m.id} style={{ display: "flex", gap: "16px", paddingBottom: "24px", borderBottom: "1px solid #eee" }}>
@@ -179,13 +171,12 @@ export function PreviewPanel({
           )}
 
           {/* =========================================
-              4. FAQタブのプレビュー (NEW)
+              4. FAQタブのプレビュー
              ========================================= */}
           {activeTab === "faq" && (
             <div style={{ marginTop: "10px" }}>
               <h3 style={{ fontSize: "1.2rem", fontWeight: 900, marginBottom: "20px", color: "var(--accent)" }}>FAQ (よくある質問)</h3>
               
-              {/* 入力中のプレビュー */}
               {(fQuestion || fAnswer) && (
                 <div style={{ marginBottom: "32px", padding: "20px", background: "#fdfbf8", border: "1px dashed #ccc", borderRadius: "8px" }}>
                   <p style={{ fontSize: "0.7rem", color: "#e53e3e", fontWeight: 800, marginBottom: "12px", letterSpacing: "0.1em" }}>▶ 登録プレビュー</p>
@@ -194,7 +185,6 @@ export function PreviewPanel({
                 </div>
               )}
 
-              {/* 登録済みリスト */}
               <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                 {faqs?.map(f => (
                   <div key={f.id} style={{ paddingBottom: "20px", borderBottom: "1px solid #eee" }}>
@@ -206,7 +196,6 @@ export function PreviewPanel({
             </div>
           )}
 
-          {/* その他のタブ（お問い合わせ等） */}
           {activeTab === "inquiries" && (
             <div style={{ textAlign: "center", padding: "60px 0", color: "#ccc", fontSize: "0.85rem" }}>
               お問い合わせは左側のリストから確認できます

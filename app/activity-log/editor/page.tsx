@@ -164,12 +164,43 @@ export default function NexusStudioPro() {
 
   return (
     <main style={{ background: "#f8f7f4", minHeight: "100vh", color: "#1a1a1a" }}>
-      <header style={S.header}>
+      
+      {/* ▼ スマホ用レスポンシブCSS ▼ */}
+      <style>{`
+        @media (max-width: 900px) {
+          .dashboard-header {
+            flex-direction: column !important;
+            padding: 16px 20px !important;
+            gap: 16px !important;
+          }
+          .dashboard-nav {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+          }
+          .dashboard-layout {
+            grid-template-columns: 1fr !important;
+            height: auto !important;
+          }
+          .dashboard-editor {
+            padding: 20px !important;
+            border-right: none !important;
+            overflow-y: visible !important;
+          }
+          .dashboard-preview {
+            position: static !important;
+            height: auto !important;
+            padding: 20px !important;
+            border-top: 4px dashed #ddd !important;
+          }
+        }
+      `}</style>
+
+      <header className="dashboard-header" style={S.header}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <Image src="/nexus-icon.png" alt="Logo" width={28} height={28} />
           <h1 style={{ fontSize: "1rem", fontWeight: 900, letterSpacing: "0.05em" }}>NEXUS STUDIO</h1>
         </div>
-        <nav style={S.tabNav}>
+        <nav className="dashboard-nav" style={S.tabNav}>
           <NavBtn active={activeTab === "activity"} onClick={() => setActiveTab("activity")} icon="✍️">活動</NavBtn>
           <NavBtn active={activeTab === "content"} onClick={() => setActiveTab("content")} icon="🌐">編集</NavBtn>
           <NavBtn active={activeTab === "members"} onClick={() => setActiveTab("members")} icon="👤">メンバー</NavBtn>
@@ -181,8 +212,8 @@ export default function NexusStudioPro() {
 
       {errorMsg && <div style={{ color: "red", padding: "10px" }}>{errorMsg}</div>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 450px", height: "calc(100vh - 70px)" }}>
-        <div style={{ padding: "40px", overflowY: "auto", borderRight: "1px solid #e5e0d8", boxSizing: "border-box" }}>
+      <div className="dashboard-layout" style={{ display: "grid", gridTemplateColumns: "1fr 450px", height: "calc(100vh - 70px)" }}>
+        <div className="dashboard-editor" style={{ padding: "40px", overflowY: "auto", borderRight: "1px solid #e5e0d8", boxSizing: "border-box" }}>
           
           {activeTab === "content" && (
             <ContentTab activePage={activePage} setActivePage={setActivePage} siteContents={siteContents} liveData={liveData} setLiveData={setLiveData} handleUpdateContent={handleUpdateContent} />
@@ -216,7 +247,7 @@ export default function NexusStudioPro() {
 
         </div>
 
-                <PreviewPanel 
+        <PreviewPanel 
           activeTab={activeTab} 
           activePage={activePage} 
           liveData={liveData} 
@@ -232,7 +263,6 @@ export default function NexusStudioPro() {
           mMessage={mMessage}
           mPhotoUrl={mPhotoUrl}
         />
-
       </div>
 
       {/* トースト通知 (画面右下に表示) */}
