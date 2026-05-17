@@ -31,10 +31,14 @@ export default function NexusStudioPro() {
 
   const [siteContents, setSiteContents] = useState<Record<string, Record<string, string>>>({});
   const [liveData, setLiveData] = useState<Record<string, string>>({});
+  
+  // 各データの一覧を管理するステート
+  const [activities, setActivities] = useState<any[]>([]); // ▼ 新規：活動記録リスト用
   const [members, setMembers] = useState<any[]>([]);
   const [faqs, setFaqs] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
 
+  // 新規追加・編集フォーム用の入力値ステート
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toLocaleDateString('ja-JP').replace(/\//g, '.'));
   const [category, setCategory] = useState("NEWS");
@@ -51,12 +55,16 @@ export default function NexusStudioPro() {
   const [fQuestion, setFQuestion] = useState("");
   const [fAnswer, setFAnswer] = useState("");
   
-  // ▼ 新規機能：現在編集中のFAQのID管理用ステート
+  // ▼ 編集中のデータIDを管理するステート
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      
+      // 1. サイト全体の文言データの取得
       const { data: cData, error: cError } = await supabase.from('site_content').select('*');
       if (cError) throw cError;
       const cMap: any = { home: {}, about: {}, en: {}, guidelines: {}, privacy: {} };
@@ -64,10 +72,19 @@ export default function NexusStudioPro() {
       setSiteContents(cMap);
       setLiveData(cMap[activePage] || {});
 
+      // 2. 活動記録リストの取得
+      const { data: aData } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
+      setActivities(aData || []);
+
+      // 3. メンバーリストの取得
       const { data: mData } = await supabase.from('members').select('*').order('order_index');
       setMembers(mData || []);
+
+      // 4. FAQリストの取得
       const { data: fData } = await supabase.from('faqs').select('*').order('order_index');
       setFaqs(fData || []);
+
+      // 5. 問い合わせ履歴の取得
       const { data: iData } = await supabase.from('inquiries').select('*').order('created_at', { ascending: false });
       setInquiries(iData || []);
     } catch (e: any) {
@@ -80,11 +97,7 @@ export default function NexusStudioPro() {
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setIsAuthenticated(false);
-        router.push("/login");
-        return;
-      }
+      if (!session) { router.push("/login"); return; }
       setIsAuthenticated(true);
       fetchData();
     };
@@ -95,6 +108,7 @@ export default function NexusStudioPro() {
     setLiveData(siteContents[activePage] || {});
   }, [activePage, siteContents]);
 
+  // 画像圧縮を統合したアップロード処理
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
     let file = e.target.files?.[0];
     if (!file) return;
@@ -115,28 +129,57 @@ export default function NexusStudioPro() {
     setUploading(false);
   };
 
-  const handleUpdateContent = async (key: string, value: string) => {
+  // ▼ 新規機能：文言を1文字変更した瞬間に、プレビューを崩さず同期してSupabaseに保存する完璧な処理
+  const handleUpdateContentDirectly = async (key: string, value: string) => {
     try {
-      const { error } = await supabase.from('site_content').upsert({ page_path: activePage, content_key: key, content_value: value }, { onConflict: 'page_path,content_key' });
+      // プレビューのレスポンスを高めるために即時にステートを反映
+      const updatedLiveData = { ...liveData, [key]: value };
+      setLiveData(updatedLiveData);
+      
+      const updatedSiteContents = {
+        ...siteContents,
+        [activePage]: {
+          ...(siteContents[activePage] || {}),
+          [key]: value
+        }
+      };
+      setSiteContents(updatedSiteContents);
+
+      const { error } = await supabase.from('site_content').upsert(
+        { page_path: activePage, content_key: key, content_value: value },
+        { onConflict: 'page_path,content_key' }
+      );
       if (error) throw error;
       await revalidateSite();
-      showToast("保存しました");
-      fetchData();
+      showToast("変更を一時保存しました");
     } catch (e: any) {
       showToast("保存に失敗しました", "error");
     }
   };
 
-  const handlePublishActivity = async (isPublished: boolean = true) => {
+  // ▼ 新規機能：活動記録（作成 ＆ 編集）の保存処理
+  const handleSaveActivity = async (isPublished: boolean = true) => {
     setPublishing(true);
     try {
-      const { error } = await supabase.from('activities').insert([{ 
-        title, date, category, summary, content, slug, image_url: imageUrl, has_detail: !!content, is_published: isPublished 
-      }]);
-      if (error) throw error;
+      const activityPayload = {
+        title, date, category, summary, content, slug, image_url: imageUrl, has_detail: !!content, is_published: isPublished
+      };
+
+      if (editingActivityId) {
+        // 編集・更新
+        const { error } = await supabase.from('activities').update(activityPayload).eq('id', editingActivityId);
+        if (error) throw error;
+        showToast("活動記録を更新しました");
+      } else {
+        // 新規作成
+        const { error } = await supabase.from('activities').insert([activityPayload]);
+        if (error) throw error;
+        showToast(isPublished ? "記事を公開しました！" : "下書きとして保存しました");
+      }
+
       await revalidateSite();
-      showToast(isPublished ? "公開が完了しました！" : "下書きとして保存しました"); 
-      setTitle(""); setImageUrl(""); fetchData();
+      setTitle(""); setImageUrl(""); setSummary(""); setContent(""); setSlug(""); setEditingActivityId(null);
+      fetchData();
     } catch (e: any) {
       showToast("保存に失敗しました", "error");
     } finally {
@@ -144,28 +187,87 @@ export default function NexusStudioPro() {
     }
   };
 
-  const handleAddMember = async () => {
+  // 活動記録の編集開始
+  const startEditActivity = (act: any) => {
+    setEditingActivityId(act.id);
+    setTitle(act.title);
+    setDate(act.date);
+    setCategory(act.category);
+    setSummary(act.summary);
+    setContent(act.content || "");
+    setSlug(act.slug || "");
+    setImageUrl(act.image_url || "");
+    showToast("記事の編集モードを開始しました");
+  };
+
+  // 活動記録の編集キャンセル
+  const cancelEditActivity = () => {
+    setEditingActivityId(null);
+    setTitle("");
+    setDate(new Date().toLocaleDateString('ja-JP').replace(/\//g, '.'));
+    setCategory("NEWS");
+    setSummary("");
+    setContent("");
+    setSlug("");
+    setImageUrl("");
+  };
+
+  // ▼ 新規機能：メンバー（作成 ＆ 編集）の保存処理
+  const handleSaveMember = async () => {
     try {
-      const { error } = await supabase.from('members').insert([{ name: mName, role: mRole, affiliation: mAffiliation, field: mField, message: mMessage, photo_url: mPhotoUrl, order_index: members.length + 1 }]);
-      if (error) throw error;
+      const memberPayload = {
+        name: mName, role: mRole, affiliation: mAffiliation, field: mField, message: mMessage, photo_url: mPhotoUrl
+      };
+
+      if (editingMemberId) {
+        // メンバー情報の更新
+        const { error } = await supabase.from('members').update(memberPayload).eq('id', editingMemberId);
+        if (error) throw error;
+        showToast("メンバー情報を更新しました");
+      } else {
+        // 新規追加
+        const { error } = await supabase.from('members').insert([{ ...memberPayload, order_index: members.length + 1 }]);
+        if (error) throw error;
+        showToast("メンバーを追加しました");
+      }
+
       await revalidateSite();
-      setMName(""); setMMessage(""); setMPhotoUrl(""); fetchData();
-      showToast("メンバーを追加しました");
+      setMName(""); setMRole(""); setMAffiliation(""); setMMessage(""); setMPhotoUrl(""); setEditingMemberId(null);
+      fetchData();
     } catch (e: any) {
-      showToast("追加に失敗しました", "error");
+      showToast("保存に失敗しました", "error");
     }
   };
 
-  // ▼ 新規・編集の両方に対応させたFAQ保存処理 ▼
+  // メンバー編集の開始
+  const startEditMember = (m: any) => {
+    setEditingMemberId(m.id);
+    setMName(m.name);
+    setMRole(m.role || "");
+    setMAffiliation(m.affiliation || "");
+    setMMessage(m.message || "");
+    setMPhotoUrl(m.photo_url || "");
+    showToast("メンバー編集モードを開始しました");
+  };
+
+  // メンバー編集のキャンセル
+  const cancelEditMember = () => {
+    setEditingMemberId(null);
+    setMName("");
+    setMRole("");
+    setMAffiliation("");
+    setMMessage("");
+    setMPhotoUrl("");
+  };
+
+  // FAQの保存・更新
   const handleSaveFaq = async () => {
     try {
       if (editingFaqId) {
-        // 編集（更新）処理
         const { error } = await supabase.from('faqs').update({ question: fQuestion, answer: fAnswer }).eq('id', editingFaqId);
         if (error) throw error;
         showToast("FAQを更新しました");
       } else {
-        // 新規追加処理
         const { error } = await supabase.from('faqs').insert([{ question: fQuestion, answer: fAnswer, order_index: faqs.length + 1 }]);
         if (error) throw error;
         showToast("FAQを追加しました");
@@ -177,22 +279,21 @@ export default function NexusStudioPro() {
     }
   };
 
-  // ▼ 編集モードの開始処理
+  // FAQ編集の開始・キャンセル
   const startEditFaq = (faq: any) => {
     setEditingFaqId(faq.id);
     setFQuestion(faq.question);
     setFAnswer(faq.answer);
-    showToast("編集モードを開始しました");
+    showToast("FAQ編集モードを開始しました");
   };
 
-  // ▼ 編集モードのキャンセル
   const cancelEditFaq = () => {
     setEditingFaqId(null);
     setFQuestion("");
     setFAnswer("");
   };
 
-  // ▼ 新規機能：初期データの一括投入処理
+  // FAQ初期データのセット
   const handleInsertDefaultFaqs = async () => {
     try {
       const defaults = [
@@ -271,13 +372,27 @@ export default function NexusStudioPro() {
       <div className="dashboard-layout" style={{ display: "grid", gridTemplateColumns: "1fr 450px", height: "calc(100vh - 70px)" }}>
         <div className="dashboard-editor" style={{ padding: "40px", overflowY: "auto", borderRight: "1px solid #e5e0d8", boxSizing: "border-box" }}>
           {activeTab === "content" && (
-            <ContentTab activePage={activePage} setActivePage={setActivePage} siteContents={siteContents} liveData={liveData} setLiveData={setLiveData} handleUpdateContent={handleUpdateContent} />
+            <ContentTab 
+              activePage={activePage} 
+              setActivePage={setActivePage} 
+              liveData={liveData} 
+              handleUpdateContent={handleUpdateContentDirectly} 
+            />
           )}
           {activeTab === "activity" && (
-            <ActivityTab state={{ title, date, category, slug, summary, content, publishing, uploading }} setters={{ setTitle, setDate, setCategory, setSlug, setSummary, setContent, setImageUrl }} handlers={{ handleUpload, handlePublishActivity }} />
+            <ActivityTab 
+              state={{ title, date, category, slug, summary, content, imageUrl, publishing, uploading, editingActivityId }} 
+              setters={{ setTitle, setDate, setCategory, setSlug, setSummary, setContent, setImageUrl }} 
+              handlers={{ handleUpload, handleSaveActivity, startEditActivity, cancelEditActivity, handleDelete, handleTogglePublish }} 
+              activities={activities}
+            />
           )}
           {activeTab === "members" && (
-            <MembersTab state={{ members, mName, mRole, mAffiliation, mMessage }} setters={{ setMName, setMRole, setMAffiliation, setMMessage, setMPhotoUrl }} handlers={{ handleAddMember, handleUpload, handleDelete, handleTogglePublish }} />
+            <MembersTab 
+              state={{ members, mName, mRole, mAffiliation, mMessage, mPhotoUrl, editingMemberId }} 
+              setters={{ setMName, setMRole, setMAffiliation, setMMessage, setMPhotoUrl }} 
+              handlers={{ handleSaveMember, handleUpload, handleDelete, handleTogglePublish, startEditMember, cancelEditMember }} 
+            />
           )}
           {activeTab === "faq" && (
             <FaqTab 
