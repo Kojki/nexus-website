@@ -12,7 +12,7 @@ export default function ActivityLogIndex() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ▼ 高速検索・絞り込み用ステート ▼
+  // 高速検索・絞り込み用ステート
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("すべて");
 
@@ -46,7 +46,7 @@ export default function ActivityLogIndex() {
     fetchActivities();
   }, []);
 
-  // ▼ クライアントサイドでの超高速リアルタイム絞り込み処理 ▼
+  // クライアントサイドでの超高速リアルタイム絞り込み処理
   const filteredActivities = activities.filter((act) => {
     const matchesCategory = activeCategory === "すべて" || act.category === activeCategory;
     const matchesSearch = 
@@ -67,7 +67,7 @@ export default function ActivityLogIndex() {
         </div>
       </header>
 
-      {/* ▼ 検索バー ＆ カテゴリタブセクション (プレミアムデザイン) ▼ */}
+      {/* 検索バー ＆ カテゴリタブセクション */}
       <section style={{ maxWidth: "800px", margin: "0 auto 40px", padding: "0 20px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", background: "var(--warm-white)", padding: "24px", borderRadius: "24px", border: "1px solid var(--border)", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
           
@@ -94,7 +94,7 @@ export default function ActivityLogIndex() {
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 style={{
-                  padding: "8px 20px", borderRadius: "99px", border: "none",
+                  padding: "8px 20px", borderRadius: "99px",
                   fontSize: "0.85rem", fontWeight: 700, cursor: "pointer",
                   transition: "all 0.25s ease",
                   background: activeCategory === cat ? "var(--accent)" : "transparent",
