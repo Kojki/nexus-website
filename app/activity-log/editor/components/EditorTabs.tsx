@@ -42,8 +42,16 @@ export function ActivityTab({ state, setters, handlers }: any) {
           <div style={S.group}>
             <label style={S.fieldLabel}>カテゴリ</label>
             <select style={S.select} value={state.category} onChange={e => setters.setCategory(e.target.value)}>
-              <option value="NEWS">NEWS</option><option value="PROJECT">PROJECT</option><option value="DIALOGUE">DIALOGUE</option>
+              <option value="NEWS">NEWS</option>
+              <option value="PROJECT">PROJECT</option>
+              <option value="DIALOGUE">DIALOGUE</option>
             </select>
+            {/* ▼ カテゴリの説明を追加 ▼ */}
+            <p style={{ fontSize: "0.75rem", color: "#666", marginTop: "8px", lineHeight: 1.5 }}>
+              ※ <b>NEWS</b>: 運営からのお知らせや全体への周知<br/>
+              ※ <b>PROJECT</b>: メンバー発のプロジェクトや企画の進捗<br/>
+              ※ <b>DIALOGUE</b>: 対話や議論の内容、イベントレポートなど
+            </p>
           </div>
         </div>
         <div style={S.group}>
@@ -124,16 +132,46 @@ export function InquiriesTab({ inquiries }: { inquiries: any[] }) {
   return (
     <div>
       <h2 style={S.sectionTitle}>お問い合わせ履歴</h2>
-      {inquiries.length === 0 ? <div style={S.emptyState}>メッセージはありません。</div> : inquiries.map((i: any) => (
-        <div key={i.id} style={{ ...S.editorCard, marginBottom: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-            <span style={{ fontWeight: 800 }}>{i.name} 様</span>
-            <span style={{ fontSize: "0.75rem", color: "#aaa" }}>{new Date(i.created_at).toLocaleString()}</span>
+      {inquiries.length === 0 ? (
+        <div style={S.emptyState}>メッセージはありません。</div>
+      ) : inquiries.map((i: any) => {
+        // ▼ メーラー起動用のリンク作成 ▼
+        const mailSubject = encodeURIComponent("【Nexus】お問い合わせへのご返信");
+        const mailBody = encodeURIComponent(
+          `${i.name} 様\n\nお問い合わせありがとうございます。\n\n` +
+          `---- お問い合わせ内容 ----\n${i.content}\n--------------------------\n\n` +
+          `（※ここに返信をご記入ください）`
+        );
+        const mailtoLink = `mailto:${i.email}?subject=${mailSubject}&body=${mailBody}`;
+
+        return (
+          <div key={i.id} style={{ ...S.editorCard, marginBottom: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <div>
+                <span style={{ fontWeight: 800 }}>{i.name} 様</span>
+                <span style={{ marginLeft: "8px", fontSize: "0.75rem", color: "#aaa" }}>
+                  {new Date(i.created_at).toLocaleString()}
+                </span>
+              </div>
+              
+              {/* ▼ 返信ボタンを追加 ▼ */}
+              <a 
+                href={mailtoLink}
+                style={{
+                  background: "#1a1a1a", color: "white", padding: "6px 16px",
+                  borderRadius: "6px", fontSize: "0.8rem", fontWeight: 700,
+                  textDecoration: "none", display: "inline-block"
+                }}
+              >
+                ✉️ メールで返信する
+              </a>
+
+            </div>
+            <div style={{ color: "#4285F4", fontSize: "0.85rem", marginBottom: "12px" }}>{i.email}</div>
+            <p style={{ lineHeight: 1.7, fontSize: "0.95rem", whiteSpace: "pre-wrap" }}>{i.content}</p>
           </div>
-          <div style={{ color: "#4285F4", fontSize: "0.85rem", marginBottom: "12px" }}>{i.email}</div>
-          <p style={{ lineHeight: 1.7, fontSize: "0.95rem", whiteSpace: "pre-wrap" }}>{i.content}</p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
