@@ -3,6 +3,9 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Noto_Sans_JP, Outfit } from "next/font/google";
 import "./globals.css";
 
+// ▼ 新規作成したトラッカーのインポート
+import AnalyticsTracker from "@/lib/AnalyticsTracker";
+
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
@@ -82,6 +85,9 @@ export default function RootLayout({
       <body
         className={`${cormorant.variable} ${outfit.variable} ${notoSansJp.variable}`}
       >
+        {/* ▼ クライアントサイドでのみ動作するPVトラッカーを安全に埋め込み */}
+        <AnalyticsTracker />
+        
         {children}
       </body>
       <GoogleAnalytics gaId="G-E20DPF436Y" />

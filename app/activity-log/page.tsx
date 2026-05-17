@@ -2,25 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import Image from "next/image";
 import Link from "next/link";
 import { Activity } from "./types";
 import { activities as staticActivities } from "./data";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-const joinUrl = "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
-
 export default function ActivityLogIndex() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ▼ 高速検索・絞り込み用ステート ▼
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("すべて");
+
+  const categories = ["すべて", "NEWS", "PROJECT", "DIALOGUE"];
 
   useEffect(() => {
     const fetchActivities = async () => {
       const { data, error } = await supabase
         .from('activities')
         .select('*')
-        .eq('is_published', true) // ▼ 今回の追加部分
+        .eq('is_published', true)
         .order('date', { ascending: false });
 
       if (error) {
@@ -43,24 +46,79 @@ export default function ActivityLogIndex() {
     fetchActivities();
   }, []);
 
+  // ▼ クライアントサイドでの超高速リアルタイム絞り込み処理 ▼
+  const filteredActivities = activities.filter((act) => {
+    const matchesCategory = activeCategory === "すべて" || act.category === activeCategory;
+    const matchesSearch = 
+      act.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (act.summary && act.summary.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
+
   return (
-    <main className="page-fade-in">
+    <main className="page-fade-in" style={{ background: "var(--background)" }}>
       <Navbar />
 
-      <header className="concept-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+      <header className="concept-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: "140px 20px 40px" }}>
         <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <p className="eyebrow">ACTIVITY LOG</p>
-          <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4rem)", margin: "0 auto" }}>活動の記録</h1>
+          <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4rem)", margin: "0 auto", fontWeight: 900 }}>活動の記録</h1>
           <p style={{ color: "var(--muted)", marginTop: "16px" }}>Nexusの歩みを、ここに残していきます。</p>
         </div>
       </header>
 
-      <section className="concept-container">
+      {/* ▼ 検索バー ＆ カテゴリタブセクション (プレミアムデザイン) ▼ */}
+      <section style={{ maxWidth: "800px", margin: "0 auto 40px", padding: "0 20px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", background: "var(--warm-white)", padding: "24px", borderRadius: "24px", border: "1px solid var(--border)", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+          
+          {/* リアルタイムキーワード検索 */}
+          <div style={{ position: "relative" }}>
+            <input 
+              type="text" 
+              placeholder="キーワードで検索（例: 会議, 開発...）" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: "100%", padding: "16px 20px", borderRadius: "14px",
+                border: "1px solid var(--border)", outline: "none", fontSize: "0.95rem",
+                boxSizing: "border-box", transition: "all 0.3s ease",
+                background: "#fcfcfa"
+              }}
+            />
+          </div>
+
+          {/* カテゴリ切り替えボタンタブ */}
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                style={{
+                  padding: "8px 20px", borderRadius: "99px", border: "none",
+                  fontSize: "0.85rem", fontWeight: 700, cursor: "pointer",
+                  transition: "all 0.25s ease",
+                  background: activeCategory === cat ? "var(--accent)" : "transparent",
+                  color: activeCategory === cat ? "white" : "var(--ink-soft)",
+                  border: activeCategory === cat ? "1px solid var(--accent)" : "1px solid var(--border)"
+                }}
+              >
+                {cat === "すべて" ? "🌐 すべて" : cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="concept-container" style={{ maxWidth: "800px", margin: "0 auto" }}>
         {loading ? (
-          <div style={{ textAlign: "center", padding: "100px 0", color: "var(--muted)" }}>読み込み中...</div>
+          <div style={{ textAlign: "center", padding: "80px 0", color: "var(--muted)" }}>読み込み中...</div>
+        ) : filteredActivities.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "80px 0", color: "var(--muted)", background: "var(--warm-white)", borderRadius: "24px", border: "1px dashed var(--border)" }}>
+            🔍 条件に一致する活動記録が見つかりませんでした。
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "24px", marginBottom: "80px" }}>
-            {activities.map((item, index) => {
+            {filteredActivities.map((item, index) => {
               const cardStyle: React.CSSProperties = {
                 padding: "32px",
                 borderRadius: "20px",
@@ -84,7 +142,7 @@ export default function ActivityLogIndex() {
               );
 
               return (
-                <div key={item.id} className="animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
+                <div key={item.id} className="animate-slide-up" style={{ animationDelay: `${index * 80}ms` }}>
                   {item.hasDetail ? (
                     <Link href={`/activity-log/${item.id}`} style={{ textDecoration: "none" }}>{CardContent}</Link>
                   ) : (
@@ -101,3 +159,4 @@ export default function ActivityLogIndex() {
     </main>
   );
 }
+

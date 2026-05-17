@@ -7,14 +7,18 @@ import Image from "next/image";
 
 import { revalidateSite } from "@/app/actions";
 import { compressImage } from "@/lib/image";
+import { logAdminAction } from "@/lib/analytics"; // ▼ 監査ログ機能のインポート
 
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab } from "./components/EditorTabs";
 
+// ▼ 新しく「Analytics & Security Tab」を EditorTabs からインポートします
+import { SystemDashboardTab } from "./components/SystemDashboardTab";
+
 export default function NexusStudioPro() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("content");
+  const [activeTab, setActiveTab] = useState<Tab | "system">("content"); // 'system' タブを追加
   const [activePage, setActivePage] = useState<PagePath>("home");
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
@@ -38,6 +42,10 @@ export default function NexusStudioPro() {
   const [faqs, setFaqs] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
 
+  // ▼ 新規：アクセスログ ＆ 監査ログのデータステート ▼
+  const [analyticsData, setAnalyticsData] = useState<{ totalViews: number; todayViews: number; popularPages: any[] }>({ totalViews: 0, todayViews: 0, popularPages: [] });
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+
   // 入力フォーム用ステート
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toLocaleDateString('ja-JP').replace(/\//g, '.'));
@@ -55,7 +63,6 @@ export default function NexusStudioPro() {
   const [fQuestion, setFQuestion] = useState("");
   const [fAnswer, setFAnswer] = useState("");
   
-  // 各データの編集中のIDを記録するステート
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
@@ -64,7 +71,6 @@ export default function NexusStudioPro() {
     try {
       setLoading(true);
       
-      // 1. site_content
       const { data: cData, error: cError } = await supabase.from('site_content').select('*');
       if (cError) throw cError;
       const cMap: any = { home: {}, about: {}, en: {}, guidelines: {}, privacy: {} };
@@ -72,21 +78,39 @@ export default function NexusStudioPro() {
       setSiteContents(cMap);
       setLiveData(cMap[activePage] || {});
 
-      // 2. activities
       const { data: aData } = await supabase.from('activities').select('*').order('created_at', { ascending: false });
       setActivities(aData || []);
 
-      // 3. members (order_index の昇順で並べて取得)
       const { data: mData } = await supabase.from('members').select('*').order('order_index', { ascending: true });
       setMembers(mData || []);
 
-      // 4. faqs
       const { data: fData } = await supabase.from('faqs').select('*').order('order_index');
       setFaqs(fData || []);
 
-      // 5. inquiries
       const { data: iData } = await supabase.from('inquiries').select('*').order('created_at', { ascending: false });
       setInquiries(iData || []);
+
+      // ▼ 新規：アクセス統計データの集計 ▼
+      const { data: pvData } = await supabase.from('page_views').select('*');
+      if (pvData) {
+        const total = pvData.reduce((acc, curr) => acc + (curr.views || 0), 0);
+        const todayStr = new Date().toISOString().split('T')[0];
+        const today = pvData.filter(d => d.viewed_at === todayStr).reduce((acc, curr) => acc + (curr.views || 0), 0);
+        
+        // ページパスごとにグループ化して人気の順にソート
+        const pathViews: Record<string, number> = {};
+        pvData.forEach(d => {
+          pathViews[d.page_path] = (pathViews[d.page_path] || 0) + (d.views || 0);
+        });
+        const popular = Object.keys(pathViews).map(p => ({ path: p, views: pathViews[p] })).sort((a,b) => b.views - a.views);
+
+        setAnalyticsData({ totalViews: total, todayViews: today, popularPages: popular });
+      }
+
+      // ▼ 新規：操作監査ログ（最新20件）の読み込み ▼
+      const { data: logs } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(20);
+      setAuditLogs(logs || []);
+
     } catch (e: any) {
       setErrorMsg(e.message);
     } finally {
@@ -100,6 +124,7 @@ export default function NexusStudioPro() {
       if (!session) { router.push("/login"); return; }
       setIsAuthenticated(true);
       fetchData();
+      logAdminAction("login", "管理システムにログインしました"); // ログインログの記録
     };
     init();
   }, [router]);
@@ -147,6 +172,8 @@ export default function NexusStudioPro() {
         { onConflict: 'page_path,content_key' }
       );
       if (error) throw error;
+      
+      logAdminAction("update_content", `${activePage} ページの「${key}」の文言を更新しました`);
       await revalidateSite();
       showToast("変更を一時保存しました");
     } catch (e: any) {
@@ -165,10 +192,12 @@ export default function NexusStudioPro() {
       if (editingActivityId) {
         const { error } = await supabase.from('activities').update(activityPayload).eq('id', editingActivityId);
         if (error) throw error;
+        logAdminAction("update_activity", `活動記録「${title}」の内容を更新しました`);
         showToast("活動記録を更新しました");
       } else {
         const { error } = await supabase.from('activities').insert([activityPayload]);
         if (error) throw error;
+        logAdminAction("create_activity", `新規の活動記録「${title}」を${isPublished ? '公開' : '下書き'}で作成しました`);
         showToast(isPublished ? "記事を公開しました！" : "下書きとして保存しました");
       }
 
@@ -215,10 +244,12 @@ export default function NexusStudioPro() {
       if (editingMemberId) {
         const { error } = await supabase.from('members').update(memberPayload).eq('id', editingMemberId);
         if (error) throw error;
+        logAdminAction("update_member", `メンバー「${mName}」のプロフィールを更新しました`);
         showToast("メンバー情報を更新しました");
       } else {
         const { error } = await supabase.from('members').insert([{ ...memberPayload, order_index: members.length + 1 }]);
         if (error) throw error;
+        logAdminAction("create_member", `新メンバー「${mName}」を追加しました`);
         showToast("メンバーを追加しました");
       }
 
@@ -249,7 +280,7 @@ export default function NexusStudioPro() {
     setMPhotoUrl("");
   };
 
-  // メンバー表示順（order_index）の並び替え処理
+  // メンバー表示順の入れ替え処理
   const handleMoveMember = async (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= members.length) return; 
@@ -268,6 +299,7 @@ export default function NexusStudioPro() {
       return;
     }
 
+    logAdminAction("reorder_members", `メンバーの表示順序を入れ替えました (${currentMember.name} ➔ ${direction === 'up' ? '上へ' : '下へ'})`);
     await revalidateSite();
     fetchData();
     showToast("表示順序を変更しました");
@@ -276,8 +308,11 @@ export default function NexusStudioPro() {
   // お問い合わせの「対応ステータス」の変更処理
   const handleUpdateInquiryStatus = async (id: string, status: string) => {
     try {
+      const targetInquiry = inquiries.find(i => i.id === id);
       const { error } = await supabase.from('inquiries').update({ status }).eq('id', id);
       if (error) throw error;
+      
+      logAdminAction("update_inquiry", `お問合せ（送信者: ${targetInquiry?.name || '不明'}）のステータスを「${status}」に変更しました`);
       fetchData();
       showToast("対応ステータスを更新しました");
     } catch (e: any) {
@@ -291,10 +326,12 @@ export default function NexusStudioPro() {
       if (editingFaqId) {
         const { error } = await supabase.from('faqs').update({ question: fQuestion, answer: fAnswer }).eq('id', editingFaqId);
         if (error) throw error;
+        logAdminAction("update_faq", `FAQ「${fQuestion.slice(0, 15)}...」を更新しました`);
         showToast("FAQを更新しました");
       } else {
         const { error } = await supabase.from('faqs').insert([{ question: fQuestion, answer: fAnswer, order_index: faqs.length + 1 }]);
         if (error) throw error;
+        logAdminAction("create_faq", `新しいFAQ「${fQuestion.slice(0, 15)}...」を追加しました`);
         showToast("FAQを追加しました");
       }
       await revalidateSite();
@@ -326,6 +363,7 @@ export default function NexusStudioPro() {
       ];
       const { error } = await supabase.from('faqs').insert(defaults);
       if (error) throw error;
+      logAdminAction("seed_faqs", "初期テンプレートFAQを投入しました");
       await revalidateSite();
       fetchData();
       showToast("初期データを投入しました！");
@@ -338,6 +376,8 @@ export default function NexusStudioPro() {
     try {
       const { error } = await supabase.from(table).update({ is_published: isPublished }).eq('id', id);
       if (error) throw error;
+      
+      logAdminAction("toggle_publish", `${table} テーブルのID: ${id} の公開ステータスを ${isPublished ? '公開' : '非公開'} に切り替えました`);
       await revalidateSite();
       fetchData();
       showToast(isPublished ? "公開状態にしました" : "非公開にしました");
@@ -351,6 +391,7 @@ export default function NexusStudioPro() {
       try {
         const { error } = await supabase.from(table).delete().eq('id', id);
         if (error) throw error;
+        logAdminAction("delete_row", `${table} テーブルのID: ${id} を完全に削除しました`);
         await revalidateSite();
         fetchData();
         showToast("削除しました");
@@ -381,19 +422,26 @@ export default function NexusStudioPro() {
           <h1 style={{ fontSize: "1rem", fontWeight: 900, letterSpacing: "0.05em" }}>NEXUS STUDIO</h1>
         </div>
         <nav className="dashboard-nav" style={S.tabNav}>
+          <NavBtn active={activeTab === "system"} onClick={() => setActiveTab("system")} icon="📊">システム情報</NavBtn> {/* ▼ 新規：システム情報タブ */}
           <NavBtn active={activeTab === "activity"} onClick={() => setActiveTab("activity")} icon="✍️">活動</NavBtn>
           <NavBtn active={activeTab === "content"} onClick={() => setActiveTab("content")} icon="🌐">編集</NavBtn>
           <NavBtn active={activeTab === "members"} onClick={() => setActiveTab("members")} icon="👤">メンバー</NavBtn>
           <NavBtn active={activeTab === "faq"} onClick={() => setActiveTab("faq")} icon="❓">FAQ</NavBtn>
           <NavBtn active={activeTab === "inquiries"} onClick={() => setActiveTab("inquiries")} icon="📩">問い合わせ</NavBtn>
         </nav>
-        <button onClick={() => { supabase.auth.signOut(); router.push("/"); }} style={S.logoutBtn}>SIGN OUT</button>
+        <button onClick={() => { logAdminAction("logout", "管理システムからサインアウトしました"); supabase.auth.signOut(); router.push("/"); }} style={S.logoutBtn}>SIGN OUT</button>
       </header>
 
       {errorMsg && <div style={{ color: "red", padding: "10px" }}>{errorMsg}</div>}
 
       <div className="dashboard-layout" style={{ display: "grid", gridTemplateColumns: "1fr 450px", height: "calc(100vh - 70px)" }}>
         <div className="dashboard-editor" style={{ padding: "40px", overflowY: "auto", borderRight: "1px solid #e5e0d8", boxSizing: "border-box" }}>
+          {activeTab === "system" && (
+            <SystemDashboardTab 
+              analytics={analyticsData} 
+              logs={auditLogs} 
+            />
+          )}
           {activeTab === "content" && (
             <ContentTab 
               activePage={activePage} 
@@ -432,7 +480,8 @@ export default function NexusStudioPro() {
           )}
         </div>
         <PreviewPanel 
-          activeTab={activeTab} activePage={activePage} liveData={liveData} title={title} imageUrl={imageUrl} summary={summary}
+          activeTab={activeTab === "system" ? "content" : activeTab} // システムタブのときは仮でコンテンツのプレビューを表示
+          activePage={activePage} liveData={liveData} title={title} imageUrl={imageUrl} summary={summary}
           faqs={faqs} fQuestion={fQuestion} fAnswer={fAnswer} members={members} mName={mName} mRole={mRole} mMessage={mMessage} mPhotoUrl={mPhotoUrl}
         />
       </div>
@@ -445,3 +494,4 @@ export default function NexusStudioPro() {
     </main>
   );
 }
+
