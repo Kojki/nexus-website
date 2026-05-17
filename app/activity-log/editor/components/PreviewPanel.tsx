@@ -1,5 +1,6 @@
 import React from "react";
 import { PagePath, Tab, S } from "./SharedUI";
+import { renderMarkdown } from "@/lib/markdown"; // ▼ マークダウンレンダラーの導入
 
 interface Props {
   activeTab: Tab;
@@ -41,9 +42,7 @@ export function PreviewPanel({
       <div style={S.previewWindow}>
         <div style={{ animation: "fadeIn 0.4s" }}>
           
-          {/* =========================================
-              1. 文言編集タブのプレビュー
-             ========================================= */}
+          {/* 1. 文言編集タブ */}
           {activeTab === "content" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
               {activePage === "home" && (
@@ -100,7 +99,7 @@ export function PreviewPanel({
                           <div style={{ fontSize: "0.85rem", color: "#555", lineHeight: 1.8 }}>{renderText(liveData[bodyKey])}</div>
                         </div>
                       );
-                  })}
+                    })}
                 </>
               )}
 
@@ -113,9 +112,7 @@ export function PreviewPanel({
             </div>
           )}
 
-          {/* =========================================
-              2. 活動記録タブのプレビュー
-             ========================================= */}
+          {/* 2. 活動記録タブ (マークダウン完全対応) */}
           {activeTab === "activity" && (
             <div style={{ marginTop: "10px" }}>
               {imageUrl ? (
@@ -126,28 +123,24 @@ export function PreviewPanel({
                 </div>
               )}
               <h3 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: "12px", lineHeight: 1.4 }}>
-                {renderText(title) || "記事のタイトルがここに表示されます"}
+                {title || "記事のタイトルがここに表示されます"}
               </h3>
-              <p style={{ fontSize: "0.85rem", color: "#666", lineHeight: 1.6 }}>
-                {renderText(summary) || "ここに要約テキストが表示されます。"}
-              </p>
+              
+              <div style={{ fontSize: "0.85rem", color: "#666", lineHeight: 1.6, borderLeft: "3px solid #ccc", paddingLeft: "10px", marginBottom: "20px" }}>
+                {summary ? renderMarkdown(summary) : "ここに要約テキストが表示されます。"}
+              </div>
             </div>
           )}
 
-          {/* =========================================
-              3. メンバータブのプレビュー
-             ========================================= */}
+          {/* 3. メンバータブ */}
           {activeTab === "members" && (
             <div style={{ marginTop: "10px" }}>
               <h3 style={{ fontSize: "1.2rem", fontWeight: 900, marginBottom: "20px", color: "var(--accent)" }}>MEMBER PROFILE</h3>
-              
-              {/* ▼ 入力中、または登録済みのデータがない場合のメッセージ ▼ */}
               {(!members || members.length === 0) && !mName && !mRole && !mMessage && (
                 <div style={{ textAlign: "center", padding: "40px", color: "#aaa", border: "2px dashed #e5e0d8", borderRadius: "12px", fontSize: "0.85rem", lineHeight: 1.6 }}>
                   まだ登録されているメンバーはいません。<br />左側のフォームに入力すると、ここにプレビューが表示されます。
                 </div>
               )}
-
               {(mName || mRole || mMessage) && (
                 <div style={{ marginBottom: "32px", padding: "20px", background: "#fdfbf8", border: "1px dashed #ccc", borderRadius: "8px" }}>
                   <p style={{ fontSize: "0.7rem", color: "#e53e3e", fontWeight: 800, marginBottom: "12px", letterSpacing: "0.1em" }}>▶ 登録プレビュー</p>
@@ -161,7 +154,6 @@ export function PreviewPanel({
                   <div style={{ fontSize: "0.85rem", color: "#444", lineHeight: 1.7 }}>{renderText(mMessage) || "メッセージ文"}</div>
                 </div>
               )}
-
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                 {members?.map(m => (
                   <div key={m.id} style={{ display: "flex", gap: "16px", paddingBottom: "24px", borderBottom: "1px solid #eee" }}>
@@ -177,20 +169,15 @@ export function PreviewPanel({
             </div>
           )}
 
-          {/* =========================================
-              4. FAQタブのプレビュー
-             ========================================= */}
+          {/* 4. FAQタブ */}
           {activeTab === "faq" && (
             <div style={{ marginTop: "10px" }}>
               <h3 style={{ fontSize: "1.2rem", fontWeight: 900, marginBottom: "20px", color: "var(--accent)" }}>FAQ (よくある質問)</h3>
-              
-              {/* ▼ 入力中、または登録済みのデータがない場合のメッセージ ▼ */}
               {(!faqs || faqs.length === 0) && !fQuestion && !fAnswer && (
                 <div style={{ textAlign: "center", padding: "40px", color: "#aaa", border: "2px dashed #e5e0d8", borderRadius: "12px", fontSize: "0.85rem", lineHeight: 1.6 }}>
                   まだ登録されているFAQはありません。<br />左側のフォームに入力すると、ここにプレビューが表示されます。
                 </div>
               )}
-
               {(fQuestion || fAnswer) && (
                 <div style={{ marginBottom: "32px", padding: "20px", background: "#fdfbf8", border: "1px dashed #ccc", borderRadius: "8px" }}>
                   <p style={{ fontSize: "0.7rem", color: "#e53e3e", fontWeight: 800, marginBottom: "12px", letterSpacing: "0.1em" }}>▶ 登録プレビュー</p>
@@ -198,7 +185,6 @@ export function PreviewPanel({
                   <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.7 }}>A: {renderText(fAnswer) || "回答を入力..."}</div>
                 </div>
               )}
-
               <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                 {faqs?.map(f => (
                   <div key={f.id} style={{ paddingBottom: "20px", borderBottom: "1px solid #eee" }}>

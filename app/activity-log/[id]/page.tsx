@@ -4,28 +4,20 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { renderMarkdown } from "@/lib/markdown"; 
 
-// 静的エクスポート時に未定義のパスを許可しない設定
 export const dynamicParams = false;
 
-// ビルド時に全記事のパスを生成
 export async function generateStaticParams() {
   try {
     const { data: activities, error } = await supabase.from('activities').select('slug');
-    
-    if (error || !activities) {
-      return [];
-    }
-
-    return activities.map((activity) => ({
-      id: activity.slug,
-    }));
+    if (error || !activities) return [];
+    return activities.map((activity) => ({ id: activity.slug }));
   } catch (e) {
     return [];
   }
 }
 
-// ページコンポーネント（Next.js 15/16 対応版）
 export default async function ActivityDetailPage({ 
   params 
 }: { 
@@ -33,12 +25,11 @@ export default async function ActivityDetailPage({
 }) {
   const { id } = await params;
 
-  // 詳細データを取得
   const { data: activity } = await supabase
     .from('activities')
     .select('*')
     .eq('slug', id)
-    .eq('is_published', true) // ▼ 今回の追加部分
+    .eq('is_published', true)
     .single();
 
   if (!activity) {
@@ -59,14 +50,14 @@ export default async function ActivityDetailPage({
           </div>
           <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)", marginBottom: "40px", lineHeight: 1.3 }}>{activity.title}</h1>
           
+          {/* ▼ マークダウン詳細本文 */}
           <div style={{ 
             color: "var(--ink-soft)", 
             lineHeight: 2, 
             fontSize: "1.05rem",
-            whiteSpace: "pre-wrap",
             marginBottom: "60px"
           }}>
-            {activity.content}
+            {renderMarkdown(activity.content)}
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)", paddingTop: "40px", textAlign: "center" }}>

@@ -1,7 +1,6 @@
 import React from "react";
 import { PageTabBtn, InputField, S, PagePath } from "./SharedUI";
 
-// ▼ 文言編集：ページ個別の美しいビジュアルセクションエディタへ完全刷新！
 export function ContentTab({ activePage, setActivePage, liveData, handleUpdateContent }: any) {
   return (
     <div>
@@ -108,7 +107,6 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
   );
 }
 
-// ▼ 活動記録：投稿と「過去の記事一覧・編集・削除」の完全統合
 export function ActivityTab({ state, setters, handlers, activities }: any) {
   return (
     <div>
@@ -132,7 +130,7 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
               </select>
             </div>
           </div>
-          <InputField label="要約 (一覧に表示されます) *" value={state.summary} onChange={setters.setSummary} textarea />
+          <InputField label="要約 (一覧に表示されます) *" value={state.summary} onChange={setters.setSummary} textarea placeholder="**太字** や [リンク](URL) などのマークダウン記法が使えます" />
           
           <div style={S.group}>
             <label style={S.fieldLabel}>サムネイル画像</label>
@@ -145,7 +143,7 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
             )}
           </div>
           
-          <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="活動の詳しい内容を記述します..." />
+          <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="## 大見出し&#13;### 中見出し&#13;- 箇条書き&#13;**太字** などが使用できます。" />
           <InputField label="URLスラッグ (例: project-kickoff) ※任意" value={state.slug} onChange={setters.setSlug} />
           
           <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
@@ -175,7 +173,6 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
         </div>
       </div>
 
-      {/* 投稿履歴の一覧管理エリア */}
       <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "16px" }}>投稿済みの活動記録一覧</h3>
       <div style={S.listContainer}>
         {!activities || activities.length === 0 ? <div style={S.emptyState}>投稿された活動記録はありません。</div> : 
@@ -222,7 +219,6 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
   );
 }
 
-// ▼ メンバー：編集（修正）機能を完全統合
 export function MembersTab({ state, setters, handlers }: any) {
   return (
     <div>
@@ -269,7 +265,7 @@ export function MembersTab({ state, setters, handlers }: any) {
 
       <div style={S.listContainer}>
         {state.members.length === 0 ? <div style={S.emptyState}>登録メンバーがいません</div> : 
-          state.members.map((m: any) => (
+          state.members.map((m: any, index: number) => (
             <div key={m.id} style={S.listItem}>
               <img src={m.photo_url || "/nexus-icon.png"} style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} />
               <div style={{ flex: 1 }}>
@@ -282,7 +278,22 @@ export function MembersTab({ state, setters, handlers }: any) {
                 </div>
               </div>
               <div style={{ display: "flex", gap: "8px", flexDirection: "column", alignItems: "flex-end" }}>
-                <div style={{ display: "flex", gap: "6px" }}>
+                <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                  <button 
+                    onClick={() => handlers.handleMoveMember(index, 'up')} 
+                    disabled={index === 0} 
+                    style={{ background: index === 0 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem" }}
+                  >
+                    ⬆️
+                  </button>
+                  <button 
+                    onClick={() => handlers.handleMoveMember(index, 'down')} 
+                    disabled={index === state.members.length - 1} 
+                    style={{ background: index === state.members.length - 1 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === state.members.length - 1 ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem" }}
+                  >
+                    ⬇️
+                  </button>
+
                   <button 
                     onClick={() => handlers.startEditMember(m)} 
                     style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px" }}
@@ -305,7 +316,6 @@ export function MembersTab({ state, setters, handlers }: any) {
   );
 }
 
-// (FAQおよびInquiriesは前回と同一です)
 export function FaqTab({ state, setters, handlers }: any) {
   return (
     <div>
@@ -388,7 +398,18 @@ export function FaqTab({ state, setters, handlers }: any) {
   );
 }
 
-export function InquiriesTab({ inquiries }: { inquiries: any[] }) {
+export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any[], handleUpdateStatus: (id: string, status: string) => void }) {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "processing":
+        return <span style={{ background: "#e6f0ff", color: "#0066cc", padding: "4px 10px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800 }}>🔵 対応中</span>;
+      case "completed":
+        return <span style={{ background: "#e6ffe6", color: "#006600", padding: "4px 10px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800 }}>🟢 対応完了</span>;
+      default:
+        return <span style={{ background: "#fff0f0", color: "#cc0000", padding: "4px 10px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800 }}>🟡 未対応</span>;
+    }
+  };
+
   return (
     <div>
       <h2 style={S.sectionTitle}>お問い合わせ履歴</h2>
@@ -400,29 +421,49 @@ export function InquiriesTab({ inquiries }: { inquiries: any[] }) {
         const mailtoLink = `mailto:${i.email}?subject=${subject}&body=${body}`;
 
         return (
-          <div key={i.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", marginBottom: "16px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", marginBottom: "8px" }}>
-              <span style={{ fontSize: "0.75rem", fontWeight: 800, background: "#eee", padding: "4px 8px", borderRadius: "6px" }}>{i.category}</span>
+          <div key={i.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", marginBottom: "24px", gap: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 800, background: "#eee", padding: "4px 8px", borderRadius: "6px" }}>{i.category}</span>
+                {getStatusBadge(i.status)}
+              </div>
               <span style={{ fontSize: "0.75rem", color: "#888" }}>{new Date(i.created_at).toLocaleString('ja-JP')}</span>
             </div>
-            <div style={{ fontWeight: 800, fontSize: "1.1rem", marginBottom: "4px" }}>{i.name} 様</div>
-            {i.organization && <div style={{ fontSize: "0.85rem", color: "#666", marginBottom: "12px" }}>{i.organization}</div>}
+            
+            <div style={{ fontWeight: 800, fontSize: "1.1rem" }}>{i.name} 様</div>
+            {i.organization && <div style={{ fontSize: "0.85rem", color: "#666" }}>{i.organization}</div>}
+            
             <div style={{ fontSize: "0.9rem", color: "#333", lineHeight: 1.6, background: "#f8f7f4", padding: "16px", borderRadius: "8px", width: "100%", boxSizing: "border-box", whiteSpace: "pre-wrap" }}>
               {i.content}
             </div>
-            
-            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", marginTop: "16px", alignItems: "center" }}>
-              <div style={{ fontSize: "0.8rem", color: "#666" }}>✉️ {i.email}</div>
-              <a 
-                href={mailtoLink} 
-                style={{ 
-                  background: "#111", color: "white", padding: "8px 16px", 
-                  borderRadius: "8px", fontSize: "0.85rem", fontWeight: 800, 
-                  textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" 
-                }}
-              >
-                ✉️ メールで返信する
-              </a>
+
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", marginTop: "8px", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <label style={{ fontSize: "0.75rem", fontWeight: 800, color: "#666" }}>ステータス変更:</label>
+                <select 
+                  value={i.status || "unprocessed"} 
+                  onChange={(e) => handleUpdateStatus(i.id, e.target.value)} 
+                  style={{ ...S.select, width: "auto", padding: "4px 10px", fontSize: "0.8rem", height: "auto" }}
+                >
+                  <option value="unprocessed">🟡 未対応</option>
+                  <option value="processing">🔵 対応中</option>
+                  <option value="completed">🟢 対応完了</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <div style={{ fontSize: "0.8rem", color: "#666" }}>✉️ {i.email}</div>
+                <a 
+                  href={mailtoLink} 
+                  style={{ 
+                    background: "#111", color: "white", padding: "8px 16px", 
+                    borderRadius: "8px", fontSize: "0.85rem", fontWeight: 800, 
+                    textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" 
+                  }}
+                >
+                  ✉️ メールで返信する
+                </a>
+              </div>
             </div>
           </div>
         );
@@ -430,3 +471,4 @@ export function InquiriesTab({ inquiries }: { inquiries: any[] }) {
     </div>
   );
 }
+
