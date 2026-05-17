@@ -94,13 +94,67 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
           </>
         )}
 
-        {/* --- ENGLISH ページ --- */}
+        {/* --- ENGLISH (EN) ページ（すべてのセクションをカード型でフル編集可能） --- */}
         {activePage === "en" && (
-          <div style={S.editorCard}>
-            <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>ENGLISH HERO</h3>
-            <InputField label="Hero Title" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} />
-            <InputField label="Hero Copy Text" value={liveData.hero_copy || ""} onChange={(v: string) => handleUpdateContent("hero_copy", v)} textarea />
-          </div>
+          <>
+            <div style={S.editorCard}>
+              <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>👑 HERO AREA (ENGLISH)</h3>
+              <InputField label="Hero Title" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} placeholder="Connect, Create,\nGo Beyond." />
+              <InputField label="Hero Copy Text" value={liveData.hero_copy || ""} onChange={(v: string) => handleUpdateContent("hero_copy", v)} textarea />
+            </div>
+
+            <div style={S.editorCard}>
+              <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>🌐 ABOUT AREA (ENGLISH)</h3>
+              <InputField label="Section Title" value={liveData.about_title || ""} onChange={(v: string) => handleUpdateContent("about_title", v)} />
+              <InputField label="About Paragraph 1" value={liveData.about_body_1 || ""} onChange={(v: string) => handleUpdateContent("about_body_1", v)} textarea />
+              <InputField label="About Paragraph 2" value={liveData.about_body_2 || ""} onChange={(v: string) => handleUpdateContent("about_body_2", v)} textarea />
+            </div>
+
+            <div style={S.editorCard}>
+              <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>🙋 FOR WHO AREA (ENGLISH)</h3>
+              <InputField label="Main Heading" value={liveData.forwho_title || ""} onChange={(v: string) => handleUpdateContent("forwho_title", v)} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
+                <InputField label="01. Title" value={liveData.forwho_1_title || ""} onChange={(v: string) => handleUpdateContent("forwho_1_title", v)} />
+                <InputField label="01. Description" value={liveData.forwho_1_text || ""} onChange={(v: string) => handleUpdateContent("forwho_1_text", v)} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
+                <InputField label="02. Title" value={liveData.forwho_2_title || ""} onChange={(v: string) => handleUpdateContent("forwho_2_title", v)} />
+                <InputField label="02. Description" value={liveData.forwho_2_text || ""} onChange={(v: string) => handleUpdateContent("forwho_2_text", v)} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
+                <InputField label="03. Title" value={liveData.forwho_3_title || ""} onChange={(v: string) => handleUpdateContent("forwho_3_title", v)} />
+                <InputField label="03. Description" value={liveData.forwho_3_text || ""} onChange={(v: string) => handleUpdateContent("forwho_3_text", v)} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
+                <InputField label="04. Title" value={liveData.forwho_4_title || ""} onChange={(v: string) => handleUpdateContent("forwho_4_title", v)} />
+                <InputField label="04. Description" value={liveData.forwho_4_text || ""} onChange={(v: string) => handleUpdateContent("forwho_4_text", v)} />
+              </div>
+            </div>
+
+            <div style={S.editorCard}>
+              <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>⚡ ACTIVITIES AREA (ENGLISH)</h3>
+              <InputField label="Section Title" value={liveData.activity_title || ""} onChange={(v: string) => handleUpdateContent("activity_title", v)} />
+              <InputField label="Activities Main Copy" value={liveData.activity_copy || ""} onChange={(v: string) => handleUpdateContent("activity_copy", v)} textarea />
+              <div style={{ marginTop: "16px" }}>
+                <InputField label="01. Title" value={liveData.activity_1_title || ""} onChange={(v: string) => handleUpdateContent("activity_1_title", v)} />
+                <InputField label="01. Description" value={liveData.activity_1_text || ""} onChange={(v: string) => handleUpdateContent("activity_1_text", v)} textarea />
+              </div>
+              <div style={{ marginTop: "16px" }}>
+                <InputField label="02. Title" value={liveData.activity_2_title || ""} onChange={(v: string) => handleUpdateContent("activity_2_title", v)} />
+                <InputField label="02. Description" value={liveData.activity_2_text || ""} onChange={(v: string) => handleUpdateContent("activity_2_text", v)} textarea />
+              </div>
+              <div style={{ marginTop: "16px" }}>
+                <InputField label="03. Title" value={liveData.activity_3_title || ""} onChange={(v: string) => handleUpdateContent("activity_3_title", v)} />
+                <InputField label="03. Description" value={liveData.activity_3_text || ""} onChange={(v: string) => handleUpdateContent("activity_3_text", v)} textarea />
+              </div>
+            </div>
+
+            <div style={S.editorCard}>
+              <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>💬 JOIN US AREA (ENGLISH)</h3>
+              <InputField label="Join Title" value={liveData.join_title || ""} onChange={(v: string) => handleUpdateContent("join_title", v)} />
+              <InputField label="Join Subtext" value={liveData.join_copy || ""} onChange={(v: string) => handleUpdateContent("join_copy", v)} textarea />
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -414,7 +468,7 @@ export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any
     <div>
       <h2 style={S.sectionTitle}>お問い合わせ履歴</h2>
       {inquiries.length === 0 ? (
-        <div style={S.emptyState}>メッセージはありません。</div>
+        <div style={{ ...S.emptyState, textAlign: "center" }}>メッセージはありません。</div>
       ) : inquiries.map((i: any) => {
         const subject = encodeURIComponent(`【Nexus】お問い合わせへのご返信（件名: ${i.category}）`);
         const body = encodeURIComponent(`${i.name} 様\n\nお問い合わせいただきありがとうございます。\nNexus運営チームです。\n\n---\n\n`);
@@ -471,4 +525,3 @@ export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any
     </div>
   );
 }
-
