@@ -2,7 +2,7 @@ import React from "react";
 import { PagePath, Tab, S } from "./SharedUI";
 
 interface Props {
-  activeTab: Tab; // どのタブを開いているかを受け取る
+  activeTab: Tab;
   activePage: PagePath;
   liveData: Record<string, string>;
   title: string;
@@ -10,10 +10,8 @@ interface Props {
   summary: string;
 }
 
-// 改行を正しく <br /> に変換するヘルパー関数
 const renderText = (text: string) => {
   if (!text) return null;
-  // エンターキーの改行(\n) と、文字としての "\n" の両方に対応
   return text.split(/(?:\r\n|\r|\n|\\n)/).map((line, i) => (
     <span key={i}>{line}<br /></span>
   ));
@@ -32,32 +30,93 @@ export function PreviewPanel({ activeTab, activePage, liveData, title, imageUrl,
       <div style={S.previewWindow}>
         <div style={{ animation: "fadeIn 0.4s" }}>
           
-          {/* ▼ 文言編集タブを開いている時 ▼ */}
+          {/* =========================================
+              1. 文言編集タブのプレビュー（ページごとに分岐）
+             ========================================= */}
           {activeTab === "content" && (
-            <>
-              <p style={{ fontSize: "0.55rem", fontWeight: 900, color: "var(--accent)", marginBottom: "10px", letterSpacing: "0.2em" }}>NEXUS / {activePage.toUpperCase()}</p>
-              <h3 style={{ fontSize: "1.6rem", fontWeight: 900, lineHeight: 1.25, marginBottom: "20px", letterSpacing: "-0.01em" }}>
-                {renderText(liveData.hero_title || liveData.about_title || "Previewing...")}
-              </h3>
-              <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.85 }}>
-                {renderText(liveData.hero_copy || liveData.about_body_1 || liveData.intro_text || "サイト上での見え方がここに表示されます。")}
-              </div>
-              {liveData.about_body_2 && (
-                <div style={{ marginTop: "24px", paddingTop: "24px", borderTop: "1px dashed #eee", fontSize: "0.85rem", color: "#777", lineHeight: 1.8 }}>
-                  {renderText(liveData.about_body_2)}
-                </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+              
+              {/* --- HOME プレビュー --- */}
+              {activePage === "home" && (
+                <>
+                  <div style={{ paddingBottom: "24px", borderBottom: "1px dashed #ddd" }}>
+                    <p style={{ fontSize: "0.55rem", fontWeight: 900, color: "var(--accent)", marginBottom: "10px" }}>HERO SECTION</p>
+                    <h3 style={{ fontSize: "1.6rem", fontWeight: 900, lineHeight: 1.25, marginBottom: "16px" }}>{renderText(liveData.hero_title)}</h3>
+                    <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.8 }}>{renderText(liveData.hero_copy)}</div>
+                  </div>
+                  <div style={{ paddingBottom: "24px", borderBottom: "1px dashed #ddd" }}>
+                    <p style={{ fontSize: "0.55rem", fontWeight: 900, color: "var(--accent)", marginBottom: "10px" }}>ABOUT SECTION</p>
+                    <h3 style={{ fontSize: "1.4rem", fontWeight: 900, lineHeight: 1.25, marginBottom: "16px" }}>{renderText(liveData.about_title)}</h3>
+                    <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.8, marginBottom: "12px" }}>{renderText(liveData.about_body_1)}</div>
+                    <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.8 }}>{renderText(liveData.about_body_2)}</div>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: "0.55rem", fontWeight: 900, color: "var(--accent)", marginBottom: "10px" }}>ACTIVITY SECTION</p>
+                    <h3 style={{ fontSize: "1.4rem", fontWeight: 900, lineHeight: 1.25, marginBottom: "16px" }}>{renderText(liveData.activity_title)}</h3>
+                    <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.8 }}>{renderText(liveData.activity_copy)}</div>
+                  </div>
+                </>
               )}
-            </>
+
+              {/* --- ABOUT プレビュー --- */}
+              {activePage === "about" && (
+                <>
+                  <div style={{ paddingBottom: "24px", borderBottom: "1px dashed #ddd" }}>
+                    <h3 style={{ fontSize: "1.6rem", fontWeight: 900, lineHeight: 1.25, marginBottom: "16px" }}>{renderText(liveData.hero_title)}</h3>
+                  </div>
+                  {[1, 2, 3].map(i => (
+                    liveData[`block_${i}_title`] && (
+                      <div key={i} style={{ paddingBottom: "24px", borderBottom: i !== 3 ? "1px dashed #ddd" : "none" }}>
+                        <h4 style={{ fontSize: "1.2rem", fontWeight: 800, marginBottom: "12px" }}>{renderText(liveData[`block_${i}_title`])}</h4>
+                        <div style={{ fontSize: "0.85rem", color: "#555", lineHeight: 1.8 }}>{renderText(liveData[`block_${i}_body`])}</div>
+                      </div>
+                    )
+                  ))}
+                </>
+              )}
+
+              {/* --- GUIDELINES / PRIVACY プレビュー --- */}
+              {(activePage === "guidelines" || activePage === "privacy") && (
+                <>
+                  <h3 style={{ fontSize: "1.6rem", fontWeight: 900, lineHeight: 1.25, marginBottom: "16px" }}>{renderText(liveData.hero_title)}</h3>
+                  <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.8, marginBottom: "32px", paddingBottom: "24px", borderBottom: "1px dashed #ddd" }}>
+                    {renderText(liveData.intro_text || liveData.last_updated)}
+                  </div>
+                  {Object.keys(liveData)
+                    .filter(k => k.includes('_title') && k !== 'hero_title')
+                    .sort()
+                    .map(titleKey => {
+                      const bodyKey = titleKey.replace('_title', '_body');
+                      return (
+                        <div key={titleKey} style={{ marginBottom: "24px" }}>
+                          <h4 style={{ fontSize: "1.1rem", fontWeight: 800, marginBottom: "8px" }}>{renderText(liveData[titleKey])}</h4>
+                          <div style={{ fontSize: "0.85rem", color: "#555", lineHeight: 1.8 }}>{renderText(liveData[bodyKey])}</div>
+                        </div>
+                      );
+                  })}
+                </>
+              )}
+
+              {/* --- EN プレビュー --- */}
+              {activePage === "en" && (
+                <>
+                  <h3 style={{ fontSize: "1.6rem", fontWeight: 900, lineHeight: 1.25, marginBottom: "16px" }}>{renderText(liveData.hero_title)}</h3>
+                  <div style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.8 }}>{renderText(liveData.hero_copy)}</div>
+                </>
+              )}
+            </div>
           )}
 
-          {/* ▼ 活動記録タブを開いている時 ▼ */}
+          {/* =========================================
+              2. 活動記録タブのプレビュー
+             ========================================= */}
           {activeTab === "activity" && (
             <div style={{ marginTop: "10px" }}>
               {imageUrl ? (
                 <img src={imageUrl} alt="preview" style={{ width: "100%", borderRadius: "8px", marginBottom: "16px", objectFit: "cover", aspectRatio: "16/9" }} />
               ) : (
-                <div style={{ width: "100%", aspectRatio: "16/9", background: "#eee", borderRadius: "8px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: "0.8rem" }}>
-                  No Image
+                <div style={{ width: "100%", aspectRatio: "16/9", background: "#eee", borderRadius: "8px", marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: "0.8rem", border: "1px dashed #ccc" }}>
+                  メイン画像プレビュー
                 </div>
               )}
               <h3 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: "12px", lineHeight: 1.4 }}>
@@ -69,7 +128,9 @@ export function PreviewPanel({ activeTab, activePage, liveData, title, imageUrl,
             </div>
           )}
 
-          {/* ▼ その他のタブを開いている時 ▼ */}
+          {/* =========================================
+              3. その他のタブのプレビュー
+             ========================================= */}
           {activeTab !== "content" && activeTab !== "activity" && (
             <div style={{ textAlign: "center", padding: "60px 0", color: "#ccc", fontSize: "0.85rem" }}>
               このタブのプレビューは現在ありません
