@@ -7,13 +7,13 @@ import Image from "next/image";
 
 import { revalidateSite } from "@/app/actions";
 import { compressImage } from "@/lib/image";
-import { logAdminAction } from "@/lib/analytics"; // ▼ 監査ログ機能のインポート
+import { logAdminAction } from "@/lib/analytics"; // 監査ログ機能のインポート
 
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab } from "./components/EditorTabs";
 
-// ▼ 新しく「Analytics & Security Tab」を EditorTabs からインポートします
+// 新しく「Analytics & Security Tab」を EditorTabs からインポートします
 import { SystemDashboardTab } from "./components/SystemDashboardTab";
 
 export default function NexusStudioPro() {
@@ -42,7 +42,7 @@ export default function NexusStudioPro() {
   const [faqs, setFaqs] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
 
-  // ▼ 新規：アクセスログ ＆ 監査ログのデータステート ▼
+  // アクセスログ ＆ 監査ログのデータステート
   const [analyticsData, setAnalyticsData] = useState<{ totalViews: number; todayViews: number; popularPages: any[] }>({ totalViews: 0, todayViews: 0, popularPages: [] });
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
@@ -90,14 +90,13 @@ export default function NexusStudioPro() {
       const { data: iData } = await supabase.from('inquiries').select('*').order('created_at', { ascending: false });
       setInquiries(iData || []);
 
-      // ▼ 新規：アクセス統計データの集計 ▼
+      // アクセス統計データの集計
       const { data: pvData } = await supabase.from('page_views').select('*');
       if (pvData) {
         const total = pvData.reduce((acc, curr) => acc + (curr.views || 0), 0);
         const todayStr = new Date().toISOString().split('T')[0];
         const today = pvData.filter(d => d.viewed_at === todayStr).reduce((acc, curr) => acc + (curr.views || 0), 0);
         
-        // ページパスごとにグループ化して人気の順にソート
         const pathViews: Record<string, number> = {};
         pvData.forEach(d => {
           pathViews[d.page_path] = (pathViews[d.page_path] || 0) + (d.views || 0);
@@ -107,7 +106,7 @@ export default function NexusStudioPro() {
         setAnalyticsData({ totalViews: total, todayViews: today, popularPages: popular });
       }
 
-      // ▼ 新規：操作監査ログ（最新20件）の読み込み ▼
+      // 操作監査ログ（最新20件）の読み込み
       const { data: logs } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(20);
       setAuditLogs(logs || []);
 
@@ -124,7 +123,13 @@ export default function NexusStudioPro() {
       if (!session) { router.push("/login"); return; }
       setIsAuthenticated(true);
       fetchData();
-      logAdminAction("login", "管理システムにログインしました"); // ログインログの記録
+
+      // ▼ 【改良】リロード連打によるログスパムを防ぐため、セッション単位で最初の1回のみ記録する ▼
+      const sessionKey = "nexus_admin_session_logged";
+      if (!sessionStorage.getItem(sessionKey)) {
+        logAdminAction("login", "管理システムにログイン（セッション開始）しました");
+        sessionStorage.setItem(sessionKey, "true"); // ブラウザのタブを閉じるまでこのフラグを維持
+      }
     };
     init();
   }, [router]);
@@ -422,7 +427,7 @@ export default function NexusStudioPro() {
           <h1 style={{ fontSize: "1rem", fontWeight: 900, letterSpacing: "0.05em" }}>NEXUS STUDIO</h1>
         </div>
         <nav className="dashboard-nav" style={S.tabNav}>
-          <NavBtn active={activeTab === "system"} onClick={() => setActiveTab("system")} icon="📊">システム情報</NavBtn> {/* ▼ 新規：システム情報タブ */}
+          <NavBtn active={activeTab === "system"} onClick={() => setActiveTab("system")} icon="📊">システム情報</NavBtn>
           <NavBtn active={activeTab === "activity"} onClick={() => setActiveTab("activity")} icon="✍️">活動</NavBtn>
           <NavBtn active={activeTab === "content"} onClick={() => setActiveTab("content")} icon="🌐">編集</NavBtn>
           <NavBtn active={activeTab === "members"} onClick={() => setActiveTab("members")} icon="👤">メンバー</NavBtn>
@@ -480,7 +485,7 @@ export default function NexusStudioPro() {
           )}
         </div>
         <PreviewPanel 
-          activeTab={activeTab === "system" ? "content" : activeTab} // システムタブのときは仮でコンテンツのプレビューを表示
+          activeTab={activeTab === "system" ? "content" : activeTab}
           activePage={activePage} liveData={liveData} title={title} imageUrl={imageUrl} summary={summary}
           faqs={faqs} fQuestion={fQuestion} fAnswer={fAnswer} members={members} mName={mName} mRole={mRole} mMessage={mMessage} mPhotoUrl={mPhotoUrl}
         />
@@ -494,4 +499,3 @@ export default function NexusStudioPro() {
     </main>
   );
 }
-
