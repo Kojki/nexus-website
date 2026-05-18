@@ -34,6 +34,10 @@ export default function NexusStudioPro() {
   // 📬 届いたテキスト変更提案用ステート
   const [pendingContentProposals, setPendingContentProposals] = useState<any[]>([]);
 
+  // 🔔 通知センターステート
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -173,6 +177,16 @@ export default function NexusStudioPro() {
       const { data: pendC } = await supabase.from('content_proposals').select('*').eq('status', 'pending').order('created_at', { ascending: false });
       setPendingContentProposals(pendC || []);
 
+      // 🔔 通知ベルデータの取得
+      if (currentUserEmail) {
+        const { data: nData } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_email', currentUserEmail)
+          .order('created_at', { ascending: false });
+        setNotifications(nData || []);
+      }
+
     } catch (e: any) {
       setErrorMsg(e.message);
     } finally {
@@ -203,6 +217,15 @@ export default function NexusStudioPro() {
 
       setIsAuthenticated(true);
       setUserRole(userData.role);
+      
+      // メールアドレスが取得できている状態で初回のデータフェッチを実行
+      const { data: nData } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_email', email)
+        .order('created_at', { ascending: false });
+      setNotifications(nData || []);
+
       fetchData();
 
       const sessionKey = "nexus_admin_session_logged";
@@ -217,6 +240,36 @@ export default function NexusStudioPro() {
   useEffect(() => {
     setLiveData(siteContents[activePage] || {});
   }, [activePage, siteContents]);
+
+  // 🔔 通知の既読処理
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ status: 'read' })
+        .eq('id', id);
+      if (error) throw error;
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'read' } : n));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // 🔔 通知の一括既読処理
+  const handleMarkAllAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ status: 'read' })
+        .eq('user_email', currentUserEmail)
+        .eq('status', 'unread');
+      if (error) throw error;
+      setNotifications(prev => prev.map(n => ({ ...n, status: 'read' })));
+      showToast("すべての通知を既読にしました");
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // 🔑 ログイン許可リストの操作ハンドラー
   const handleAddAllowedUser = async (email: string, role: string) => {
@@ -329,7 +382,6 @@ export default function NexusStudioPro() {
   const handleSaveAllContentChanges = async () => {
     setPublishing(true);
     try {
-      // siteContents[activePage]（DBから取得した初期値）と現在の liveData（画面で編集中の値）の差分キーを抽出
       const original = siteContents[activePage] || {};
       const changedKeys = Object.keys(liveData).filter(key => liveData[key] !== original[key]);
 
@@ -340,11 +392,9 @@ export default function NexusStudioPro() {
       }
 
       if (userRole === "proposer") {
-        // 提案者の場合：差分のあるすべてのキーを content_proposals に一括保存
         for (const key of changedKeys) {
           const value = liveData[key];
           
-          // すでに同じ page_path, content_key で pending の提案があれば上書き、なければ新規作成
           const { data: existing } = await supabase
             .from('content_proposals')
             .select('id')
@@ -373,11 +423,10 @@ export default function NexusStudioPro() {
           }
         }
         showToast("テキスト変更提案を一括送信しました！");
-        await fetchData(true); // 読込中画面を表示せずにバックグラウンドで状態を同期
+        await fetchData(true);
         return;
       }
 
-      // オーナー / 編集者の場合：site_content テーブルに一括 Upsert
       const upsertRows = changedKeys.map(key => ({
         page_path: activePage,
         content_key: key,
@@ -390,7 +439,6 @@ export default function NexusStudioPro() {
       );
       if (error) throw error;
 
-      // 保存完了後にローカルの状態も更新
       setSiteContents(prev => ({
         ...prev,
         [activePage]: {
@@ -401,7 +449,7 @@ export default function NexusStudioPro() {
 
       logAdminAction("update_content", `${activePage} ページのテキストを変更し本番保存しました`);
       await revalidateSite();
-      await fetchData(true); // 読込中画面を表示せずにバックグラウンドで状態を同期
+      await fetchData(true);
       showToast("変更内容を本番に一括反映・保存しました！");
     } catch (e: any) {
       showToast("保存に失敗しました", "error");
@@ -829,17 +877,38 @@ export default function NexusStudioPro() {
           .eq('id', id);
         if (updateErr) throw updateErr;
 
+        // 🔔 提案者への「承認通知」を作成して保存
+        if (prop.proposer_email) {
+          await supabase.from('notifications').insert([{
+            user_email: prop.proposer_email,
+            title: "🟢 変更提案が承認されました",
+            message: `${prop.page_path.toUpperCase()}ページの「${prop.content_key}」の変更提案が承認され、本番サイトに反映されました！`
+          }]);
+        }
+
         logAdminAction("approve_proposal", `一般テキスト変更提案 (ページ: ${prop.page_path}, キー: ${prop.content_key}) を承認し本番反映しました`);
         await revalidateSite();
         fetchData(true);
         showToast("テキスト変更を承認・公開しました！");
       } else {
+        // activities, members などの承認処理
+        const { data: prop } = await supabase.from(table).select('*').eq('id', id).single();
+        
         const { error } = await supabase
           .from(table)
           .update({ approval_status: 'approved', is_published: true })
           .eq('id', id);
-
         if (error) throw error;
+
+        // 🔔 提案者宛て通知の送信（監査ログなどからメールアドレスが割り出せる場合）
+        if (prop && prop.created_by) {
+          await supabase.from('notifications').insert([{
+            user_email: prop.created_by,
+            title: "🟢 作成提案が承認されました",
+            message: `${table === 'activities' ? '活動記録' : 'コンテンツ'}の申請が承認され、本番サイトに公開されました！`
+          }]);
+        }
+
         logAdminAction("approve_proposal", `${table} の提案 (ID: ${id}) を承認し本番公開しました`);
         await revalidateSite();
         fetchData(true);
@@ -856,12 +925,34 @@ export default function NexusStudioPro() {
     if (confirm("この提案を却下して削除しますか？")) {
       try {
         if (table === 'content_proposals') {
+          const { data: prop } = await supabase.from('content_proposals').select('*').eq('id', id).single();
+          
           const { error } = await supabase.from('content_proposals').delete().eq('id', id);
           if (error) throw error;
+
+          // 🔔 提案者への「却下通知」を作成して保存
+          if (prop && prop.proposer_email) {
+            await supabase.from('notifications').insert([{
+              user_email: prop.proposer_email,
+              title: "🔴 変更提案が却下されました",
+              message: `${prop.page_path.toUpperCase()}ページの「${prop.content_key}」の変更提案は却下されました。`
+            }]);
+          }
+
           logAdminAction("reject_proposal", `テキスト変更提案 (ID: ${id}) を却下しました`);
         } else {
+          const { data: prop } = await supabase.from(table).select('*').eq('id', id).single();
           const { error } = await supabase.from(table).delete().eq('id', id);
           if (error) throw error;
+
+          if (prop && prop.created_by) {
+            await supabase.from('notifications').insert([{
+              user_email: prop.created_by,
+              title: "🔴 作成提案が却下されました",
+              message: `${table === 'activities' ? '活動記録' : 'コンテンツ'}の申請は却下されました。`
+            }]);
+          }
+
           logAdminAction("reject_proposal", `${table} の提案 (ID: ${id}) を却下しました`);
         }
         fetchData(true);
@@ -879,6 +970,7 @@ export default function NexusStudioPro() {
   return (
     <main style={{ background: "#f8f7f4", minHeight: "100vh", color: "#1a1a1a" }}>
       <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 900px) {
           .dashboard-header { flex-direction: column !important; padding: 16px 20px !important; gap: 16px !important; }
           .dashboard-nav { flex-wrap: wrap !important; justify-content: center !important; }
@@ -905,6 +997,86 @@ export default function NexusStudioPro() {
           }}>
             {userRole === "owner" ? "👑 OWNER" : userRole === "editor" ? "📝 EDITOR" : "💡 PROPOSER"}
           </span>
+
+          {/* 🔔 通知ベル（ドロップダウン付き） */}
+          <div style={{ position: "relative", marginLeft: "16px" }}>
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{
+                background: "none", border: "none", cursor: "pointer", position: "relative",
+                fontSize: "1.2rem", padding: "6px", display: "flex", alignItems: "center"
+              }}
+            >
+              🔔
+              {notifications.filter(n => n.status === 'unread').length > 0 && (
+                <span style={{
+                  position: "absolute", top: "2px", right: "2px",
+                  background: "#ff4d4d", color: "white", borderRadius: "50%",
+                  width: "16px", height: "16px", fontSize: "0.6rem", fontWeight: 900,
+                  display: "flex", alignItems: "center", justifyContent: "center"
+                }}>
+                  {notifications.filter(n => n.status === 'unread').length}
+                </span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div style={{
+                position: "absolute", top: "40px", left: "0", background: "white",
+                minWidth: "320px", borderRadius: "16px", boxShadow: "0 10px 40px rgba(0,0,0,0.12)",
+                border: "1px solid #e5e0d8", zIndex: 1000, padding: "16px", display: "flex",
+                flexDirection: "column", gap: "12px", animation: "fadeIn 0.2s"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #eee", paddingBottom: "10px" }}>
+                  <span style={{ fontWeight: 900, fontSize: "0.85rem" }}>🔔 通知センター</span>
+                  {notifications.filter(n => n.status === 'unread').length > 0 && (
+                    <button 
+                      onClick={handleMarkAllAsRead}
+                      style={{ background: "none", border: "none", color: "#0055ff", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer" }}
+                    >
+                      すべて既読にする
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "250px", overflowY: "auto" }}>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "0.8rem" }}>
+                      通知はまだありません。
+                    </div>
+                  ) : (
+                    notifications.map(n => (
+                      <div 
+                        key={n.id} 
+                        onClick={() => handleMarkAsRead(n.id)}
+                        style={{
+                          padding: "10px 12px", borderRadius: "10px",
+                          background: n.status === 'unread' ? "#f5f9ff" : "#fafafa",
+                          border: n.status === 'unread' ? "1px solid #d9e8ff" : "1px solid #eee",
+                          cursor: "pointer", transition: "0.2s", display: "flex", flexDirection: "column", gap: "4px"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontWeight: 800, fontSize: "0.8rem", color: n.status === 'unread' ? "#0055ff" : "#333" }}>
+                            {n.title}
+                          </span>
+                          {n.status === 'unread' && (
+                            <span style={{ width: "6px", height: "6px", background: "#0055ff", borderRadius: "50%" }} />
+                          )}
+                        </div>
+                        <p style={{ fontSize: "0.75rem", color: "#666", margin: 0, lineHeight: 1.4 }}>
+                          {n.message}
+                        </p>
+                        <span style={{ fontSize: "0.6rem", color: "#aaa", alignSelf: "flex-end" }}>
+                          {new Date(n.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <nav className="dashboard-nav" style={S.tabNav}>
           <NavBtn active={activeTab === "system"} onClick={() => setActiveTab("system")} icon="📊">システム情報</NavBtn>
@@ -1015,4 +1187,5 @@ export default function NexusStudioPro() {
     </main>
   );
 }
+
 

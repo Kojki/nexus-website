@@ -16,7 +16,6 @@ interface Props {
   onRemoveUser: (email: string) => Promise<void>;
   onChangeRole: (email: string, role: string) => Promise<void>;
   
-  // 🗑️ ゴミ箱用Props
   trashItems?: {
     activities: any[];
     members: any[];
@@ -26,13 +25,12 @@ interface Props {
   onRestoreItem?: (table: string, id: string) => Promise<void>;
   onPermanentDelete?: (table: string, id: string) => Promise<void>;
 
-  // 📬 承認待ち（提案ボックス）用Props
   pendingProposals?: {
     activities: any[];
     members: any[];
     projects: any[];
     faqs: any[];
-    content?: any[]; // 🌟 テキスト提案を追加
+    content?: any[];
   };
   onApproveProposal?: (table: string, id: string) => Promise<void>;
   onRejectProposal?: (table: string, id: string) => Promise<void>;
@@ -64,10 +62,15 @@ export function SystemDashboardTab({
     members: { name: string; type: string; clicks: number }[];
   }>({ projects: [], members: [] });
 
+  // 💡 提案者専用の変数 ＆ ステート
+  const [myProposals, setMyProposals] = useState<any[]>([]);
+  const [reminderCooldown, setReminderCooldown] = useState<string | null>(null);
+  const [sendingReminder, setSendingReminder] = useState(false);
+
   // 📢 伝言板の読み込み
   const fetchBulletin = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('admin_bulletins')
         .select('*')
         .order('created_at', { ascending: false })
@@ -125,10 +128,46 @@ export function SystemDashboardTab({
     }
   };
 
+  // 💡 [新設] 提案者自身の提案データとリマインダー制限時間を確認
+  const checkProposerData = async () => {
+    if (userRole !== "proposer") return;
+    try {
+      // 1. 自分が送信したすべての提案を取得
+      const { data: list } = await supabase
+        .from('content_proposals')
+        .select('*')
+        .eq('proposer_email', currentUserEmail)
+        .order('created_at', { ascending: false });
+      setMyProposals(list || []);
+
+      // 2. 24時間リミットのチェック
+      const { data: reminder } = await supabase
+        .from('proposal_reminders')
+        .select('last_sent_at')
+        .eq('proposer_email', currentUserEmail)
+        .single();
+      
+      if (reminder) {
+        const lastSent = new Date(reminder.last_sent_at).getTime();
+        const diffMs = Date.now() - lastSent;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        if (diffHours < 24) {
+          const remainHours = Math.ceil(24 - diffHours);
+          setReminderCooldown(`本日分は通知済みです（残り ${remainHours} 時間）`);
+        } else {
+          setReminderCooldown(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchBulletin();
     fetchClickStats();
-  }, []);
+    checkProposerData();
+  }, [userRole, currentUserEmail]);
 
   const handleSaveBulletin = async () => {
     setUpdating(true);
@@ -153,6 +192,86 @@ export function SystemDashboardTab({
     }
   };
 
+  // 📣 [新設] 管理者への確認依頼通知（1日1回制限ロック ＆ 監査ログ ＆ Slack連携）
+  const handleNotifyAdmins = async () => {
+    if (userRole !== "proposer" || sendingReminder) return;
+    setSendingReminder(true);
+    try {
+      // 1. 再度24時間リミットの二重確認
+      const { data: reminder } = await supabase
+        .from('proposal_reminders')
+        .select('last_sent_at')
+        .eq('proposer_email', currentUserEmail)
+        .limit(1);
+
+      const nowStr = new Date().toISOString();
+
+      if (reminder && reminder.length > 0) {
+        const lastSent = new Date(reminder[0].last_sent_at).getTime();
+        const diffHours = (Date.now() - lastSent) / (1000 * 60 * 60);
+        if (diffHours < 24) {
+          alert("24時間以内にすでに一度通知を送信しています。次の送信までお待ちください。");
+          setSendingReminder(false);
+          return;
+        }
+        await supabase
+          .from('proposal_reminders')
+          .update({ last_sent_at: nowStr })
+          .eq('proposer_email', currentUserEmail);
+      } else {
+        await supabase
+          .from('proposal_reminders')
+          .insert([{ proposer_email: currentUserEmail, last_sent_at: nowStr }]);
+      }
+
+      // 2. 監査ログに「緊急の未承認確認アラート」を書き込み (これで管理者が管理画面を開いた瞬間に最上部に大きく表示されます)
+      await supabase.from('audit_logs').insert([{
+        actor_email: currentUserEmail,
+        action: "proposal_reminder",
+        details: `💡 提案者 [${currentUserEmail}] から「未承認の提案」について確認依頼通知が届きました。`
+      }]);
+
+      // 3. 環境変数かコード内にWebhookUrlがあればSlack通知を送信
+      const slackWebhookUrl = process.env.NEXT_PUBLIC_SLACK_WEBHOOK_URL;
+      if (slackWebhookUrl) {
+        const slackMessage = {
+          text: `📣 *【Nexus Studio】提案者から確認依頼が届いています*`,
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `📣 *【Nexus Studio】未処理提案の確認依頼*\n\n提案者の *${currentUserEmail}* さんから、送信したテキスト変更提案について確認依頼がありました。\n管理システムを開いて、承認または却下処理を行ってください。`
+              }
+            },
+            {
+              type: "actions",
+              elements: [
+                {
+                  type: "button",
+                  text: { type: "plain_text", text: "管理システムを開く" },
+                  url: "https://nexus-connect.jp/activity-log/editor"
+                }
+              ]
+            }
+          ]
+        };
+        await fetch(slackWebhookUrl, {
+          method: "POST",
+          body: JSON.stringify(slackMessage),
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      alert("📣 運営オーナー・編集者への通知（システムアラート送信）が完了しました！");
+      await checkProposerData();
+    } catch (err) {
+      alert("通知の送信に失敗しました");
+    } finally {
+      setSendingReminder(false);
+    }
+  };
+
   // ゴミ箱のアイテム総数
   const totalTrashCount = 
     (trashItems.activities?.length || 0) + 
@@ -166,7 +285,10 @@ export function SystemDashboardTab({
     (pendingProposals.members?.length || 0) + 
     (pendingProposals.projects?.length || 0) + 
     (pendingProposals.faqs?.length || 0) +
-    (pendingProposals.content?.length || 0); // 🌟 テキスト提案分も集計
+    (pendingProposals.content?.length || 0);
+
+  // 📣 管理者への新着提案督促があるかの検証 (監査ログから抽出)
+  const proposerReminders = logs.filter(log => log.action === "proposal_reminder" && (Date.now() - new Date(log.created_at).getTime()) < 24 * 60 * 60 * 1000);
 
   const maxProjClicks = Math.max(...clickStats.projects.map(p => p.clicks), 1);
   const maxMemClicks = Math.max(...clickStats.members.map(m => m.clicks), 1);
@@ -254,7 +376,32 @@ export function SystemDashboardTab({
         )}
       </div>
 
-      {/* 📊 届いた提案ボックス (管理者 ＆ 編集者のみ表示) */}
+      {/* 📬 【高優先アラート】提案者からの緊急確認要請（管理者・編集者のみ表示） */}
+      {(userRole === "owner" || userRole === "editor") && proposerReminders.length > 0 && (
+        <div style={{
+          background: "linear-gradient(135deg, #fff5f5, #ffe6e6)",
+          border: "2px solid #ff4d4d",
+          borderRadius: "20px",
+          padding: "24px",
+          marginBottom: "30px",
+          boxShadow: "0 10px 30px rgba(255, 77, 77, 0.08)",
+          animation: "fadeIn 0.3s"
+        }}>
+          <h3 style={{ fontSize: "1rem", fontWeight: 900, color: "#cc0000", margin: "0 0 10px 0", display: "flex", alignItems: "center", gap: "8px" }}>
+            🚨 提案者から新着確認のアラート要請があります！
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {proposerReminders.map(log => (
+              <div key={log.id} style={{ fontSize: "0.85rem", color: "#660000", background: "white", padding: "10px 14px", borderRadius: "8px", border: "1px solid #ffcccc" }}>
+                <strong>申請者:</strong> {log.actor_email} <span style={{ color: "#999", fontSize: "0.75rem", marginLeft: "10px" }}>({new Date(log.created_at).toLocaleTimeString()})</span>
+                <div style={{ marginTop: "4px" }}>未承認の提案ボックスを確認・処理してください。</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 📬 届いた提案ボックス (管理者 ＆ 編集者のみ表示) */}
       {(userRole === "owner" || userRole === "editor") && (
         <div style={{ 
           background: "white", 
@@ -282,7 +429,7 @@ export function SystemDashboardTab({
                 { table: 'members', label: '👤 メンバー', items: pendingProposals.members },
                 { table: 'projects', label: '🚀 プロジェクト', items: pendingProposals.projects },
                 { table: 'faqs', label: '❓ FAQ質問', items: pendingProposals.faqs },
-                { table: 'content_proposals', label: '🌐 一般テキスト', items: pendingProposals.content || [] } // 🌟 追加！
+                { table: 'content_proposals', label: '🌐 一般テキスト', items: pendingProposals.content || [] }
               ].map(({ table, label, items }) => {
                 if (!items || items.length === 0) return null;
                 return items.map((item: any) => {
@@ -342,6 +489,91 @@ export function SystemDashboardTab({
                   );
                 });
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 💡 【提案者専用】自分の送信済み提案状況 ＆ 1日1回管理者通知機能 (Proposer のみ表示) */}
+      {userRole === "proposer" && (
+        <div style={{ 
+          background: "white", 
+          padding: "32px", 
+          borderRadius: "24px", 
+          border: "1px solid var(--border)",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.01)",
+          marginBottom: "40px"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "16px" }}>
+            <div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 900, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                💡 あなたの送信した提案一覧（状況ステータス）
+              </h3>
+              <p style={{ fontSize: "0.8rem", color: "var(--muted)", margin: "4px 0 0 0" }}>
+                あなたがこれまでに提出した提案の内容とリアルタイム承認状況です。
+              </p>
+            </div>
+            
+            {myProposals.filter(p => p.status === 'pending').length > 0 && (
+              <button
+                onClick={handleNotifyAdmins}
+                disabled={!!reminderCooldown || sendingReminder}
+                style={{
+                  background: reminderCooldown ? "#f5f5f5" : "#e65c00",
+                  color: reminderCooldown ? "#999" : "white",
+                  border: "none", padding: "10px 18px", borderRadius: "10px",
+                  fontSize: "0.75rem", fontWeight: 800, cursor: reminderCooldown ? "not-allowed" : "pointer",
+                  transition: "0.2s"
+                }}
+              >
+                {sendingReminder ? "送信中..." : reminderCooldown ? `📣 ${reminderCooldown}` : "📣 管理者に提案を確認要請（1日1回）"}
+              </button>
+            )}
+          </div>
+
+          {myProposals.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "#aaa", fontSize: "0.85rem", background: "#fcfcfa", borderRadius: "16px", border: "1px solid #f2ede4" }}>
+              🌱 まだ提案を送信していません。編集タブからテキストを変更し、提案を送信してみましょう！
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {myProposals.map((item) => (
+                <div 
+                  key={item.id} 
+                  style={{
+                    padding: "16px 20px", background: "#fafafa", borderRadius: "14px",
+                    border: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center",
+                    flexWrap: "wrap", gap: "12px"
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "0.7rem", fontWeight: 900, background: "#f0f0f0", color: "#666", padding: "2px 6px", borderRadius: "4px" }}>
+                        {item.page_path.toUpperCase()}
+                      </span>
+                      <span style={{ fontSize: "0.8rem", color: "#888", fontFamily: "monospace" }}>
+                        キー: {item.content_key}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "0.9rem", color: "#111", background: "white", padding: "8px 12px", borderRadius: "8px", border: "1px solid #f0f0f0", marginTop: "4px" }}>
+                      提案内容: <span style={{ fontWeight: 700 }}>「{item.proposed_value}」</span>
+                    </div>
+                    <span style={{ fontSize: "0.65rem", color: "#aaa", marginTop: "4px" }}>
+                      送信日時: {new Date(item.created_at).toLocaleString('ja-JP')}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span style={{
+                      fontSize: "0.75rem", fontWeight: 900, padding: "4px 10px", borderRadius: "99px",
+                      background: item.status === 'approved' ? "#e6ffe6" : item.status === 'rejected' ? "#ffe6e6" : "#fff0e6",
+                      color: item.status === 'approved' ? "#008000" : item.status === 'rejected' ? "#cc0000" : "#ff6600"
+                    }}>
+                      {item.status === 'approved' ? "🟢 承認済み・本番公開" : item.status === 'rejected' ? "🔴 却下" : "🟡 承認待ち"}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -430,84 +662,86 @@ export function SystemDashboardTab({
           </div>
         </div>
 
-        {/* 🗑️ データ回復用ゴミ箱 */}
-        <div style={{ 
-          background: "white", 
-          padding: "32px", 
-          borderRadius: "24px", 
-          border: totalTrashCount > 0 ? "2px dashed #ffb3b3" : "1px solid var(--border)",
-        }}>
-          <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-            🗑️ データゴミ箱 (論理削除データのリカバリー)
-          </h3>
-          <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "20px" }}>
-            間違って削除されたデータはここに一時保存されます。いつでも復元できます。
-          </p>
+        {/* 🗑️ データ回復用ゴミ箱 (管理者・編集者のみ表示) */}
+        {(userRole === "owner" || userRole === "editor") && (
+          <div style={{ 
+            background: "white", 
+            padding: "32px", 
+            borderRadius: "24px", 
+            border: totalTrashCount > 0 ? "2px dashed #ffb3b3" : "1px solid var(--border)",
+          }}>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+              🗑️ データゴミ箱 (論理削除データのリカバリー)
+            </h3>
+            <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "20px" }}>
+              間違って削除されたデータはここに一時保存されます。いつでも復元できます。
+            </p>
 
-          {totalTrashCount === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px", color: "#aaa", fontSize: "0.85rem", background: "#fcfcfa", borderRadius: "16px", border: "1px solid #f2ede4" }}>
-              ✨ 現在、ゴミ箱は空っぽです。データは安全に保護されています！
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {[
-                { table: 'activities', label: '✍️ 活動記録', items: trashItems.activities },
-                { table: 'members', label: '👤 メンバー', items: trashItems.members },
-                { table: 'projects', label: '🚀 プロジェクト', items: trashItems.projects },
-                { table: 'faqs', label: '❓ FAQ質問', items: trashItems.faqs }
-              ].map(({ table, label, items }) => {
-                if (!items || items.length === 0) return null;
-                return items.map((item: any) => {
-                  const displayTitle = item.title || item.name || item.question || "無題のコンテンツ";
-                  return (
-                    <div 
-                      key={table + item.id} 
-                      style={{ 
-                        display: "flex", justifyContent: "space-between", alignItems: "center", 
-                        padding: "14px 20px", background: "#fffafa", borderRadius: "14px", 
-                        border: "1px solid #ffebeb", flexWrap: "wrap", gap: "12px" 
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ fontSize: "0.7rem", fontWeight: 900, background: "#ffe6e6", color: "#ff4d4d", padding: "3px 8px", borderRadius: "6px" }}>
-                          {label}
-                        </span>
-                        <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "#333" }}>
-                          {displayTitle.length > 25 ? `${displayTitle.slice(0, 25)}...` : displayTitle}
-                        </span>
-                      </div>
+            {totalTrashCount === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "#aaa", fontSize: "0.85rem", background: "#fcfcfa", borderRadius: "16px", border: "1px solid #f2ede4" }}>
+                ✨ 現在、ゴミ箱は空っぽです。データは安全に保護されています！
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {[
+                  { table: 'activities', label: '✍️ 活動記録', items: trashItems.activities },
+                  { table: 'members', label: '👤 メンバー', items: trashItems.members },
+                  { table: 'projects', label: '🚀 プロジェクト', items: trashItems.projects },
+                  { table: 'faqs', label: '❓ FAQ質問', items: trashItems.faqs }
+                ].map(({ table, label, items }) => {
+                  if (!items || items.length === 0) return null;
+                  return items.map((item: any) => {
+                    const displayTitle = item.title || item.name || item.question || "無題のコンテンツ";
+                    return (
+                      <div 
+                        key={table + item.id} 
+                        style={{ 
+                          display: "flex", justifyContent: "space-between", alignItems: "center", 
+                          padding: "14px 20px", background: "#fffafa", borderRadius: "14px", 
+                          border: "1px solid #ffebeb", flexWrap: "wrap", gap: "12px" 
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <span style={{ fontSize: "0.7rem", fontWeight: 900, background: "#ffe6e6", color: "#ff4d4d", padding: "3px 8px", borderRadius: "6px" }}>
+                            {label}
+                          </span>
+                          <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "#333" }}>
+                            {displayTitle.length > 25 ? `${displayTitle.slice(0, 25)}...` : displayTitle}
+                          </span>
+                        </div>
 
-                      <div style={{ display: "flex", gap: "10px" }}>
-                        <button 
-                          onClick={() => onRestoreItem && onRestoreItem(table, item.id)}
-                          style={{
-                            background: "#e6ffe6", color: "#008000", border: "1px solid #b3ffb3",
-                            padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
-                            cursor: "pointer"
-                          }}
-                        >
-                          ↩️ 復元する
-                        </button>
-                        <button 
-                          onClick={() => onPermanentDelete && onPermanentDelete(table, item.id)}
-                          style={{
-                            background: "#ffe6e6", color: "#cc0000", border: "1px solid #ffb3b3",
-                            padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
-                            cursor: "pointer"
-                          }}
-                        >
-                          🚨 永久消去
-                        </button>
+                        <div style={{ display: "flex", gap: "10px" }}>
+                          <button 
+                            onClick={() => onRestoreItem && onRestoreItem(table, item.id)}
+                            style={{
+                              background: "#e6ffe6", color: "#008000", border: "1px solid #b3ffb3",
+                              padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
+                              cursor: "pointer"
+                            }}
+                          >
+                            ↩️ 復元する
+                          </button>
+                          <button 
+                            onClick={() => onPermanentDelete && onPermanentDelete(table, item.id)}
+                            style={{
+                              background: "#ffe6e6", color: "#cc0000", border: "1px solid #ffb3b3",
+                              padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
+                              cursor: "pointer"
+                            }}
+                          >
+                            🚨 永久消去
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                });
-              })}
-            </div>
-          )}
-        </div>
+                    );
+                  });
+                })}
+              </div>
+            )}
+          </div>
+        )}
         
-        {/* 👑 権限・ログイン許可リスト管理 */}
+        {/* 👑 権限・ログイン許可リスト管理 (オーナー専用) */}
         {userRole === "owner" && (
           <div style={{ background: "white", padding: "32px", borderRadius: "24px", border: "2px solid var(--accent)", boxShadow: "0 10px 30px rgba(0,0,0,0.02)" }}>
             <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "var(--accent)" }}>
@@ -610,7 +844,7 @@ export function SystemDashboardTab({
           </div>
         </div>
 
-        {/* セキュリティ操作履歴 */}
+        {/* セキュリティ操作履歴 (監査ログ) */}
         <div style={{ background: "white", padding: "32px", borderRadius: "24px", border: "1px solid var(--border)" }}>
           <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
             🛡️ セキュリティ監査ログ (操作履歴)
@@ -619,20 +853,27 @@ export function SystemDashboardTab({
             {logs.length === 0 ? (
               <div style={{ color: "#aaa", fontSize: "0.85rem", textAlign: "center", padding: "20px" }}>操作履歴はまだありません。</div>
             ) : (
-              logs.map((log) => (
-                <div key={log.id} style={{ display: "flex", flexDirection: "column", gap: "4px", paddingBottom: "12px", borderBottom: "1px solid #f5f5f5" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#888" }}>
-                    <span style={{ fontWeight: 800, color: "var(--accent)" }}>{log.actor_email}</span>
-                    <span>{new Date(log.created_at).toLocaleString('ja-JP')}</span>
+              logs.map((log) => {
+                // 提案者自身の場合、自分以外の監査ログを隠してセキュリティを担保
+                const isProposer = userRole === "proposer";
+                const isMyLog = log.actor_email.toLowerCase() === currentUserEmail.toLowerCase();
+                if (isProposer && !isMyLog) return null;
+
+                return (
+                  <div key={log.id} style={{ display: "flex", flexDirection: "column", gap: "4px", paddingBottom: "12px", borderBottom: "1px solid #f5f5f5" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#888" }}>
+                      <span style={{ fontWeight: 800, color: "var(--accent)" }}>{log.actor_email}</span>
+                      <span>{new Date(log.created_at).toLocaleString('ja-JP')}</span>
+                    </div>
+                    <div style={{ fontSize: "0.85rem", color: "#333", lineHeight: 1.5 }}>
+                      <span style={{ background: "#f0f0f0", padding: "2px 6px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 900, marginRight: "8px", textTransform: "uppercase" }}>
+                        {log.action}
+                      </span>
+                      {log.details}
+                    </div>
                   </div>
-                  <div style={{ fontSize: "0.85rem", color: "#333", lineHeight: 1.5 }}>
-                    <span style={{ background: "#f0f0f0", padding: "2px 6px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 900, marginRight: "8px", textTransform: "uppercase" }}>
-                      {log.action}
-                    </span>
-                    {log.details}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -641,4 +882,5 @@ export function SystemDashboardTab({
     </div>
   );
 }
+
 
