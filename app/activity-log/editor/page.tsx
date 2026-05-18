@@ -31,6 +31,9 @@ export default function NexusStudioPro() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [allowedUsers, setAllowedUsers] = useState<any[]>([]);
 
+  // 📱 モバイル用ヘッダー開閉ステート（初期状態：折りたたむ）
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(true);
+
   // 📬 届いたテキスト変更提案用ステート
   const [pendingContentProposals, setPendingContentProposals] = useState<any[]>([]);
 
@@ -900,7 +903,7 @@ export default function NexusStudioPro() {
           .eq('id', id);
         if (error) throw error;
 
-        // 🔔 提案者宛て通知の送信（監査ログなどからメールアドレスが割り出せる場合）
+        // 🔔 提案者宛て通知の送信
         if (prop && prop.created_by) {
           await supabase.from('notifications').insert([{
             user_email: prop.created_by,
@@ -972,15 +975,39 @@ export default function NexusStudioPro() {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 900px) {
-          .dashboard-header { flex-direction: column !important; padding: 16px 20px !important; gap: 16px !important; }
-          .dashboard-nav { flex-wrap: wrap !important; justify-content: center !important; }
+          .dashboard-header { 
+            flex-direction: column !important; 
+            padding: ${isHeaderCollapsed ? "8px 16px" : "16px 20px"} !important; 
+            gap: ${isHeaderCollapsed ? "0" : "16px"} !important; 
+          }
+          .dashboard-header-left {
+            display: ${isHeaderCollapsed ? "none" : "flex"} !important;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .dashboard-nav { 
+            display: ${isHeaderCollapsed ? "none" : "flex"} !important; 
+            flex-wrap: wrap !important; 
+            justify-content: center !important; 
+            width: 100%;
+          }
+          .dashboard-header-right {
+            display: ${isHeaderCollapsed ? "none" : "flex"} !important;
+            width: 100%;
+            justify-content: center;
+          }
+          .mobile-header-toggle {
+            display: block !important;
+          }
           .dashboard-layout { grid-template-columns: 1fr !important; height: auto !important; }
           .dashboard-editor { padding: 20px !important; border-right: none !important; overflow-y: visible !important; }
           .dashboard-preview { position: static !important; height: auto !important; padding: 20px !important; border-top: 4px dashed #ddd !important; }
         }
       `}</style>
       <header className="dashboard-header" style={S.header}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        {/* 左側：ロゴ ＆ 通知 */}
+        <div className="dashboard-header-left" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <Image src="/nexus-icon.png" alt="Logo" width={28} height={28} />
           <h1 style={{ fontSize: "1rem", fontWeight: 900, letterSpacing: "0.05em" }}>NEXUS STUDIO</h1>
           
@@ -1078,16 +1105,20 @@ export default function NexusStudioPro() {
             )}
           </div>
         </div>
+
+        {/* 中央：タブ切り替え */}
         <nav className="dashboard-nav" style={S.tabNav}>
-          <NavBtn active={activeTab === "system"} onClick={() => setActiveTab("system")} icon="📊">システム情報</NavBtn>
-          <NavBtn active={activeTab === "activity"} onClick={() => setActiveTab("activity")} icon="✍️">活動</NavBtn>
-          <NavBtn active={activeTab === "projects"} onClick={() => setActiveTab("projects")} icon="🚀">プロジェクト</NavBtn> 
-          <NavBtn active={activeTab === "content"} onClick={() => setActiveTab("content")} icon="🌐">編集</NavBtn>
-          <NavBtn active={activeTab === "members"} onClick={() => setActiveTab("members")} icon="👤">メンバー</NavBtn>
-          <NavBtn active={activeTab === "faq"} onClick={() => setActiveTab("faq")} icon="❓">FAQ</NavBtn>
-          <NavBtn active={activeTab === "inquiries"} onClick={() => setActiveTab("inquiries")} icon="📩">問い合わせ</NavBtn>
+          <NavBtn active={activeTab === "system"} onClick={() => { setActiveTab("system"); setIsHeaderCollapsed(true); }} icon="📊">システム情報</NavBtn>
+          <NavBtn active={activeTab === "activity"} onClick={() => { setActiveTab("activity"); setIsHeaderCollapsed(true); }} icon="✍️">活動</NavBtn>
+          <NavBtn active={activeTab === "projects"} onClick={() => { setActiveTab("projects"); setIsHeaderCollapsed(true); }} icon="🚀">プロジェクト</NavBtn> 
+          <NavBtn active={activeTab === "content"} onClick={() => { setActiveTab("content"); setIsHeaderCollapsed(true); }} icon="🌐">編集</NavBtn>
+          <NavBtn active={activeTab === "members"} onClick={() => { setActiveTab("members"); setIsHeaderCollapsed(true); }} icon="👤">メンバー</NavBtn>
+          <NavBtn active={activeTab === "faq"} onClick={() => { setActiveTab("faq"); setIsHeaderCollapsed(true); }} icon="❓">FAQ</NavBtn>
+          <NavBtn active={activeTab === "inquiries"} onClick={() => { setActiveTab("inquiries"); setIsHeaderCollapsed(true); }} icon="📩">問い合わせ</NavBtn>
         </nav>
-                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+
+        {/* 右側：同期 ＆ サインアウト */}
+        <div className="dashboard-header-right" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <button 
             onClick={async () => { 
               await fetchData(true); 
@@ -1108,6 +1139,28 @@ export default function NexusStudioPro() {
             SIGN OUT
           </button>
         </div>
+
+        {/* 📱 モバイル用アコーディオン開閉トグルボタン */}
+        <button
+          onClick={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
+          className="mobile-header-toggle"
+          style={{
+            display: "none",
+            background: "none",
+            border: "none",
+            color: "var(--accent)",
+            fontWeight: 800,
+            fontSize: "0.75rem",
+            cursor: "pointer",
+            width: "100%",
+            textAlign: "center",
+            padding: "6px 0",
+            borderTop: isHeaderCollapsed ? "none" : "1px solid #eee",
+            marginTop: isHeaderCollapsed ? "0" : "8px",
+          }}
+        >
+          {isHeaderCollapsed ? "🔽 メニューを展開する (タップ)" : "🔼 メニューを折りたたむ (タップ)"}
+        </button>
       </header>
 
       {errorMsg && <div style={{ color: "red", padding: "10px" }}>{errorMsg}</div>}
@@ -1189,6 +1242,7 @@ export default function NexusStudioPro() {
             <InquiriesTab 
               inquiries={inquiries} 
               handleUpdateStatus={handleUpdateInquiryStatus} 
+              
             />
           )}
         </div>
@@ -1207,5 +1261,4 @@ export default function NexusStudioPro() {
     </main>
   );
 }
-
 
