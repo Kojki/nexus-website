@@ -7,7 +7,6 @@ import Footer from "@/components/Footer";
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
-// 追加: 改行（\n）を正しく <br /> に変換する共通関数
 const renderText = (text: string) => {
   if (!text) return null;
   return text.split(/(?:\r\n|\r|\n|\\n)/).map((line, i) => (
@@ -16,15 +15,7 @@ const renderText = (text: string) => {
 };
 
 export default async function Home() {
-  // 1. 最新の活動記録を取得
-  const { data: activitiesData } = await supabase
-    .from('activities')
-    .select('*')
-    .eq('is_published', true) // ▼ 今回の追加部分
-    .order('date', { ascending: false })
-    .limit(3);
-
-  // 2. ページコンテンツを取得
+  // 1. ページコンテンツを取得
   const { data: contentData } = await supabase
     .from('site_content')
     .select('content_key, content_value')

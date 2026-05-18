@@ -6,7 +6,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { renderMarkdown } from "@/lib/markdown"; 
 
-export const dynamicParams = false;
+// 記事追加時に即時動的生成させるため true に変更
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
@@ -50,7 +51,6 @@ export default async function ActivityDetailPage({
           </div>
           <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)", marginBottom: "40px", lineHeight: 1.3 }}>{activity.title}</h1>
           
-          {/* ▼ マークダウン詳細本文 */}
           <div style={{ 
             color: "var(--ink-soft)", 
             lineHeight: 2, 

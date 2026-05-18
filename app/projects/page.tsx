@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 interface Project {
   id: string;
@@ -14,7 +16,6 @@ interface Project {
   created_at: string;
 }
 
-// 📈 クリックイベント統計のログ記録用ヘルパー
 const logClickEvent = async (type: string, name: string) => {
   try {
     await supabase.from("click_events").insert([{ event_type: type, target_name: name }]);
@@ -23,7 +24,6 @@ const logClickEvent = async (type: string, name: string) => {
   }
 };
 
-// 🟢 ホバーアニメーションを完全保証するためのProjectCard子コンポーネント
 function ProjectCard({ proj }: { proj: Project }) {
   const [hover, setHover] = useState(false);
 
@@ -48,7 +48,6 @@ function ProjectCard({ proj }: { proj: Project }) {
       }}
     >
       <div>
-        {/* ステータスバッジ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <span style={{ 
             fontSize: "0.7rem", 
@@ -67,14 +66,12 @@ function ProjectCard({ proj }: { proj: Project }) {
           {proj.title}
         </h3>
 
-        {/* 説明文 */}
         <p style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.6, marginBottom: "24px", whiteSpace: "pre-wrap" }}>
           {proj.description}
         </p>
       </div>
 
       <div>
-        {/* 使用技術スタック */}
         {proj.tech_stack && (
           <div style={{ marginBottom: "16px" }}>
             <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "#aaa", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Tech Stack</div>
@@ -88,7 +85,6 @@ function ProjectCard({ proj }: { proj: Project }) {
           </div>
         )}
 
-        {/* 募集ロール */}
         {proj.roles_needed && (
           <div style={{ marginBottom: "24px" }}>
             <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "#aaa", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Looking For</div>
@@ -102,11 +98,10 @@ function ProjectCard({ proj }: { proj: Project }) {
           </div>
         )}
 
-        {/* CTA 参加申請ボタン */}
         {proj.status === 'open' ? (
           <Link 
             href={`/contact?category=project&title=${encodeURIComponent(proj.title)}`}
-            onClick={() => logClickEvent('project_apply', proj.title)} // 🚀 クリック時に統計データを蓄積
+            onClick={() => logClickEvent('project_apply', proj.title)}
             style={{ 
               display: "flex", 
               alignItems: "center", 
@@ -148,7 +143,6 @@ function ProjectCard({ proj }: { proj: Project }) {
   );
 }
 
-// 🌐 メインのProjectsPage
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('all');
@@ -157,7 +151,6 @@ export default function ProjectsPage() {
   const cacheKey = "nexus_projects_cache";
 
   useEffect(() => {
-    // 🚀 1. キャッシュがあれば即時レンダリング (ロード時間0秒を達成)
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       setProjects(JSON.parse(cached));
@@ -169,13 +162,11 @@ export default function ProjectsPage() {
         const { data, error } = await supabase
           .from("projects")
           .select("*")
-          .eq("is_deleted", false) // 🗑️ 論理削除されていないデータのみ取得
+          .eq("is_deleted", false)
           .order("order_index", { ascending: true });
         
         if (error) throw error;
         setProjects(data || []);
-        
-        // 🚀 キャッシュを裏側で静かにアップデート
         localStorage.setItem(cacheKey, JSON.stringify(data || []));
       } catch (err) {
         console.error("プロジェクトデータの取得に失敗しました:", err);
@@ -194,9 +185,10 @@ export default function ProjectsPage() {
 
   return (
     <div style={{ background: "#fdfbf8", minHeight: "100vh", color: "#1a1a1a", fontFamily: "'Inter', 'Noto Sans JP', sans-serif" }}>
-      {/* ヒーローヘッダー */}
+      <Navbar />
+
       <section style={{ 
-        position: "relative", padding: "120px 24px 80px", 
+        position: "relative", padding: "180px 24px 80px", 
         background: "radial-gradient(circle at top right, rgba(230, 92, 0, 0.05), transparent 40%), radial-gradient(circle at bottom left, rgba(0, 0, 0, 0.03), transparent 50%)",
         borderBottom: "1px solid rgba(0, 0, 0, 0.06)", textAlign: "center"
       }}>
@@ -217,10 +209,7 @@ export default function ProjectsPage() {
         </div>
       </section>
 
-      {/* コンテンツエリア */}
       <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "60px 24px 120px" }}>
-        
-        {/* フィルター用タブ */}
         <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "48px" }}>
           {[
             { id: 'all', label: 'すべてのプロジェクト' },
@@ -249,7 +238,6 @@ export default function ProjectsPage() {
           ))}
         </div>
 
-        {/* スケルトンローディング表示 */}
         {loading && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "32px" }}>
             {[1, 2, 3].map(i => (
@@ -262,7 +250,6 @@ export default function ProjectsPage() {
           </div>
         )}
 
-        {/* 取得データの描画 */}
         {!loading && filteredProjects.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 24px", background: "white", borderRadius: "24px", border: "1px dashed #e0dacb" }}>
             <span style={{ fontSize: "2.5rem" }}>👀</span>
@@ -277,6 +264,8 @@ export default function ProjectsPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
+

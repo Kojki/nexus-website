@@ -2,12 +2,9 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
-const joinUrl = "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
 export default function Contact() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -29,10 +26,9 @@ export default function Contact() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // 🤖 もしハニーポットに何かが入力されていたら、スパムボットと判定して送信処理をスキップ
+    // 🤖 スパム判定
     if (honeypot !== "") {
       console.log("Bot spam inquiry blocked successfully.");
-      // ボット側には「成功した」と思い込ませるために、成功画面だけを見せます
       setTimeout(() => {
         setIsSubmitted(true);
         setIsSubmitting(false);
@@ -45,20 +41,11 @@ export default function Contact() {
       const { error } = await supabase.from("inquiries").insert([formData]);
       if (error) throw error;
 
-      // 2. 運営Slackへの即時リアルタイム通知 (環境変数から安全に取得)
+      // 2. Edge Function による安全なSlack通知
       try {
-        const slackWebhookUrl = process.env.NEXT_PUBLIC_SLACK_WEBHOOK_URL || "";
-        
-        if (slackWebhookUrl) {
-          const messageText = `📩 *【新規お問い合わせ】* \n----------------------------------------\n*カテゴリ:* ${formData.category}\n*お名前:* ${formData.name}\n*所属/組織:* ${formData.organization || "未入力"}\n*返信用アドレス:* ${formData.email}\n*本文:*\n${formData.content}\n----------------------------------------\n⚡️ _Nexus Connect Studio システム即時通知_`;
-          
-          await fetch(slackWebhookUrl, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: messageText })
-          });
-        }
+        await supabase.functions.invoke("contact-slack", {
+          body: formData,
+        });
       } catch (slackErr) {
         console.error("Slack通知に失敗しました:", slackErr);
       }
@@ -98,7 +85,7 @@ export default function Contact() {
         ) : (
           <form className="contact-form animate-slide-up" onSubmit={handleSubmit}>
             
-            {/* 🤖 スパムトラップ（人間には表示されない、ボットだけが入力する罠） */}
+            {/* 🤖 スパムトラップ */}
             <div style={{ display: "none" }} aria-hidden="true">
               <input 
                 type="text" 
@@ -141,7 +128,7 @@ export default function Contact() {
             <div className="form-group">
               <label htmlFor="organization" style={{ display: 'flex', justifyContent: 'space-between' }}>
                 所属・組織名 
-                <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: '0.8rem' }}>任意（入力なしでも構いません）</span>
+                <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: '0.8rem' }}>任意</span>
               </label>
               <input
                 type="text"
@@ -190,4 +177,5 @@ export default function Contact() {
     </main>
   );
 }
+
 
