@@ -238,6 +238,10 @@ export default async function HomeEn() {
           <a className="button button-dark" href={joinUrl} target="_blank" rel="noreferrer">
             Join Nexus →
           </a>
+          <a className="instagram-link" href="https://www.instagram.com/nex.us_2026/" target="_blank" rel="noreferrer" style={{ display: "block" }}>
+            Follow us on Instagram 📸
+          </a>
+
         </div>
       </section>
 

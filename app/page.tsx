@@ -157,6 +157,9 @@ export default async function Home() {
           <a className="button button-dark" href={joinUrl} target="_blank" rel="noreferrer">
             Nexus に参加する →
           </a>
+          <a className="instagram-link" href="https://www.instagram.com/nex.us_2026/" target="_blank" rel="noreferrer" style={{ display: "block" }}>
+            Instagram をフォローする 📸
+          </a>
         </div>
       </section>
 

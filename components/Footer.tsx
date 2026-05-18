@@ -19,6 +19,10 @@ export default function Footer() {
         <Link href="/contact">お問い合わせ</Link>
         <Link href="/guidelines">ガイドライン</Link>
         <Link href="/privacy">プライバシーポリシー</Link>
+        <a href="https://www.instagram.com/nex.us_2026/" target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+          📸 Instagram
+        </a>
+        <Link href="/login" style={{ opacity: 0.3, fontSize: '0.7rem', marginLeft: '10px' }}>Admin</Link>
         <Link href="/login" style={{ opacity: 0.3, fontSize: '0.7rem', marginLeft: '10px' }}>Admin</Link>
       </nav>
     </footer>
