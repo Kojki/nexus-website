@@ -31,6 +31,9 @@ export default function NexusStudioPro() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [allowedUsers, setAllowedUsers] = useState<any[]>([]);
 
+  // 📬 届いたテキスト変更提案用ステート
+  const [pendingContentProposals, setPendingContentProposals] = useState<any[]>([]);
+
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -46,7 +49,7 @@ export default function NexusStudioPro() {
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]); 
 
-  // 🗑️ ゴミ箱（論理削除済みデータ）用ステート
+  // 🗑️ ゴミ箱用ステート
   const [deletedActivities, setDeletedActivities] = useState<any[]>([]);
   const [deletedMembers, setDeletedMembers] = useState<any[]>([]);
   const [deletedProjects, setDeletedProjects] = useState<any[]>([]);
@@ -172,6 +175,10 @@ export default function NexusStudioPro() {
       // 🔑 ログイン許可メンバーのリストを取得
       const { data: allowedList } = await supabase.from('allowed_users').select('*').order('email');
       setAllowedUsers(allowedList || []);
+
+      // 📬 届いたテキスト提案のフェッチ
+      const { data: pendC } = await supabase.from('content_proposals').select('*').eq('status', 'pending').order('created_at', { ascending: false });
+      setPendingContentProposals(pendC || []);
 
     } catch (e: any) {
       setErrorMsg(e.message);
@@ -311,11 +318,45 @@ export default function NexusStudioPro() {
     setUploading(false);
   };
 
+  // 🌐 テキスト保存（提案者の場合は提案テーブルへ挿入）
   const handleUpdateContentDirectly = async (key: string, value: string) => {
     if (userRole === "proposer") {
-      showToast("一般テキスト編集の提案は現在未対応です", "error");
+      try {
+        // すでに同じ page_path, content_key で pending 状態の提案があれば上書き、なければ新規作成
+        const { data: existing } = await supabase
+          .from('content_proposals')
+          .select('id')
+          .eq('page_path', activePage)
+          .eq('content_key', key)
+          .eq('status', 'pending')
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          const { error } = await supabase
+            .from('content_proposals')
+            .update({ proposed_value: value, proposer_email: currentUserEmail })
+            .eq('id', existing[0].id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from('content_proposals')
+            .insert([{
+              page_path: activePage,
+              content_key: key,
+              proposed_value: value,
+              proposer_email: currentUserEmail,
+              status: 'pending'
+            }]);
+          if (error) throw error;
+        }
+        showToast("テキスト変更の提案を送信しました！");
+        fetchData(); // 提案情報を更新
+      } catch (e: any) {
+        showToast("提案の送信に失敗しました", "error");
+      }
       return;
     }
+
     try {
       const updatedLiveData = { ...liveData, [key]: value };
       setLiveData(updatedLiveData);
@@ -742,16 +783,45 @@ export default function NexusStudioPro() {
   const handleApproveProposal = async (table: string, id: string) => {
     if (userRole === "proposer") return;
     try {
-      const { error } = await supabase
-        .from(table)
-        .update({ approval_status: 'approved', is_published: true })
-        .eq('id', id);
+      if (table === 'content_proposals') {
+        // 1. 提案データを取得
+        const { data: prop, error: fetchErr } = await supabase
+          .from('content_proposals')
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (fetchErr || !prop) throw fetchErr || new Error("提案が見つかりませんでした");
 
-      if (error) throw error;
-      logAdminAction("approve_proposal", `${table} の提案 (ID: ${id}) を承認し本番公開しました`);
-      await revalidateSite();
-      fetchData();
-      showToast("提案を承認・公開しました！");
+        // 2. 本番用 site_content に upsert (本番に適用)
+        const { error: upsertErr } = await supabase.from('site_content').upsert(
+          { page_path: prop.page_path, content_key: prop.content_key, content_value: prop.proposed_value },
+          { onConflict: 'page_path,content_key' }
+        );
+        if (upsertErr) throw upsertErr;
+
+        // 3. 提案ステータスを approved に更新
+        const { error: updateErr } = await supabase
+          .from('content_proposals')
+          .update({ status: 'approved' })
+          .eq('id', id);
+        if (updateErr) throw updateErr;
+
+        logAdminAction("approve_proposal", `一般テキスト変更提案 (ページ: ${prop.page_path}, キー: ${prop.content_key}) を承認し本番反映しました`);
+        await revalidateSite();
+        fetchData();
+        showToast("テキスト変更を承認・公開しました！");
+      } else {
+        const { error } = await supabase
+          .from(table)
+          .update({ approval_status: 'approved', is_published: true })
+          .eq('id', id);
+
+        if (error) throw error;
+        logAdminAction("approve_proposal", `${table} の提案 (ID: ${id}) を承認し本番公開しました`);
+        await revalidateSite();
+        fetchData();
+        showToast("提案を承認・公開しました！");
+      }
     } catch (e) {
       showToast("承認に失敗しました", "error");
     }
@@ -762,10 +832,15 @@ export default function NexusStudioPro() {
     if (userRole === "proposer") return;
     if (confirm("この提案を却下して削除しますか？")) {
       try {
-        const { error } = await supabase.from(table).delete().eq('id', id);
-        if (error) throw error;
-        
-        logAdminAction("reject_proposal", `${table} の提案 (ID: ${id}) を却下しました`);
+        if (table === 'content_proposals') {
+          const { error } = await supabase.from('content_proposals').delete().eq('id', id);
+          if (error) throw error;
+          logAdminAction("reject_proposal", `テキスト変更提案 (ID: ${id}) を却下しました`);
+        } else {
+          const { error } = await supabase.from(table).delete().eq('id', id);
+          if (error) throw error;
+          logAdminAction("reject_proposal", `${table} の提案 (ID: ${id}) を却下しました`);
+        }
         fetchData();
         showToast("提案を却下・削除しました");
       } catch (e) {
@@ -849,7 +924,8 @@ export default function NexusStudioPro() {
                 activities: pendingActivities,
                 members: pendingMembers,
                 projects: pendingProjects,
-                faqs: pendingFaqs
+                faqs: pendingFaqs,
+                content: pendingContentProposals
               }}
               onApproveProposal={handleApproveProposal}
               onRejectProposal={handleRejectProposal}
@@ -915,5 +991,4 @@ export default function NexusStudioPro() {
     </main>
   );
 }
-
 

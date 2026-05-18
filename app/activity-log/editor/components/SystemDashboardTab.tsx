@@ -32,6 +32,7 @@ interface Props {
     members: any[];
     projects: any[];
     faqs: any[];
+    content?: any[]; // 🌟 テキスト提案を追加
   };
   onApproveProposal?: (table: string, id: string) => Promise<void>;
   onRejectProposal?: (table: string, id: string) => Promise<void>;
@@ -49,7 +50,7 @@ export function SystemDashboardTab({
   trashItems = { activities: [], members: [], projects: [], faqs: [] },
   onRestoreItem,
   onPermanentDelete,
-  pendingProposals = { activities: [], members: [], projects: [], faqs: [] },
+  pendingProposals = { activities: [], members: [], projects: [], faqs: [], content: [] },
   onApproveProposal,
   onRejectProposal
 }: Props) {
@@ -164,7 +165,8 @@ export function SystemDashboardTab({
     (pendingProposals.activities?.length || 0) + 
     (pendingProposals.members?.length || 0) + 
     (pendingProposals.projects?.length || 0) + 
-    (pendingProposals.faqs?.length || 0);
+    (pendingProposals.faqs?.length || 0) +
+    (pendingProposals.content?.length || 0); // 🌟 テキスト提案分も集計
 
   const maxProjClicks = Math.max(...clickStats.projects.map(p => p.clicks), 1);
   const maxMemClicks = Math.max(...clickStats.members.map(m => m.clicks), 1);
@@ -279,52 +281,64 @@ export function SystemDashboardTab({
                 { table: 'activities', label: '✍️ 活動記録', items: pendingProposals.activities },
                 { table: 'members', label: '👤 メンバー', items: pendingProposals.members },
                 { table: 'projects', label: '🚀 プロジェクト', items: pendingProposals.projects },
-                { table: 'faqs', label: '❓ FAQ質問', items: pendingProposals.faqs }
+                { table: 'faqs', label: '❓ FAQ質問', items: pendingProposals.faqs },
+                { table: 'content_proposals', label: '🌐 一般テキスト', items: pendingProposals.content || [] } // 🌟 追加！
               ].map(({ table, label, items }) => {
                 if (!items || items.length === 0) return null;
                 return items.map((item: any) => {
-                  const displayTitle = item.title || item.name || item.question || "提案データ";
+                  const displayTitle = table === 'content_proposals'
+                    ? `ページ: ${item.page_path.toUpperCase()} (項目キー: ${item.content_key})`
+                    : (item.title || item.name || item.question || "提案データ");
+                  
                   return (
-                    <div 
-                      key={table + item.id} 
-                      style={{ 
-                        display: "flex", justifyContent: "space-between", alignItems: "center", 
-                        padding: "14px 20px", background: "#f5f9ff", borderRadius: "14px", 
-                        border: "1px solid #d9e8ff", flexWrap: "wrap", gap: "12px" 
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ fontSize: "0.7rem", fontWeight: 900, background: "#e1eeff", color: "#0055ff", padding: "3px 8px", borderRadius: "6px" }}>
-                          {label}
-                        </span>
-                        <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "#111" }}>
-                          {displayTitle.length > 25 ? `${displayTitle.slice(0, 25)}...` : displayTitle}
-                        </span>
-                      </div>
+                     <div 
+                       key={table + item.id} 
+                       style={{ 
+                         display: "flex", justifyContent: "space-between", alignItems: "center", 
+                         padding: "18px 24px", background: "#f5f9ff", borderRadius: "14px", 
+                         border: "1px solid #d9e8ff", flexWrap: "wrap", gap: "12px" 
+                       }}
+                     >
+                       <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1, minWidth: "280px" }}>
+                         <span style={{ fontSize: "0.7rem", fontWeight: 900, background: "#e1eeff", color: "#0055ff", padding: "3px 8px", borderRadius: "6px", whiteSpace: "nowrap", marginTop: "2px" }}>
+                           {label}
+                         </span>
+                         <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "100%" }}>
+                           <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#111" }}>
+                             {displayTitle}
+                           </span>
+                           {table === 'content_proposals' && (
+                             <div style={{ fontSize: "0.8rem", color: "#444", background: "white", padding: "10px 14px", borderRadius: "8px", border: "1px solid #e1e8f0", marginTop: "6px", lineHeight: 1.5 }}>
+                               提案値: <span style={{ fontWeight: 800, color: "#0055ff" }}>「{item.proposed_value}」</span>
+                               <span style={{ display: "block", fontSize: "0.7rem", color: "#888", marginTop: "4px" }}>提案者: {item.proposer_email}</span>
+                             </div>
+                           )}
+                         </div>
+                       </div>
 
-                      <div style={{ display: "flex", gap: "10px" }}>
-                        <button 
-                          onClick={() => onApproveProposal && onApproveProposal(table, item.id)}
-                          style={{
-                            background: "#0055ff", color: "white", border: "none",
-                            padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
-                            cursor: "pointer"
-                          }}
-                        >
-                          ✅ 承認して公開
-                        </button>
-                        <button 
-                          onClick={() => onRejectProposal && onRejectProposal(table, item.id)}
-                          style={{
-                            background: "white", color: "#666", border: "1px solid #ccc",
-                            padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
-                            cursor: "pointer"
-                          }}
-                        >
-                          ❌ 却下する
-                        </button>
-                      </div>
-                    </div>
+                       <div style={{ display: "flex", gap: "10px" }}>
+                         <button 
+                           onClick={() => onApproveProposal && onApproveProposal(table, item.id)}
+                           style={{
+                             background: "#0055ff", color: "white", border: "none",
+                             padding: "8px 14px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
+                             cursor: "pointer"
+                           }}
+                         >
+                           ✅ 承認して公開
+                         </button>
+                         <button 
+                           onClick={() => onRejectProposal && onRejectProposal(table, item.id)}
+                           style={{
+                             background: "white", color: "#666", border: "1px solid #ccc",
+                             padding: "8px 14px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
+                             cursor: "pointer"
+                           }}
+                         >
+                           ❌ 却下する
+                         </button>
+                       </div>
+                     </div>
                   );
                 });
               })}
