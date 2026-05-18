@@ -1,10 +1,12 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-export const dynamic = "force-dynamic";
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
@@ -16,27 +18,79 @@ const renderText = (text: string) => {
   ));
 };
 
-export default async function HomeEn() {
-  // 1. 最新の活動記録を取得
-  const { data: activitiesData } = await supabase
-    .from('activities')
-    .select('*')
-    .eq('is_published', true)
-    .order('date', { ascending: false })
-    .limit(3);
+export default function HomeEn() {
+  const [content, setContent] = useState<Record<string, string>>({});
+  const [activitiesData, setActivitiesData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // 2. 英語版のコンテンツを取得 (page_path = 'en')
-  const { data: contentData } = await supabase
-    .from('site_content')
-    .select('content_key, content_value')
-    .eq('page_path', 'en');
+  useEffect(() => {
+    const fetchAllData = async () => {
+      try {
+        const [activitiesRes, contentRes] = await Promise.all([
+          supabase
+            .from('activities')
+            .select('*')
+            .eq('is_published', true)
+            .order('date', { ascending: false })
+            .limit(3),
+          supabase
+            .from('site_content')
+            .select('content_key, content_value')
+            .eq('page_path', 'en')
+        ]);
 
-  const content: Record<string, string> = {};
-  contentData?.forEach(item => {
-    content[item.content_key] = item.content_value;
-  });
+        if (activitiesRes.data) setActivitiesData(activitiesRes.data);
+
+        const contentMap: Record<string, string> = {};
+        contentRes.data?.forEach(item => {
+          contentMap[item.content_key] = item.content_value;
+        });
+        setContent(contentMap);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllData();
+  }, []);
 
   const get = (key: string, fallback: string) => content[key] || fallback;
+
+  if (loading) {
+    return (
+      <main className="page-fade-in">
+        <Navbar />
+        <div style={{ 
+          minHeight: "100vh", 
+          display: "flex", 
+          flexDirection: "column",
+          alignItems: "center", 
+          justifyContent: "center", 
+          background: "#f8f7f4", 
+          color: "#aaa", 
+          fontSize: "0.85rem", 
+          fontWeight: 800,
+          letterSpacing: "0.15em",
+          gap: "16px"
+        }}>
+          <div style={{
+            width: "30px",
+            height: "30px",
+            border: "2px solid #ddd",
+            borderTopColor: "var(--accent, #e65c00)",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite"
+          }} />
+          LOADING...
+          <style>{`
+            @keyframes spin { to { transform: rotate(360deg); } }
+          `}</style>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   return (
     <main className="page-fade-in">
@@ -242,7 +296,6 @@ export default async function HomeEn() {
           <a className="instagram-link" href="https://www.instagram.com/nex.us_2026/" target="_blank" rel="noreferrer" style={{ display: "block" }}>
             Follow us on Instagram 📸
           </a>
-
         </div>
       </section>
 

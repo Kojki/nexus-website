@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -14,19 +17,68 @@ const renderText = (text: string) => {
   ));
 };
 
-export default async function Home() {
-  // 1. ページコンテンツを取得
-  const { data: contentData } = await supabase
-    .from('site_content')
-    .select('content_key, content_value')
-    .eq('page_path', 'home');
+export default function Home() {
+  const [content, setContent] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
 
-  const content: Record<string, string> = {};
-  contentData?.forEach(item => {
-    content[item.content_key] = item.content_value;
-  });
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const { data: contentData } = await supabase
+          .from('site_content')
+          .select('content_key, content_value')
+          .eq('page_path', 'home');
+
+        const contentMap: Record<string, string> = {};
+        contentData?.forEach(item => {
+          contentMap[item.content_key] = item.content_value;
+        });
+        setContent(contentMap);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchContent();
+  }, []);
 
   const get = (key: string, fallback: string) => content[key] || fallback;
+
+  if (loading) {
+    return (
+      <main className="page-fade-in">
+        <Navbar />
+        <div style={{ 
+          minHeight: "100vh", 
+          display: "flex", 
+          flexDirection: "column",
+          alignItems: "center", 
+          justifyContent: "center", 
+          background: "#f8f7f4", 
+          color: "#aaa", 
+          fontSize: "0.85rem", 
+          fontWeight: 800,
+          letterSpacing: "0.15em",
+          gap: "16px"
+        }}>
+          <div style={{
+            width: "30px",
+            height: "30px",
+            border: "2px solid #ddd",
+            borderTopColor: "var(--accent, #e65c00)",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite"
+          }} />
+          LOADING...
+          <style>{`
+            @keyframes spin { to { transform: rotate(360deg); } }
+          `}</style>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   return (
     <main className="page-fade-in">
@@ -167,3 +219,4 @@ export default async function Home() {
     </main>
   );
 }
+
