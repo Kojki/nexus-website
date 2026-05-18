@@ -32,9 +32,10 @@ export default async function About() {
       <header className="concept-header">
         <div className="animate-slide-up">
           <p className="eyebrow" style={{ justifyContent: "center" }}>About Nexus</p>
-          <h1>
+          <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", margin: "0 auto", textAlign: "center", lineHeight: 1.2 }}>
             {renderText(get('hero_title', '専門が交わる場所。\n未来の自分に\n出会う場所。'))}
           </h1>
+
         </div>
       </header>
 

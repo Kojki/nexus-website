@@ -1087,7 +1087,27 @@ export default function NexusStudioPro() {
           <NavBtn active={activeTab === "faq"} onClick={() => setActiveTab("faq")} icon="❓">FAQ</NavBtn>
           <NavBtn active={activeTab === "inquiries"} onClick={() => setActiveTab("inquiries")} icon="📩">問い合わせ</NavBtn>
         </nav>
-        <button onClick={() => { logAdminAction("logout", "管理システムからサインアウトしました"); supabase.auth.signOut(); router.push("/"); }} style={S.logoutBtn}>SIGN OUT</button>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button 
+            onClick={async () => { 
+              await fetchData(true); 
+              showToast("データベースから最新情報を取得しました！"); 
+            }} 
+            style={{ ...S.logoutBtn, color: "var(--accent)", borderColor: "var(--accent-light)" }}
+          >
+            🔄 最新同期
+          </button>
+          <button 
+            onClick={() => { 
+              logAdminAction("logout", "管理システムからサインアウトしました"); 
+              supabase.auth.signOut(); 
+              router.push("/"); 
+            }} 
+            style={S.logoutBtn}
+          >
+            SIGN OUT
+          </button>
+        </div>
       </header>
 
       {errorMsg && <div style={{ color: "red", padding: "10px" }}>{errorMsg}</div>}
