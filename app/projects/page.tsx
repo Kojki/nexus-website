@@ -24,129 +24,22 @@ const logClickEvent = async (type: string, name: string) => {
   }
 };
 
-function ProjectCard({ proj }: { proj: Project }) {
-  const [hover, setHover] = useState(false);
-
-  return (
-    <div 
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{ 
-        background: "white", 
-        borderRadius: "24px", 
-        border: hover ? "1px solid #e65c00" : "1px solid #ede8df", 
-        padding: "32px", 
-        display: "flex", 
-        flexDirection: "column", 
-        justifyContent: "space-between",
-        boxShadow: hover ? "0 20px 40px rgba(0,0,0,0.04)" : "0 4px 20px rgba(0,0,0,0.01)",
-        transform: hover ? "translateY(-8px)" : "translateY(0px)",
-        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-        position: "relative",
-        boxSizing: "border-box",
-        height: "100%"
-      }}
-    >
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <span style={{ 
-            fontSize: "0.7rem", 
-            fontWeight: 800, 
-            padding: "4px 10px", 
-            borderRadius: "6px",
-            background: proj.status === 'open' ? "#e6ffe6" : "#f5f5f5",
-            color: proj.status === 'open' ? "#006600" : "#666",
-            letterSpacing: "0.05em"
-          }}>
-            {proj.status === 'open' ? "🟢 メンバー募集中" : "🔴 募集終了"}
-          </span>
-        </div>
-
-        <h3 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: "16px", color: "#111", lineHeight: 1.4 }}>
-          {proj.title}
-        </h3>
-
-        <p style={{ fontSize: "0.9rem", color: "#555", lineHeight: 1.6, marginBottom: "24px", whiteSpace: "pre-wrap" }}>
-          {proj.description}
-        </p>
-      </div>
-
-      <div>
-        {proj.tech_stack && (
-          <div style={{ marginBottom: "16px" }}>
-            <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "#aaa", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Tech Stack</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-              {proj.tech_stack.split(",").map(t => (
-                <span key={t} style={{ background: "#f5f3ef", color: "#666", fontSize: "0.75rem", padding: "4px 10px", borderRadius: "8px", fontWeight: 700 }}>
-                  {t.trim()}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {proj.roles_needed && (
-          <div style={{ marginBottom: "24px" }}>
-            <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "#aaa", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Looking For</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-              {proj.roles_needed.split(",").map(r => (
-                <span key={r} style={{ border: "1px solid #e0dacb", color: "#e65c00", fontSize: "0.75rem", padding: "3px 10px", borderRadius: "8px", fontWeight: 700 }}>
-                  {r.trim()}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {proj.status === 'open' ? (
-          <Link 
-            href={`/contact?category=project&title=${encodeURIComponent(proj.title)}`}
-            onClick={() => logClickEvent('project_apply', proj.title)}
-            style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              justifyContent: "center",
-              background: "#111", 
-              color: "white", 
-              padding: "12px 24px", 
-              borderRadius: "14px", 
-              fontSize: "0.85rem", 
-              fontWeight: 800, 
-              textDecoration: "none",
-              transition: "all 0.2s ease",
-              textAlign: "center"
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#e65c00"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#111"; }}
-          >
-            このプロジェクトに参画申請する ➔
-          </Link>
-        ) : (
-          <div style={{ 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center",
-            background: "#f0f0f0", 
-            color: "#999", 
-            padding: "12px 24px", 
-            borderRadius: "14px", 
-            fontSize: "0.85rem", 
-            fontWeight: 800, 
-            textAlign: "center",
-            cursor: "not-allowed"
-          }}>
-            募集を終了しました
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('all');
   const [loading, setLoading] = useState(true);
+
+  // --- ドロワー（スライドパネル）状態管理 ---
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [targetProjectTitle, setTargetProjectTitle] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    organization: "",
+    email: "",
+    content: "",
+  });
 
   const cacheKey = "nexus_projects_cache";
 
@@ -177,6 +70,54 @@ export default function ProjectsPage() {
     fetchProjects();
   }, []);
 
+  const openApplyDrawer = (projectTitle: string) => {
+    setTargetProjectTitle(projectTitle);
+    setFormData({
+      name: "",
+      organization: "",
+      email: "",
+      content: `【参画希望プロジェクト】\n${projectTitle}\n\n【志望理由 / スキルなど】\n`,
+    });
+    setIsSuccess(false);
+    setIsDrawerOpen(true);
+    logClickEvent('project_drawer_open', projectTitle);
+  };
+
+  const handleDrawerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const dbPayload = {
+        name: formData.name,
+        organization: formData.organization,
+        email: formData.email,
+        category: "プロジェクト参画希望",
+        content: formData.content,
+      };
+
+      // 1. Supabaseへ書き込み
+      const { error } = await supabase.from("inquiries").insert([dbPayload]);
+      if (error) throw error;
+
+      // 2. Edge Function による安全なSlack通知
+      try {
+        await supabase.functions.invoke("contact-slack", {
+          body: dbPayload,
+        });
+      } catch (slackErr) {
+        console.error("Slack通知に失敗しました:", slackErr);
+      }
+
+      setIsSuccess(true);
+    } catch (error) {
+      alert("送信に失敗しました。時間をおいて再度お試しください。");
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const filteredProjects = projects.filter(p => {
     if (filter === 'open') return p.status === 'open';
     if (filter === 'closed') return p.status === 'closed';
@@ -184,26 +125,26 @@ export default function ProjectsPage() {
   });
 
   return (
-    <div style={{ background: "#fdfbf8", minHeight: "100vh", color: "#1a1a1a", fontFamily: "'Inter', 'Noto Sans JP', sans-serif" }}>
+    <div style={{ background: "var(--warm-white)", minHeight: "100vh", color: "var(--ink)", fontFamily: "'Inter', 'Noto Sans JP', sans-serif" }}>
       <Navbar />
 
       <section style={{ 
         position: "relative", padding: "180px 24px 80px", 
         background: "radial-gradient(circle at top right, rgba(230, 92, 0, 0.05), transparent 40%), radial-gradient(circle at bottom left, rgba(0, 0, 0, 0.03), transparent 50%)",
-        borderBottom: "1px solid rgba(0, 0, 0, 0.06)", textAlign: "center"
+        borderBottom: "1px solid var(--border)", textAlign: "center"
       }}>
         <div style={{ maxWidth: "800px", margin: "0 auto" }}>
           <span style={{ 
-            background: "rgba(230, 92, 0, 0.08)", color: "#e65c00", 
+            background: "var(--accent-pale)", color: "var(--accent)", 
             padding: "6px 14px", borderRadius: "99px", fontSize: "0.75rem", 
             fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" 
           }}>
             Co-Creation Board
           </span>
-          <h1 style={{ fontSize: "2.8rem", fontWeight: 900, marginTop: "16px", marginBottom: "20px", color: "#111" }}>
+          <h1 style={{ fontSize: "2.8rem", fontWeight: 900, marginTop: "16px", marginBottom: "20px" }}>
             🚀 Nexus 共創プロジェクト
           </h1>
-          <p style={{ fontSize: "1.05rem", color: "#666", lineHeight: 1.7, maxWidth: "600px", margin: "0 auto" }}>
+          <p style={{ fontSize: "1.05rem", color: "var(--muted)", lineHeight: 1.7, maxWidth: "600px", margin: "0 auto" }}>
             意欲ある学生たちの情熱や専門性を融合させ、新しい価値を創造するプロジェクトが多数稼働中。あなたのスキルや興味を活かし、共創を加速させましょう！
           </p>
         </div>
@@ -220,10 +161,9 @@ export default function ProjectsPage() {
               key={btn.id}
               onClick={() => setFilter(btn.id as any)}
               style={{
-                background: filter === btn.id ? "#111" : "white",
-                color: filter === btn.id ? "white" : "#555",
-                border: "1px solid",
-                borderColor: filter === btn.id ? "#111" : "#e0dacb",
+                background: filter === btn.id ? "var(--ink)" : "var(--warm-white)",
+                color: filter === btn.id ? "var(--warm-white)" : "var(--ink-soft)",
+                border: "1px solid var(--border)",
                 padding: "10px 24px",
                 borderRadius: "12px",
                 fontSize: "0.85rem",
@@ -241,31 +181,242 @@ export default function ProjectsPage() {
         {loading && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "32px" }}>
             {[1, 2, 3].map(i => (
-              <div key={i} style={{ background: "white", height: "300px", borderRadius: "24px", border: "1px solid #ede8df", padding: "32px", boxSizing: "border-box" }}>
-                <div style={{ background: "#eee", width: "40%", height: "20px", borderRadius: "4px", marginBottom: "16px" }} />
-                <div style={{ background: "#eee", width: "80%", height: "32px", borderRadius: "6px", marginBottom: "20px" }} />
-                <div style={{ background: "#eee", width: "100%", height: "80px", borderRadius: "6px" }} />
+              <div key={i} style={{ background: "var(--warm-white)", height: "300px", borderRadius: "24px", border: "1px solid var(--border)", padding: "32px", boxSizing: "border-box" }}>
+                <div style={{ background: "var(--border)", width: "40%", height: "20px", borderRadius: "4px", marginBottom: "16px" }} />
+                <div style={{ background: "var(--border)", width: "80%", height: "32px", borderRadius: "6px", marginBottom: "20px" }} />
+                <div style={{ background: "var(--border)", width: "100%", height: "80px", borderRadius: "6px" }} />
               </div>
             ))}
           </div>
         )}
 
         {!loading && filteredProjects.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px 24px", background: "white", borderRadius: "24px", border: "1px dashed #e0dacb" }}>
+          <div style={{ textAlign: "center", padding: "80px 24px", background: "var(--warm-white)", borderRadius: "24px", border: "1px dashed var(--border)" }}>
             <span style={{ fontSize: "2.5rem" }}>👀</span>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 800, marginTop: "16px", color: "#555" }}>該当するプロジェクトが見つかりません。</h3>
-            <p style={{ fontSize: "0.85rem", color: "#999", marginTop: "8px" }}>現在、新しいプロジェクトを準備中です。続報をお楽しみに！</p>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 800, marginTop: "16px", color: "var(--ink-soft)" }}>該当するプロジェクトが見つかりません。</h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--muted)", marginTop: "8px" }}>現在、新しいプロジェクトを準備中です。続報をお楽しみに！</p>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "32px" }}>
-            {filteredProjects.map((proj) => (
-              <ProjectCard key={proj.id} proj={proj} />
-            ))}
+            {filteredProjects.map((proj) => {
+              const [hover, setHover] = useState(false);
+              return (
+                <div 
+                  key={proj.id}
+                  onMouseEnter={() => setHover(true)}
+                  onMouseLeave={() => setHover(false)}
+                  style={{ 
+                    background: "var(--warm-white)", 
+                    borderRadius: "24px", 
+                    border: hover ? "1px solid var(--accent)" : "1px solid var(--border)", 
+                    padding: "32px", 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    justifyContent: "space-between",
+                    boxShadow: hover ? "0 20px 40px rgba(0,0,0,0.04)" : "0 4px 20px rgba(0,0,0,0.01)",
+                    transform: hover ? "translateY(-8px)" : "translateY(0px)",
+                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                    position: "relative",
+                    boxSizing: "border-box",
+                    height: "100%"
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                      <span style={{ 
+                        fontSize: "0.7rem", 
+                        fontWeight: 800, 
+                        padding: "4px 10px", 
+                        borderRadius: "6px",
+                        background: proj.status === 'open' ? "var(--accent-pale)" : "var(--border)",
+                        color: proj.status === 'open' ? "var(--accent)" : "var(--muted)",
+                        letterSpacing: "0.05em"
+                      }}>
+                        {proj.status === 'open' ? "🟢 メンバー募集中" : "🔴 募集終了"}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: "16px", color: "var(--ink)", lineHeight: 1.4 }}>
+                      {proj.title}
+                    </h3>
+
+                    <p style={{ fontSize: "0.9rem", color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: "24px", whiteSpace: "pre-wrap" }}>
+                      {proj.description}
+                    </p>
+                  </div>
+
+                  <div>
+                    {proj.tech_stack && (
+                      <div style={{ marginBottom: "16px" }}>
+                        <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Tech Stack</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                          {proj.tech_stack.split(",").map(t => (
+                            <span key={t} style={{ background: "var(--cream)", color: "var(--accent)", fontSize: "0.75rem", padding: "4px 10px", borderRadius: "8px", fontWeight: 700 }}>
+                              {t.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {proj.roles_needed && (
+                      <div style={{ marginBottom: "24px" }}>
+                        <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Looking For</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                          {proj.roles_needed.split(",").map(r => (
+                            <span key={r} style={{ border: "1px solid var(--border)", color: "var(--accent)", fontSize: "0.75rem", padding: "3px 10px", borderRadius: "8px", fontWeight: 700 }}>
+                              {r.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {proj.status === 'open' ? (
+                      <button 
+                        onClick={() => openApplyDrawer(proj.title)}
+                        style={{ 
+                          width: "100%",
+                          display: "flex", 
+                          alignItems: "center", 
+                          justifyContent: "center",
+                          background: "var(--ink)", 
+                          color: "var(--warm-white)", 
+                          padding: "12px 24px", 
+                          borderRadius: "14px", 
+                          fontSize: "0.85rem", 
+                          fontWeight: 800, 
+                          border: "none",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease"
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "var(--ink)"; }}
+                      >
+                        このプロジェクトに参画申請する ➔
+                      </button>
+                    ) : (
+                      <div style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "center",
+                        background: "var(--border)", 
+                        color: "var(--muted)", 
+                        padding: "12px 24px", 
+                        borderRadius: "14px", 
+                        fontSize: "0.85rem", 
+                        fontWeight: 800, 
+                        textAlign: "center",
+                        cursor: "not-allowed"
+                      }}>
+                        募集を終了しました
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </main>
+
+      {/* 🔮 プレミアム・スライドドロワーUI */}
+      {isDrawerOpen && (
+        <div 
+          onClick={() => setIsDrawerOpen(false)}
+          style={{
+            position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
+            background: "rgba(10, 8, 15, 0.4)", zIndex: 99999,
+            display: "flex", justifyContent: "flex-end",
+            animation: "fadeInBlur 0.3s ease forwards"
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: "500px", height: "100%", background: "var(--warm-white)",
+              borderLeft: "1px solid var(--border)", padding: "48px 36px", boxSizing: "border-box",
+              boxShadow: "-15px 0 45px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column",
+              position: "relative", overflowY: "auto",
+              animation: "slideLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards"
+            }}
+          >
+            {/* 閉じるボタン */}
+            <button 
+              onClick={() => setIsDrawerOpen(false)}
+              style={{
+                position: "absolute", top: "24px", right: "24px", background: "var(--accent-pale)",
+                border: "none", width: "36px", height: "36px", borderRadius: "50%",
+                fontSize: "1.2rem", cursor: "pointer", display: "flex", alignItems: "center",
+                justifyContent: "center", color: "var(--accent)", transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent)"; e.currentTarget.style.color = "var(--warm-white)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "var(--accent-pale)"; e.currentTarget.style.color = "var(--accent)"; }}
+            >
+              ×
+            </button>
+
+            {isSuccess ? (
+              <div style={{ textAlign: "center", margin: "auto 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
+                <div style={{ width: "64px", height: "64px", background: "var(--accent-pale)", color: "var(--accent)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem" }}>✓</div>
+                <h2 style={{ fontSize: "1.6rem", fontWeight: 900 }}>申請を受け付けました</h2>
+                <p style={{ color: "var(--muted)", fontSize: "0.92rem", lineHeight: 1.6 }}>プロジェクト「{targetProjectTitle}」への参画申請が送信されました。運営メンバーが内容を確認し、追ってSlackまたはメールにてご連絡いたします。</p>
+                <button className="button button-dark" onClick={() => setIsDrawerOpen(false)} style={{ width: "100%", marginTop: "16px" }}>閉じる</button>
+              </div>
+            ) : (
+              <form onSubmit={handleDrawerSubmit} style={{ display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between" }}>
+                <div>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "var(--accent)", background: "var(--accent-pale)", padding: "4px 12px", borderRadius: "999px" }}>
+                    Project Co-Creation
+                  </span>
+                  <h2 style={{ fontSize: "1.6rem", fontWeight: 900, margin: "16px 0 8px" }}>参画申請フォーム</h2>
+                  <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: "0 0 32px" }}>
+                    新しいプロジェクトの立ち上げや共創に参加しましょう。
+                  </p>
+
+                  <div className="form-group" style={{ marginBottom: "20px" }}>
+                    <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>お名前 <span className="required-badge">必須</span></label>
+                    <input 
+                      type="text" required className="form-input" placeholder="山田 太郎"
+                      value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: "20px" }}>
+                    <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>所属・学校名</label>
+                    <input 
+                      type="text" className="form-input" placeholder="〇〇大学 〇〇学部"
+                      value={formData.organization} onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: "20px" }}>
+                    <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>メールアドレス <span className="required-badge">必須</span></label>
+                    <input 
+                      type="email" required className="form-input" placeholder="example@nexus-connect.jp"
+                      value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: "24px" }}>
+                    <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>メッセージ・自己紹介 <span className="required-badge">必須</span></label>
+                    <textarea 
+                      required className="form-textarea" style={{ minHeight: "140px" }}
+                      value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="button button-dark" style={{ width: "100%", marginTop: "16px" }} disabled={isSubmitting}>
+                  {isSubmitting ? "送信中..." : "この内容で参画を申請する"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );
 }
-

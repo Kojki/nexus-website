@@ -20,7 +20,6 @@ interface Member {
   order_index: number;
 }
 
-// 📈 クリックイベント統計のログ記録用ヘルパー
 const logClickEvent = async (type: string, name: string) => {
   try {
     await supabase.from("click_events").insert([{ event_type: type, target_name: name }]);
@@ -29,7 +28,6 @@ const logClickEvent = async (type: string, name: string) => {
   }
 };
 
-// 🟢 ホバーアニメーションを完全保証するためのMemberCard子コンポーネント
 function MemberCard({ member, onClick }: { member: Member; onClick: () => void }) {
   const [hover, setHover] = useState(false);
 
@@ -70,19 +68,23 @@ function MemberCard({ member, onClick }: { member: Member; onClick: () => void }
   );
 }
 
-// 🌐 メインのMembersコンポーネント
 export default function Members() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  
+  // --- フィルタリング用状態定義 ---
+  const [selectedField, setSelectedField] = useState("すべて");
+  const [availableFields, setAvailableFields] = useState<string[]>([]);
 
   const cacheKey = "nexus_members_cache";
 
   useEffect(() => {
-    // 🚀 1. キャッシュがあれば即時レンダリング (ロード時間0秒を達成)
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
-      setMembers(JSON.parse(cached));
+      const parsed = JSON.parse(cached);
+      setMembers(parsed);
+      extractFields(parsed);
       setLoading(false);
     }
 
@@ -92,13 +94,12 @@ export default function Members() {
           .from('members')
           .select('*')
           .eq('is_published', true)
-          .eq('is_deleted', false) // 🗑️ 論理削除されていないメンバーのみ取得
+          .eq('is_deleted', false)
           .order('order_index', { ascending: true });
         
         if (error) throw error;
         setMembers(data || []);
-        
-        // 🚀 キャッシュを裏側で静かにアップデート
+        extractFields(data || []);
         localStorage.setItem(cacheKey, JSON.stringify(data || []));
       } catch (err) {
         console.error("メンバーデータの取得に失敗しました:", err);
@@ -109,8 +110,20 @@ export default function Members() {
     fetchMembers();
   }, []);
 
+  const extractFields = (memberList: Member[]) => {
+    // メンバーから重複のない専門分野（field）を抽出して配列化
+    const uniqueFields = Array.from(new Set(memberList.map(m => m.field).filter(Boolean)));
+    setAvailableFields(["すべて", ...uniqueFields]);
+  };
+
+  // 選択された分野でフィルタリングされたリスト
+  const filteredMembers = members.filter(m => {
+    if (selectedField === "すべて") return true;
+    return m.field === selectedField;
+  });
+
   return (
-    <main className="page-fade-in" style={{ background: "#fdfbf8", minHeight: "100vh" }}>
+    <main className="page-fade-in" style={{ background: "var(--warm-white)", minHeight: "100vh" }}>
       <Navbar />
 
       <header className="concept-header" style={{ padding: "120px 24px 60px", textAlign: "center" }}>
@@ -123,6 +136,32 @@ export default function Members() {
 
       <section className="concept-container" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px 100px" }}>
         
+        {/* 🏷️ 動的スキル・専門タグフィルター */}
+        {!loading && availableFields.length > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", gap: "10px", flexWrap: "wrap", marginBottom: "48px" }}>
+            {availableFields.map(field => (
+              <button
+                key={field}
+                onClick={() => setSelectedField(field)}
+                style={{
+                  background: selectedField === field ? "var(--accent)" : "var(--warm-white)",
+                  color: selectedField === field ? "var(--warm-white)" : "var(--ink-soft)",
+                  border: "1px solid var(--border)",
+                  padding: "8px 22px",
+                  borderRadius: "999px",
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                  boxShadow: selectedField === field ? "0 4px 12px rgba(165, 151, 255, 0.25)" : "none"
+                }}
+              >
+                {field}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ローディング表示 */}
         {loading && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "32px", marginBottom: "80px" }}>
@@ -135,12 +174,13 @@ export default function Members() {
         {/* メンバー一覧グリッド */}
         {!loading && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "32px", marginBottom: "80px" }}>
-            {members.map((member) => (
-              <MemberCard 
-                key={member.id} 
-                member={member} 
-                onClick={() => setSelectedMember(member)} 
-              />
+            {filteredMembers.map((member) => (
+              <div key={member.id} style={{ animation: "fadeIn 0.4s ease forwards" }}>
+                <MemberCard 
+                  member={member} 
+                  onClick={() => setSelectedMember(member)} 
+                />
+              </div>
             ))}
           </div>
         )}
@@ -166,28 +206,26 @@ export default function Members() {
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: "white", borderRadius: "32px", width: "100%", maxWidth: "600px",
-              padding: "40px", boxSizing: "border-box", border: "1px solid rgba(255,255,255,0.7)",
+              background: "var(--warm-white)", borderRadius: "32px", width: "100%", maxWidth: "600px",
+              padding: "40px", boxSizing: "border-box", border: "1px solid var(--border)",
               boxShadow: "0 25px 60px rgba(0,0,0,0.15)", position: "relative",
               animation: "slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
             }}
           >
-            {/* 閉じるボタン */}
             <button 
               onClick={() => setSelectedMember(null)}
               style={{
-                position: "absolute", top: "24px", right: "24px", background: "#f5f3ef",
+                position: "absolute", top: "24px", right: "24px", background: "var(--accent-pale)",
                 border: "none", width: "36px", height: "36px", borderRadius: "50%",
                 fontSize: "1.2rem", cursor: "pointer", display: "flex", alignItems: "center",
-                justifyContent: "center", color: "#666", transition: "all 0.2s ease"
+                justifyContent: "center", color: "var(--accent)", transition: "all 0.2s ease"
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#e65c00"; e.currentTarget.style.color = "white"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#f5f3ef"; e.currentTarget.style.color = "#666"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent)"; e.currentTarget.style.color = "var(--warm-white)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "var(--accent-pale)"; e.currentTarget.style.color = "var(--accent)"; }}
             >
               ×
             </button>
 
-            {/* モーダル内部デザイン */}
             <div style={{ display: "flex", gap: "24px", alignItems: "center", marginBottom: "32px", flexWrap: "wrap" }}>
               <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: "var(--accent-pale)", border: "2px solid var(--accent-light)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem" }}>
                 {selectedMember.photo_url ? <img src={selectedMember.photo_url} style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}} alt={selectedMember.name} /> : "👤"}
@@ -201,19 +239,17 @@ export default function Members() {
               </div>
             </div>
 
-            {/* 自己紹介文（Message） */}
             <blockquote style={{ 
               fontSize: "1.05rem", color: "var(--ink-soft)", margin: "0 0 28px", 
               lineHeight: 1.8, fontStyle: "italic", borderLeft: "4px solid var(--accent)", 
-              paddingLeft: "16px", background: "#fdfbf8", padding: "16px 20px", borderRadius: "0 16px 16px 0"
+              paddingLeft: "16px", background: "var(--cream)", padding: "16px 20px", borderRadius: "0 16px 16px 0"
             }}>
               &ldquo;{selectedMember.message}&rdquo;
             </blockquote>
 
-            {/* 専門スキルタグ */}
             {selectedMember.skills && (
               <div style={{ marginBottom: "28px" }}>
-                <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#aaa", textTransform: "uppercase", marginBottom: "10px", letterSpacing: "0.05em" }}>Specialized Skills</div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", marginBottom: "10px", letterSpacing: "0.05em" }}>Specialized Skills</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {selectedMember.skills.split(",").map(skill => (
                     <span key={skill} style={{ background: "var(--accent-pale)", color: "var(--accent)", fontSize: "0.78rem", padding: "6px 12px", borderRadius: "10px", fontWeight: 800 }}>
@@ -224,25 +260,24 @@ export default function Members() {
               </div>
             )}
 
-            {/* GitHub & ポートフォリオの外部リンク */}
             {(selectedMember.github_url || selectedMember.portfolio_url) && (
               <div>
-                <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#aaa", textTransform: "uppercase", marginBottom: "10px", letterSpacing: "0.05em" }}>Links & Network</div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", marginBottom: "10px", letterSpacing: "0.05em" }}>Links & Network</div>
                 <div style={{ display: "flex", gap: "12px" }}>
                   {selectedMember.github_url && (
                     <a 
                       href={selectedMember.github_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      onClick={() => logClickEvent('member_github', selectedMember.name)} // 🚀 GitHubクリック数を計測
+                      onClick={() => logClickEvent('member_github', selectedMember.name)}
                       style={{ 
                         display: "inline-flex", alignItems: "center", gap: "8px", 
-                        background: "#111", color: "white", padding: "10px 18px", 
+                        background: "var(--ink)", color: "var(--warm-white)", padding: "10px 18px", 
                         borderRadius: "12px", fontSize: "0.85rem", fontWeight: 800, 
                         textDecoration: "none", transition: "all 0.2s" 
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "#e65c00"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "#111"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "var(--ink)"; }}
                     >
                       🐙 GitHub Profile
                     </a>
@@ -252,15 +287,15 @@ export default function Members() {
                       href={selectedMember.portfolio_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      onClick={() => logClickEvent('member_portfolio', selectedMember.name)} // 🚀 ポートフォリオクリック数を計測
+                      onClick={() => logClickEvent('member_portfolio', selectedMember.name)}
                       style={{ 
                         display: "inline-flex", alignItems: "center", gap: "8px", 
-                        background: "white", color: "#111", border: "1px solid #e0dacb", 
+                        background: "var(--warm-white)", color: "var(--ink)", border: "1px solid var(--border)", 
                         padding: "10px 18px", borderRadius: "12px", fontSize: "0.85rem", 
                         fontWeight: 800, textDecoration: "none", transition: "all 0.2s" 
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#e65c00"; e.currentTarget.style.color = "#e65c00"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e0dacb"; e.currentTarget.style.color = "#111"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--ink)"; }}
                     >
                       🌐 Portfolio Website
                     </a>
@@ -272,7 +307,6 @@ export default function Members() {
         </div>
       )}
 
-      {/* 🔮 App Router標準のHTMLStyleスタイル埋め込み */}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -288,3 +322,4 @@ export default function Members() {
     </main>
   );
 }
+
