@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { PageTabBtn, InputField, S, PagePath } from "./SharedUI";
 
-// 🟢 [新設] 共通の超プレミアム画像ドラッグ＆ドロップ・アップローダー
+// 🟢 共通の超プレミアム画像ドラッグ＆ドロップ・アップローダー
 function DragDropImageZone({ label, imageUrl, uploading, onUpload, onClear }: any) {
   const [dragging, setDragging] = useState(false);
   
@@ -69,17 +69,35 @@ function DragDropImageZone({ label, imageUrl, uploading, onUpload, onClear }: an
   );
 }
 
-// 🌐 サイト文言編集タブ
-export function ContentTab({ activePage, setActivePage, liveData, handleUpdateContent }: any) {
+// 🌐 サイト文言編集タブ（一括保存ボタン ＆ 最新情報同期ボタンを追加）
+export function ContentTab({ activePage, setActivePage, liveData, handleUpdateContent, onSave, onReload, publishing, userRole }: any) {
   return (
     <div>
       <h2 style={S.sectionTitle}>サイト文言の編集</h2>
-      <div style={{ display: "flex", gap: "8px", marginBottom: "32px", flexWrap: "wrap" }}>
-        {(["home", "about", "guidelines", "privacy", "en"] as PagePath[]).map(p => (
-          <PageTabBtn key={p} active={activePage === p} onClick={() => setActivePage(p)}>
-            {p.toUpperCase()}
-          </PageTabBtn>
-        ))}
+      
+      {/* 🔄 更新/同期ボタン ＆ タブ切り替えエリア */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px", flexWrap: "wrap", gap: "12px" }}>
+        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+          {(["home", "about", "guidelines", "privacy", "en"] as PagePath[]).map(p => (
+            <PageTabBtn key={p} active={activePage === p} onClick={() => setActivePage(p)}>
+              {p.toUpperCase()}
+            </PageTabBtn>
+          ))}
+        </div>
+        
+        <button
+          onClick={onReload}
+          style={{
+            background: "white", border: "1px solid #ddd", borderRadius: "8px",
+            padding: "6px 12px", fontSize: "0.75rem", fontWeight: 800, color: "#666",
+            cursor: "pointer", display: "flex", alignItems: "center", gap: "6px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.02)", transition: "all 0.2s"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"}
+          onMouseLeave={(e) => e.currentTarget.style.background = "white"}
+        >
+          🔄 最新のDB情報に同期 (編集を破棄)
+        </button>
       </div>
 
       <div style={S.formStack}>
@@ -209,6 +227,24 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
             </div>
           </>
         )}
+
+        {/* 💾 一括保存・提案送信ボタン */}
+        <div style={{ marginTop: "32px" }}>
+          <button 
+            onClick={onSave}
+            disabled={publishing}
+            style={{
+              ...S.primaryBtn,
+              background: userRole === "proposer" ? "#0055ff" : "#111",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px"
+            }}
+          >
+            {publishing ? "⌛ 処理を実行中..." : userRole === "proposer" ? "💡 編集提案を送信する" : "💾 変更内容を本番公開・保存する"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -278,7 +314,6 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
           
           <InputField label="要約 (一覧に表示されます) *" value={state.summary} onChange={setters.setSummary} textarea placeholder="**太字** や [リンク](URL) などのマークダウン記法が使えます" />
           
-          {/* ✅ ドラッグ＆ドロップアップローダーにアップグレード */}
           <DragDropImageZone 
             label="サムネイル画像"
             imageUrl={state.imageUrl}
@@ -374,7 +409,6 @@ export function MembersTab({ state, setters, handlers }: any) {
           {state.editingMemberId ? "📝 メンバー情報の編集" : "メンバーの追加"}
         </h3>
         <div style={S.formStack}>
-          {/* ✅ ドラッグ＆ドロップアップローダーにアップグレード */}
           <DragDropImageZone 
             label="顔写真 *"
             imageUrl={state.mPhotoUrl}
@@ -387,12 +421,9 @@ export function MembersTab({ state, setters, handlers }: any) {
           <InputField label="役割 (例: Founder)" value={state.mRole} onChange={setters.setMRole} />
           <InputField label="所属 (例: 〇〇大学)" value={state.mAffiliation} onChange={setters.setMAffiliation} />
           <InputField label="活動領域/専門 (例: 量子物理、フロントエンド開発)" value={state.mField} onChange={setters.setMField} />
-          
-          {/* ✅ スキル・GitHub・ポートフォリオ入力欄の拡張 */}
           <InputField label="保有スキルタグ (カンマ区切り。例: React, Python, UI/UX)" value={state.skills || ""} onChange={setters.setSkills} placeholder="スキルをカンマで並べます" />
           <InputField label="GitHub プロフィール URL (任意)" value={state.githubUrl || ""} onChange={setters.setGithubUrl} placeholder="https://github.com/..." />
           <InputField label="ポートフォリオ URL (任意)" value={state.portfolioUrl || ""} onChange={setters.setPortfolioUrl} placeholder="https://..." />
-
           <InputField label="自己紹介・メンバーへのメッセージ" value={state.mMessage} onChange={setters.setMMessage} textarea />
           
           <div style={{ display: "flex", gap: "12px" }}>
@@ -468,7 +499,7 @@ export function MembersTab({ state, setters, handlers }: any) {
   );
 }
 
-// 🚀 [新設] プロジェクト募集管理タブ (CRUD)
+// 🚀 共創プロジェクト管理タブ (CRUD)
 export function ProjectsTab({ state, setters, handlers, projects }: any) {
   return (
     <div>

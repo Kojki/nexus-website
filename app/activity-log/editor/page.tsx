@@ -98,9 +98,10 @@ export default function NexusStudioPro() {
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  // 🔄 silent 引数を追加し、バックグラウンドでのデータ更新をサポート
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       
       const { data: cData, error: cError } = await supabase.from('site_content').select('*');
       if (cError) throw cError;
@@ -109,7 +110,6 @@ export default function NexusStudioPro() {
       setSiteContents(cMap);
       setLiveData(cMap[activePage] || {});
 
-      // 🗑️ アクティブ ＆ 承認済みのデータのみをフェッチするように変更
       const { data: aData } = await supabase.from('activities').select('*').eq('is_deleted', false).eq('approval_status', 'approved').order('created_at', { ascending: false });
       setActivities(aData || []);
 
@@ -122,7 +122,6 @@ export default function NexusStudioPro() {
       const { data: pData } = await supabase.from('projects').select('*').eq('is_deleted', false).eq('approval_status', 'approved').order('order_index', { ascending: true });
       setProjects(pData || []);
 
-      // 🗑️ ゴミ箱用データ（is_deleted = true）のフェッチ
       const { data: delA } = await supabase.from('activities').select('*').eq('is_deleted', true);
       setDeletedActivities(delA || []);
 
@@ -135,7 +134,6 @@ export default function NexusStudioPro() {
       const { data: delP } = await supabase.from('projects').select('*').eq('is_deleted', true);
       setDeletedProjects(delP || []);
 
-      // 📬 承認待ち（approval_status = pending）データのフェッチ
       const { data: pendA } = await supabase.from('activities').select('*').eq('approval_status', 'pending');
       setPendingActivities(pendA || []);
 
@@ -148,11 +146,9 @@ export default function NexusStudioPro() {
       const { data: pendF } = await supabase.from('faqs').select('*').eq('approval_status', 'pending');
       setPendingFaqs(pendF || []);
 
-      // お問い合わせ一覧
       const { data: iData } = await supabase.from('inquiries').select('*').order('created_at', { ascending: false });
       setInquiries(iData || []);
 
-      // アクセス統計データの集計
       const { data: pvData } = await supabase.from('page_views').select('*');
       if (pvData) {
         const total = pvData.reduce((acc, curr) => acc + (curr.views || 0), 0);
@@ -168,22 +164,19 @@ export default function NexusStudioPro() {
         setAnalyticsData({ totalViews: total, todayViews: today, popularPages: popular });
       }
 
-      // 操作監査ログの読み込み
       const { data: logs } = await supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(20);
       setAuditLogs(logs || []);
 
-      // 🔑 ログイン許可メンバーのリストを取得
       const { data: allowedList } = await supabase.from('allowed_users').select('*').order('email');
       setAllowedUsers(allowedList || []);
 
-      // 📬 届いたテキスト提案のフェッチ
       const { data: pendC } = await supabase.from('content_proposals').select('*').eq('status', 'pending').order('created_at', { ascending: false });
       setPendingContentProposals(pendC || []);
 
     } catch (e: any) {
       setErrorMsg(e.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -239,7 +232,7 @@ export default function NexusStudioPro() {
       
       logAdminAction("add_allowed_user", `ユーザー「${cleanEmail}」に「${role}」権限を付与してログインを許可しました`);
       showToast(`${cleanEmail} を追加しました`);
-      fetchData();
+      fetchData(true);
     } catch (e: any) {
       showToast("追加に失敗しました。すでに登録されている可能性があります。", "error");
     }
@@ -261,7 +254,7 @@ export default function NexusStudioPro() {
         
         logAdminAction("remove_allowed_user", `ユーザー「${email}」のログイン権限を剥奪しました`);
         showToast(`${email} を削除しました`);
-        fetchData();
+        fetchData(true);
       } catch (e: any) {
         showToast("削除に失敗しました", "error");
       }
@@ -283,7 +276,7 @@ export default function NexusStudioPro() {
 
       logAdminAction("change_user_role", `ユーザー「${email}」のロールを「${role}」に変更しました`);
       showToast(`${email} の権限を変更しました`);
-      fetchData();
+      fetchData(true);
     } catch (e: any) {
       showToast("権限の変更に失敗しました", "error");
     }
@@ -318,73 +311,106 @@ export default function NexusStudioPro() {
     setUploading(false);
   };
 
-  // 🌐 テキスト保存（提案者の場合は提案テーブルへ挿入）
-  const handleUpdateContentDirectly = async (key: string, value: string) => {
-    if (userRole === "proposer") {
-      try {
-        // すでに同じ page_path, content_key で pending 状態の提案があれば上書き、なければ新規作成
-        const { data: existing } = await supabase
-          .from('content_proposals')
-          .select('id')
-          .eq('page_path', activePage)
-          .eq('content_key', key)
-          .eq('status', 'pending')
-          .limit(1);
+  // 🌐 キー入力時は React ローカルのステートだけを高速更新（DBアクセスしない ＝ 超快適に入力可能）
+  const handleUpdateContentLocally = (key: string, value: string) => {
+    setLiveData(prev => ({ ...prev, [key]: value }));
+  };
 
-        if (existing && existing.length > 0) {
-          const { error } = await supabase
-            .from('content_proposals')
-            .update({ proposed_value: value, proposer_email: currentUserEmail })
-            .eq('id', existing[0].id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from('content_proposals')
-            .insert([{
-              page_path: activePage,
-              content_key: key,
-              proposed_value: value,
-              proposer_email: currentUserEmail,
-              status: 'pending'
-            }]);
-          if (error) throw error;
-        }
-        showToast("テキスト変更の提案を送信しました！");
-        fetchData(); // 提案情報を更新
-      } catch (e: any) {
-        showToast("提案の送信に失敗しました", "error");
-      }
-      return;
-    }
-
-    try {
-      const updatedLiveData = { ...liveData, [key]: value };
-      setLiveData(updatedLiveData);
-      
-      const updatedSiteContents = {
-        ...siteContents,
-        [activePage]: {
-          ...(siteContents[activePage] || {}),
-          [key]: value
-        }
-      };
-      setSiteContents(updatedSiteContents);
-
-      const { error } = await supabase.from('site_content').upsert(
-        { page_path: activePage, content_key: key, content_value: value },
-        { onConflict: 'page_path,content_key' }
-      );
-      if (error) throw error;
-      
-      logAdminAction("update_content", `${activePage} ページの「${key}」の文言を更新しました`);
-      await revalidateSite();
-      showToast("変更を一時保存しました");
-    } catch (e: any) {
-      showToast("保存に失敗しました", "error");
+  // 🔄 ご要望の「最新DB情報への同期・リセット」ボタン用ハンドラー
+  const handleReloadOriginalContent = async () => {
+    if (confirm("編集中の内容をすべて破棄し、最後に保存された最新のデータに戻しますか？")) {
+      setLoading(true);
+      await fetchData();
+      showToast("最新データを読み込みました");
     }
   };
 
-  // 活動記録の保存 (提案者対応)
+  // 💾 変更内容の「一括本番公開保存 / 提案一括送信」処理
+  const handleSaveAllContentChanges = async () => {
+    setPublishing(true);
+    try {
+      // siteContents[activePage]（DBから取得した初期値）と現在の liveData（画面で編集中の値）の差分キーを抽出
+      const original = siteContents[activePage] || {};
+      const changedKeys = Object.keys(liveData).filter(key => liveData[key] !== original[key]);
+
+      if (changedKeys.length === 0) {
+        showToast("変更された項目がありません", "error");
+        setPublishing(false);
+        return;
+      }
+
+      if (userRole === "proposer") {
+        // 提案者の場合：差分のあるすべてのキーを content_proposals に一括保存
+        for (const key of changedKeys) {
+          const value = liveData[key];
+          
+          // すでに同じ page_path, content_key で pending の提案があれば上書き、なければ新規作成
+          const { data: existing } = await supabase
+            .from('content_proposals')
+            .select('id')
+            .eq('page_path', activePage)
+            .eq('content_key', key)
+            .eq('status', 'pending')
+            .limit(1);
+
+          if (existing && existing.length > 0) {
+            const { error } = await supabase
+              .from('content_proposals')
+              .update({ proposed_value: value, proposer_email: currentUserEmail })
+              .eq('id', existing[0].id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase
+              .from('content_proposals')
+              .insert([{
+                page_path: activePage,
+                content_key: key,
+                proposed_value: value,
+                proposer_email: currentUserEmail,
+                status: 'pending'
+              }]);
+            if (error) throw error;
+          }
+        }
+        showToast("テキスト変更提案を一括送信しました！");
+        await fetchData(true); // 読込中画面を表示せずにバックグラウンドで状態を同期
+        return;
+      }
+
+      // オーナー / 編集者の場合：site_content テーブルに一括 Upsert
+      const upsertRows = changedKeys.map(key => ({
+        page_path: activePage,
+        content_key: key,
+        content_value: liveData[key]
+      }));
+
+      const { error } = await supabase.from('site_content').upsert(
+        upsertRows,
+        { onConflict: 'page_path,content_key' }
+      );
+      if (error) throw error;
+
+      // 保存完了後にローカルの状態も更新
+      setSiteContents(prev => ({
+        ...prev,
+        [activePage]: {
+          ...(prev[activePage] || {}),
+          ...liveData
+        }
+      }));
+
+      logAdminAction("update_content", `${activePage} ページのテキストを変更し本番保存しました`);
+      await revalidateSite();
+      await fetchData(true); // 読込中画面を表示せずにバックグラウンドで状態を同期
+      showToast("変更内容を本番に一括反映・保存しました！");
+    } catch (e: any) {
+      showToast("保存に失敗しました", "error");
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  // 活動記録の保存
   const handleSaveActivity = async (isPublished: boolean = true) => {
     setPublishing(true);
     try {
@@ -412,7 +438,7 @@ export default function NexusStudioPro() {
 
       await revalidateSite();
       setTitle(""); setImageUrl(""); setSummary(""); setContent(""); setSlug(""); setEditingActivityId(null);
-      fetchData();
+      fetchData(true);
     } catch (e: any) {
       showToast("保存に失敗しました", "error");
     } finally {
@@ -443,7 +469,7 @@ export default function NexusStudioPro() {
     setImageUrl("");
   };
 
-  // メンバーの保存 (提案者対応)
+  // メンバーの保存
   const handleSaveMember = async () => {
     try {
       const finalApprovalState = userRole === "proposer" ? "pending" : "approved";
@@ -472,7 +498,7 @@ export default function NexusStudioPro() {
       setMName(""); setMRole(""); setMAffiliation(""); setMField(""); setMMessage(""); setMPhotoUrl("");
       setSkills(""); setGithubUrl(""); setPortfolioUrl("");
       setEditingMemberId(null);
-      fetchData();
+      fetchData(true);
     } catch (e: any) {
       showToast("保存に失敗しました", "error");
     }
@@ -529,15 +555,15 @@ export default function NexusStudioPro() {
 
     logAdminAction("reorder_members", `メンバーの表示順序を入れ替えました (${currentMember.name})`);
     await revalidateSite();
-    fetchData();
+    fetchData(true);
     showToast("表示順序を変更しました");
   };
 
-  // プロジェクト保存処理 (提案者対応)
+  // プロジェクト保存処理
   const handleSaveProject = async () => {
     try {
       const finalApprovalState = userRole === "proposer" ? "pending" : "approved";
-      const finalPublishState = userRole === "proposer" ? "closed" : pStatus; // 提案中の場合はクローズド仮状態にするなど
+      const finalPublishState = userRole === "proposer" ? "closed" : pStatus; 
 
       const payload = {
         title: pTitle, description: pDescription, tech_stack: pTechStack, roles_needed: pRolesNeeded, 
@@ -559,7 +585,7 @@ export default function NexusStudioPro() {
 
       await revalidateSite();
       setPTitle(""); setPDescription(""); setPTechStack(""); setPRolesNeeded(""); setPStatus("open"); setEditingProjectId(null);
-      fetchData();
+      fetchData(true);
     } catch (e: any) {
       showToast("保存に失敗しました", "error");
     }
@@ -608,11 +634,10 @@ export default function NexusStudioPro() {
 
     logAdminAction("reorder_projects", `プロジェクトの表示順序を入れ替えました (${currentProj.title})`);
     await revalidateSite();
-    fetchData();
+    fetchData(true);
     showToast("表示順序を変更しました");
   };
 
-  // お問い合わせの対応ステータス
   const handleUpdateInquiryStatus = async (id: string, status: string) => {
     if (userRole === "proposer") {
       showToast("お問合せステータスの変更権限がありません", "error");
@@ -624,14 +649,14 @@ export default function NexusStudioPro() {
       if (error) throw error;
       
       logAdminAction("update_inquiry", `お問合せ (送信者: ${targetInquiry?.name}) のステータスを「${status}」に変更しました`);
-      fetchData();
+      fetchData(true);
       showToast("対応ステータスを更新しました");
     } catch (e: any) {
       showToast("ステータスの更新に失敗しました", "error");
     }
   };
 
-  // FAQ保存・更新 (提案者対応)
+  // FAQ保存・更新
   const handleSaveFaq = async () => {
     try {
       const finalApprovalState = userRole === "proposer" ? "pending" : "approved";
@@ -649,7 +674,8 @@ export default function NexusStudioPro() {
         showToast(userRole === "proposer" ? "新規FAQの登録提案を送信しました！" : "FAQを追加しました");
       }
       await revalidateSite();
-      setFQuestion(""); setFAnswer(""); setEditingFaqId(null); fetchData();
+      setFQuestion(""); setFAnswer(""); setEditingFaqId(null); 
+      fetchData(true);
     } catch (e: any) {
       showToast("保存に失敗しました", "error");
     }
@@ -683,7 +709,7 @@ export default function NexusStudioPro() {
       if (error) throw error;
       logAdminAction("seed_faqs", "初期テンプレートFAQを投入しました");
       await revalidateSite();
-      fetchData();
+      fetchData(true);
       showToast("初期データを投入しました！");
     } catch (e: any) {
       showToast("データの投入に失敗しました", "error");
@@ -701,7 +727,7 @@ export default function NexusStudioPro() {
       
       logAdminAction("toggle_publish", `${table} (ID: ${id}) の公開状態を ${isPublished ? '公開' : '非公開'} にしました`);
       await revalidateSite();
-      fetchData();
+      fetchData(true);
       showToast(isPublished ? "公開状態にしました" : "非公開にしました");
     } catch (e: any) {
       showToast("更新に失敗しました", "error");
@@ -721,7 +747,7 @@ export default function NexusStudioPro() {
           const { error } = await supabase.from(table).delete().eq('id', id);
           if (error) throw error;
           logAdminAction("delete_row", `お問合せ (ID: ${id}) を完全に削除しました`);
-          fetchData();
+          fetchData(true);
           showToast("削除しました");
         } catch (e) {
           showToast("削除に失敗しました", "error");
@@ -737,7 +763,7 @@ export default function NexusStudioPro() {
         
         logAdminAction("soft_delete", `${table} のアイテム (ID: ${id}) をゴミ箱に移動しました`);
         await revalidateSite();
-        fetchData();
+        fetchData(true);
         showToast("ゴミ箱へ移動しました");
       } catch (e: any) {
         showToast("削除に失敗しました", "error");
@@ -754,7 +780,7 @@ export default function NexusStudioPro() {
 
       logAdminAction("restore_item", `${table} のアイテム (ID: ${id}) をゴミ箱から復元しました`);
       await revalidateSite();
-      fetchData();
+      fetchData(true);
       showToast("データを復元しました！");
     } catch (e) {
       showToast("復元に失敗しました", "error");
@@ -771,7 +797,7 @@ export default function NexusStudioPro() {
 
         logAdminAction("hard_delete", `${table} のアイテム (ID: ${id}) を完全に消去しました`);
         await revalidateSite();
-        fetchData();
+        fetchData(true);
         showToast("データを永久消去しました");
       } catch (e) {
         showToast("消去に失敗しました", "error");
@@ -784,7 +810,6 @@ export default function NexusStudioPro() {
     if (userRole === "proposer") return;
     try {
       if (table === 'content_proposals') {
-        // 1. 提案データを取得
         const { data: prop, error: fetchErr } = await supabase
           .from('content_proposals')
           .select('*')
@@ -792,14 +817,12 @@ export default function NexusStudioPro() {
           .single();
         if (fetchErr || !prop) throw fetchErr || new Error("提案が見つかりませんでした");
 
-        // 2. 本番用 site_content に upsert (本番に適用)
         const { error: upsertErr } = await supabase.from('site_content').upsert(
           { page_path: prop.page_path, content_key: prop.content_key, content_value: prop.proposed_value },
           { onConflict: 'page_path,content_key' }
         );
         if (upsertErr) throw upsertErr;
 
-        // 3. 提案ステータスを approved に更新
         const { error: updateErr } = await supabase
           .from('content_proposals')
           .update({ status: 'approved' })
@@ -808,7 +831,7 @@ export default function NexusStudioPro() {
 
         logAdminAction("approve_proposal", `一般テキスト変更提案 (ページ: ${prop.page_path}, キー: ${prop.content_key}) を承認し本番反映しました`);
         await revalidateSite();
-        fetchData();
+        fetchData(true);
         showToast("テキスト変更を承認・公開しました！");
       } else {
         const { error } = await supabase
@@ -819,7 +842,7 @@ export default function NexusStudioPro() {
         if (error) throw error;
         logAdminAction("approve_proposal", `${table} の提案 (ID: ${id}) を承認し本番公開しました`);
         await revalidateSite();
-        fetchData();
+        fetchData(true);
         showToast("提案を承認・公開しました！");
       }
     } catch (e) {
@@ -841,7 +864,7 @@ export default function NexusStudioPro() {
           if (error) throw error;
           logAdminAction("reject_proposal", `${table} の提案 (ID: ${id}) を却下しました`);
         }
-        fetchData();
+        fetchData(true);
         showToast("提案を却下・削除しました");
       } catch (e) {
         showToast("却下処理に失敗しました", "error");
@@ -869,7 +892,6 @@ export default function NexusStudioPro() {
           <Image src="/nexus-icon.png" alt="Logo" width={28} height={28} />
           <h1 style={{ fontSize: "1rem", fontWeight: 900, letterSpacing: "0.05em" }}>NEXUS STUDIO</h1>
           
-          {/* 👑 ログイン中の権限バッジ */}
           <span style={{ 
             fontSize: "0.7rem", 
             fontWeight: 800, 
@@ -910,7 +932,6 @@ export default function NexusStudioPro() {
               onAddUser={handleAddAllowedUser}
               onRemoveUser={handleRemoveAllowedUser}
               onChangeRole={handleChangeUserRole}
-              // 🗑️ ゴミ箱引き渡し
               trashItems={{
                 activities: deletedActivities,
                 members: deletedMembers,
@@ -919,7 +940,6 @@ export default function NexusStudioPro() {
               }}
               onRestoreItem={handleRestoreItem}
               onPermanentDelete={handlePermanentDelete}
-              // 📬 承認待ちデータ ＆ ハンドラーの引き渡し
               pendingProposals={{
                 activities: pendingActivities,
                 members: pendingMembers,
@@ -936,7 +956,11 @@ export default function NexusStudioPro() {
               activePage={activePage} 
               setActivePage={setActivePage} 
               liveData={liveData} 
-              handleUpdateContent={handleUpdateContentDirectly} 
+              handleUpdateContent={handleUpdateContentLocally} 
+              onSave={handleSaveAllContentChanges}
+              onReload={handleReloadOriginalContent}
+              publishing={publishing}
+              userRole={userRole}
             />
           )}
           {activeTab === "activity" && (
