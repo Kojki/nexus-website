@@ -9,6 +9,32 @@ import { renderMarkdown } from "@/lib/markdown";
 // 静的エクスポート（output: export）に対応するため false に設定
 export const dynamicParams = false;
 
+// 1. 各個別ページのタイトル・説明文を動的に生成するメタデータ関数を追加
+export async function generateMetadata({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = await params;
+
+  const { data: activity } = await supabase
+    .from('activities')
+    .select('title, category')
+    .eq('slug', id)
+    .single();
+
+  if (!activity) {
+    return {
+      title: "活動記録 - Nexus",
+    };
+  }
+
+  return {
+    title: `${activity.title} | Nexus 活動記録`,
+    description: `Nexusの活動ログ：カテゴリ「${activity.category}」に関する「${activity.title}」の記事詳細ページです。`,
+  };
+}
+
 export async function generateStaticParams() {
   try {
     const { data: activities, error } = await supabase.from('activities').select('slug');
@@ -23,7 +49,7 @@ export default async function ActivityDetailPage({
   params 
 }: { 
   params: Promise<{ id: string }> 
- }) {
+}) {
   const { id } = await params;
 
   const { data: activity } = await supabase
