@@ -6,8 +6,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { renderMarkdown } from "@/lib/markdown"; 
 
-// 記事追加時に即時動的生成させるため true に変更
-export const dynamicParams = true;
+// 静的エクスポート（output: export）に対応するため false に設定
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
   try {
@@ -23,7 +23,7 @@ export default async function ActivityDetailPage({
   params 
 }: { 
   params: Promise<{ id: string }> 
-}) {
+ }) {
   const { id } = await params;
 
   const { data: activity } = await supabase
