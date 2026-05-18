@@ -1,13 +1,16 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-export const dynamic = "force-dynamic";
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
+// 改行コード（\n）を正しく <br /> に変換する関数
 const renderText = (text: string) => {
   if (!text) return null;
   return text.split(/(?:\r\n|\r|\n|\\n)/).map((line, i) => (
@@ -15,16 +18,70 @@ const renderText = (text: string) => {
   ));
 };
 
-export default async function About() {
-  // コンテンツ取得
-  const { data: contentData } = await supabase
-    .from('site_content')
-    .select('content_key, content_value')
-    .eq('page_path', 'about');
+export default function About() {
+  const [content, setContent] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
 
-  const content: Record<string, string> = {};
-  contentData?.forEach(item => { content[item.content_key] = item.content_value; });
+  // 🌐 ブラウザ（クライアント）側で開いた瞬間に最新のデータをSupabaseから取得する
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const { data: contentData } = await supabase
+          .from('site_content')
+          .select('content_key, content_value')
+          .eq('page_path', 'about');
+
+        const contentMap: Record<string, string> = {};
+        contentData?.forEach(item => {
+          contentMap[item.content_key] = item.content_value;
+        });
+        setContent(contentMap);
+      } catch (err) {
+        console.error("データの読み込みに失敗しました:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchContent();
+  }, []);
+
   const get = (key: string, fallback: string) => content[key] || fallback;
+
+  // ⏳ ロード中の美しいスケルトン画面（一瞬表示されます）
+  if (loading) {
+    return (
+      <main className="page-fade-in">
+        <Navbar />
+        <div style={{ 
+          minHeight: "100vh", 
+          display: "flex", 
+          flexDirection: "column",
+          alignItems: "center", 
+          justifyContent: "center", 
+          background: "#f8f7f4", 
+          color: "#aaa", 
+          fontSize: "0.85rem", 
+          fontWeight: 800,
+          letterSpacing: "0.15em",
+          gap: "16px"
+        }}>
+          <div style={{
+            width: "30px",
+            height: "30px",
+            border: "2px solid #ddd",
+            borderTopColor: "var(--accent, #e65c00)",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite"
+          }} />
+          LOADING CONCEPT...
+          <style>{`
+            @keyframes spin { to { transform: rotate(360deg); } }
+          `}</style>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   return (
     <main className="page-fade-in">
@@ -36,7 +93,6 @@ export default async function About() {
           <h1 style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", margin: "0 auto", textAlign: "center", lineHeight: 1.2 }}>
             {renderText(get('hero_title', '専門が交わる場所。\n未来の自分に\n出会う場所。'))}
           </h1>
-
         </div>
       </header>
 
