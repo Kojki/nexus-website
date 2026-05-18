@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { renderMarkdown } from "@/lib/markdown";
 
+export const dynamic = "force-dynamic";
 const joinUrl = "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
 // 改行（\n や 実際の改行コード）を正しく <br /> に変換する共通関数

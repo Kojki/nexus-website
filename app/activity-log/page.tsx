@@ -8,6 +8,7 @@ import { activities as staticActivities } from "./data";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+export const dynamic = "force-dynamic";
 export default function ActivityLogIndex() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);

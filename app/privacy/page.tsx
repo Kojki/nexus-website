@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { renderMarkdown } from "@/lib/markdown";
 
-// 改行（\n や 実際の改行コード）を正しく <br /> に変換する共通関数
+export const dynamic = "force-dynamic";
 const renderText = (text: string) => {
   if (!text) return null;
   return text.split(/(?:\r\n|\r|\n|\\n)/).map((line, i) => (
