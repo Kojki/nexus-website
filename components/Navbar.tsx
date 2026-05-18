@@ -10,8 +10,11 @@ export default function Navbar() {
         <Image src="/nexus-icon.png" alt="Nexus Logo" width={34} height={34} priority />
         Nexus
       </Link>
-      <div className="nav-links">
+           <div className="nav-links">
         <Link href="/about">ABOUT</Link>
+        <Link href="/activity-log">ACTIVITY</Link> 
+        <Link href="/projects">PROJECTS</Link>     
+        <Link href="/members">MEMBERS</Link>       
         <a className="nav-cta" href={joinUrl} target="_blank" rel="noreferrer">参加する</a>
         {/* 言語切り替えボタン（全ページ共通化） */}
         <div className="lang-toggle" style={{ display: "flex", gap: "8px", fontSize: "0.85rem", fontWeight: 600, alignItems: "center", marginLeft: "8px" }}>
@@ -20,6 +23,7 @@ export default function Navbar() {
           <Link href="/en" style={{ color: "var(--muted)", textDecoration: "none" }}>EN</Link>
         </div>
       </div>
+
     </nav>
   );
 }
