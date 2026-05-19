@@ -145,7 +145,7 @@ export default function ActivityLogIndex() {
               return (
                 <div key={item.id} className="animate-slide-up" style={{ animationDelay: `${index * 80}ms` }}>
                   {item.hasDetail ? (
-                    <Link href={`/activity-log/${item.id}`} style={{ textDecoration: "none" }}>{CardContent}</Link>
+                    <Link href={`/activity-log/${item.id}/`} style={{ textDecoration: "none" }}>{CardContent}</Link>
                   ) : (
                     CardContent
                   )}
