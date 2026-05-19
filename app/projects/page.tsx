@@ -24,6 +24,128 @@ const logClickEvent = async (type: string, name: string) => {
   }
 };
 
+// ==========================================
+// 💡 安全なプロジェクトカード用の個別コンポーネント (useStateを正しくカプセル化)
+// ==========================================
+function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string) => void }) {
+  const [hover, setHover] = useState(false);
+
+  return (
+    <div 
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ 
+        background: "var(--warm-white)", 
+        borderRadius: "24px", 
+        border: hover ? "1px solid var(--accent)" : "1px solid var(--border)", 
+        padding: "32px", 
+        display: "flex", 
+        flexDirection: "column", 
+        justifyContent: "space-between",
+        boxShadow: hover ? "0 20px 40px rgba(0,0,0,0.04)" : "0 4px 20px rgba(0,0,0,0.01)",
+        transform: hover ? "translateY(-8px)" : "translateY(0px)",
+        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        position: "relative",
+        boxSizing: "border-box",
+        height: "100%"
+      }}
+    >
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <span style={{ 
+            fontSize: "0.7rem", 
+            fontWeight: 800, 
+            padding: "4px 10px", 
+            borderRadius: "6px",
+            background: proj.status === 'open' ? "var(--accent-pale)" : "var(--border)",
+            color: proj.status === 'open' ? "var(--accent)" : "var(--muted)",
+            letterSpacing: "0.05em"
+          }}>
+            {proj.status === 'open' ? "🟢 メンバー募集中" : "🔴 募集終了"}
+          </span>
+        </div>
+
+        <h3 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: "16px", color: "var(--ink)", lineHeight: 1.4 }}>
+          {proj.title}
+        </h3>
+
+        <p style={{ fontSize: "0.9rem", color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: "24px", whiteSpace: "pre-wrap" }}>
+          {proj.description}
+        </p>
+      </div>
+
+      <div>
+        {proj.tech_stack && (
+          <div style={{ marginBottom: "16px" }}>
+            <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Tech Stack</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {proj.tech_stack.split(",").map(t => (
+                <span key={t} style={{ background: "var(--cream)", color: "var(--accent)", fontSize: "0.75rem", padding: "4px 10px", borderRadius: "8px", fontWeight: 700 }}>
+                  {t.trim()}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {proj.roles_needed && (
+          <div style={{ marginBottom: "24px" }}>
+            <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Looking For</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {proj.roles_needed.split(",").map(r => (
+                <span key={r} style={{ border: "1px solid var(--border)", color: "var(--accent)", fontSize: "0.75rem", padding: "3px 10px", borderRadius: "8px", fontWeight: 700 }}>
+                  {r.trim()}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {proj.status === 'open' ? (
+          <button 
+            onClick={() => onApply(proj.title)}
+            style={{ 
+              width: "100%",
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center",
+              background: "var(--ink)", 
+              color: "var(--warm-white)", 
+              padding: "12px 24px", 
+              borderRadius: "14px", 
+              fontSize: "0.85rem", 
+              fontWeight: 800, 
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.2s ease"
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "var(--ink)"; }}
+          >
+            このプロジェクトに参画申請する ➔
+          </button>
+        ) : (
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center",
+            background: "var(--border)", 
+            color: "var(--muted)", 
+            padding: "12px 24px", 
+            borderRadius: "14px", 
+            fontSize: "0.85rem", 
+            fontWeight: 800, 
+            textAlign: "center",
+            cursor: "not-allowed"
+          }}>
+            募集を終了しました
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('all');
@@ -96,11 +218,9 @@ export default function ProjectsPage() {
         content: formData.content,
       };
 
-      // 1. Supabaseへ書き込み
       const { error } = await supabase.from("inquiries").insert([dbPayload]);
       if (error) throw error;
 
-      // 2. Edge Function による安全なSlack通知
       try {
         await supabase.functions.invoke("contact-slack", {
           body: dbPayload,
@@ -198,124 +318,9 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "32px" }}>
-            {filteredProjects.map((proj) => {
-              const [hover, setHover] = useState(false);
-              return (
-                <div 
-                  key={proj.id}
-                  onMouseEnter={() => setHover(true)}
-                  onMouseLeave={() => setHover(false)}
-                  style={{ 
-                    background: "var(--warm-white)", 
-                    borderRadius: "24px", 
-                    border: hover ? "1px solid var(--accent)" : "1px solid var(--border)", 
-                    padding: "32px", 
-                    display: "flex", 
-                    flexDirection: "column", 
-                    justifyContent: "space-between",
-                    boxShadow: hover ? "0 20px 40px rgba(0,0,0,0.04)" : "0 4px 20px rgba(0,0,0,0.01)",
-                    transform: hover ? "translateY(-8px)" : "translateY(0px)",
-                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                    position: "relative",
-                    boxSizing: "border-box",
-                    height: "100%"
-                  }}
-                >
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                      <span style={{ 
-                        fontSize: "0.7rem", 
-                        fontWeight: 800, 
-                        padding: "4px 10px", 
-                        borderRadius: "6px",
-                        background: proj.status === 'open' ? "var(--accent-pale)" : "var(--border)",
-                        color: proj.status === 'open' ? "var(--accent)" : "var(--muted)",
-                        letterSpacing: "0.05em"
-                      }}>
-                        {proj.status === 'open' ? "🟢 メンバー募集中" : "🔴 募集終了"}
-                      </span>
-                    </div>
-
-                    <h3 style={{ fontSize: "1.4rem", fontWeight: 900, marginBottom: "16px", color: "var(--ink)", lineHeight: 1.4 }}>
-                      {proj.title}
-                    </h3>
-
-                    <p style={{ fontSize: "0.9rem", color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: "24px", whiteSpace: "pre-wrap" }}>
-                      {proj.description}
-                    </p>
-                  </div>
-
-                  <div>
-                    {proj.tech_stack && (
-                      <div style={{ marginBottom: "16px" }}>
-                        <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Tech Stack</div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                          {proj.tech_stack.split(",").map(t => (
-                            <span key={t} style={{ background: "var(--cream)", color: "var(--accent)", fontSize: "0.75rem", padding: "4px 10px", borderRadius: "8px", fontWeight: 700 }}>
-                              {t.trim()}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {proj.roles_needed && (
-                      <div style={{ marginBottom: "24px" }}>
-                        <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", marginBottom: "6px", letterSpacing: "0.05em" }}>Looking For</div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                          {proj.roles_needed.split(",").map(r => (
-                            <span key={r} style={{ border: "1px solid var(--border)", color: "var(--accent)", fontSize: "0.75rem", padding: "3px 10px", borderRadius: "8px", fontWeight: 700 }}>
-                              {r.trim()}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {proj.status === 'open' ? (
-                      <button 
-                        onClick={() => openApplyDrawer(proj.title)}
-                        style={{ 
-                          width: "100%",
-                          display: "flex", 
-                          alignItems: "center", 
-                          justifyContent: "center",
-                          background: "var(--ink)", 
-                          color: "var(--warm-white)", 
-                          padding: "12px 24px", 
-                          borderRadius: "14px", 
-                          fontSize: "0.85rem", 
-                          fontWeight: 800, 
-                          border: "none",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease"
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "var(--ink)"; }}
-                      >
-                        このプロジェクトに参画申請する ➔
-                      </button>
-                    ) : (
-                      <div style={{ 
-                        display: "flex", 
-                        alignItems: "center", 
-                        justifyContent: "center",
-                        background: "var(--border)", 
-                        color: "var(--muted)", 
-                        padding: "12px 24px", 
-                        borderRadius: "14px", 
-                        fontSize: "0.85rem", 
-                        fontWeight: 800, 
-                        textAlign: "center",
-                        cursor: "not-allowed"
-                      }}>
-                        募集を終了しました
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {filteredProjects.map((proj) => (
+              <ProjectCard key={proj.id} proj={proj} onApply={openApplyDrawer} />
+            ))}
           </div>
         )}
       </main>
