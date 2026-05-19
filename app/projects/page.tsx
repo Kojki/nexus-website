@@ -280,12 +280,14 @@ export default function ProjectsPage() {
       if (error) throw error;
 
       try {
-        await supabase.functions.invoke("contact-slack", {
-  body: JSON.stringify(dbPayload),
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+        await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/contact-slack`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(dbPayload),
+        });
       } catch (slackErr) {
         console.error("Slack通知に失敗しました:", slackErr);
       }
