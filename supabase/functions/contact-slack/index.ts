@@ -1,3 +1,53 @@
+import "@supabase/functions-js/edge-runtime.d.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+type InquiryPayload = {
+  name: string;
+  organization?: string;
+  email: string;
+  category: string;
+  content: string;
+};
+
+type DeliveryResult = {
+  ok: boolean;
+  skipped?: boolean;
+  error?: string;
+};
+
+const RESEND_API_URL = "https://api.resend.com/emails";
+
+function isProjectApplication(payload: InquiryPayload) {
+  return payload.category === "プロジェクト参加希望";
+}
+
+function getProjectTitle(content: string) {
+  const match = content.match(/【参加希望プロジェクト】\s*([\s\S]*?)(?:\n\s*\n|$)/);
+  return match?.[1]?.trim() || "Nexus 共創プロジェクト";
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function sendResendEmail(params: {
+  to: string | string[];
+  subject: string;
+  text: string;
+  html: string;
+  replyTo?: string;
+}): Promise<DeliveryResult> {
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  const from = Deno.env.get("RESEND_FROM_EMAIL");
 
   if (!apiKey || !from) {
     return {
@@ -24,8 +74,7 @@
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    return { ok: false, error: errorText };
+    return { ok: false, error: await response.text() };
   }
 
   return { ok: true };
@@ -35,14 +84,27 @@ async function notifySlack(payload: InquiryPayload): Promise<DeliveryResult> {
   const slackWebhookUrl = Deno.env.get("SLACK_WEBHOOK_URL");
 
   if (!slackWebhookUrl) {
-    return { ok: false, skipped: true, error: "SLACK_WEBHOOK_URL is not configured." };
+    return {
+      ok: false,
+      skipped: true,
+      error: "SLACK_WEBHOOK_URL is not configured.",
+    };
   }
 
   const response = await fetch(slackWebhookUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      text: `📩 *【新規お問い合わせ】* \n----------------------------------------\n*カテゴリ:* ${payload.category}\n*お名前:* ${payload.name}\n*所属/組織:* ${payload.organization || "未入力"}\n*返信用アドレス:* ${payload.email}\n*本文:*\n${payload.content}\n----------------------------------------\n⚡️ _Nexus Connect Edge Function_`,
+      text: `📩 *【新規お問い合わせ】*
+----------------------------------------
+*カテゴリ:* ${payload.category}
+*お名前:* ${payload.name}
+*所属/組織:* ${payload.organization || "未入力"}
+*返信用アドレス:* ${payload.email}
+*本文:*
+${payload.content}
+----------------------------------------
+⚡️ _Nexus Connect Edge Function_`,
     }),
   });
 
@@ -55,12 +117,15 @@ async function notifySlack(payload: InquiryPayload): Promise<DeliveryResult> {
 
 async function sendApplicantEmail(payload: InquiryPayload): Promise<DeliveryResult> {
   const projectTitle = getProjectTitle(payload.content);
+
   const subject = isProjectApplication(payload)
     ? `【Nexus】${projectTitle} への参加申請を受け付けました`
     : "【Nexus】お問い合わせを受け付けました";
+
   const intro = isProjectApplication(payload)
     ? `プロジェクト「${projectTitle}」への参加申請を受け付けました。`
     : "お問い合わせを受け付けました。";
+
   const text = `${payload.name} 様
 
 ${intro}
@@ -84,10 +149,12 @@ Nexus Connect`;
       <p>${escapeHtml(payload.name)} 様</p>
       <p>${escapeHtml(intro)}<br />運営メンバーが内容を確認し、追ってご連絡いたします。</p>
       <hr />
-      <p><strong>お名前:</strong> ${escapeHtml(payload.name)}<br />
-      <strong>所属・組織:</strong> ${escapeHtml(payload.organization || "未入力")}<br />
-      <strong>メールアドレス:</strong> ${escapeHtml(payload.email)}<br />
-      <strong>カテゴリ:</strong> ${escapeHtml(payload.category)}</p>
+      <p>
+        <strong>お名前:</strong> ${escapeHtml(payload.name)}<br />
+        <strong>所属・組織:</strong> ${escapeHtml(payload.organization || "未入力")}<br />
+        <strong>メールアドレス:</strong> ${escapeHtml(payload.email)}<br />
+        <strong>カテゴリ:</strong> ${escapeHtml(payload.category)}
+      </p>
       <pre style="white-space: pre-wrap; font-family: sans-serif;">${escapeHtml(payload.content)}</pre>
       <p>Nexus Connect</p>
     `,
@@ -95,16 +162,24 @@ Nexus Connect`;
 }
 
 async function sendAdminEmail(payload: InquiryPayload): Promise<DeliveryResult> {
-  const notificationEmail = Deno.env.get("APPLICATION_NOTIFY_EMAIL") || Deno.env.get("CONTACT_NOTIFY_EMAIL");
+  const notificationEmail =
+    Deno.env.get("APPLICATION_NOTIFY_EMAIL") ||
+    Deno.env.get("CONTACT_NOTIFY_EMAIL");
 
   if (!notificationEmail) {
-    return { ok: false, skipped: true, error: "APPLICATION_NOTIFY_EMAIL or CONTACT_NOTIFY_EMAIL is not configured." };
+    return {
+      ok: false,
+      skipped: true,
+      error: "APPLICATION_NOTIFY_EMAIL or CONTACT_NOTIFY_EMAIL is not configured.",
+    };
   }
 
   const projectTitle = getProjectTitle(payload.content);
+
   const subject = isProjectApplication(payload)
     ? `【Nexus】新規プロジェクト参加申請: ${projectTitle}`
     : `【Nexus】新規お問い合わせ: ${payload.category}`;
+
   const text = `新しい送信がありました。
 
 カテゴリ: ${payload.category}
@@ -122,10 +197,12 @@ ${payload.content}`;
     replyTo: payload.email,
     html: `
       <p>新しい送信がありました。</p>
-      <p><strong>カテゴリ:</strong> ${escapeHtml(payload.category)}<br />
-      <strong>お名前:</strong> ${escapeHtml(payload.name)}<br />
-      <strong>所属・組織:</strong> ${escapeHtml(payload.organization || "未入力")}<br />
-      <strong>返信用アドレス:</strong> ${escapeHtml(payload.email)}</p>
+      <p>
+        <strong>カテゴリ:</strong> ${escapeHtml(payload.category)}<br />
+        <strong>お名前:</strong> ${escapeHtml(payload.name)}<br />
+        <strong>所属・組織:</strong> ${escapeHtml(payload.organization || "未入力")}<br />
+        <strong>返信用アドレス:</strong> ${escapeHtml(payload.email)}
+      </p>
       <pre style="white-space: pre-wrap; font-family: sans-serif;">${escapeHtml(payload.content)}</pre>
     `,
   });
@@ -165,6 +242,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
+
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
