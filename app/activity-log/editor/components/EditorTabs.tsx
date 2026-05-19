@@ -833,27 +833,57 @@ Nexus 運営チーム
     setRejectModal(inq);
   };
 
-  const handleSendApproval = async () => {
+    const handleSendApproval = async () => {
     if (!approveModal) return;
     setSending(true);
-    const subject = encodeURIComponent(`🎉【Nexus】プロジェクト参加決定 ＆ メンバー登録のお知らせ！`);
-    const body = encodeURIComponent(emailBody);
-    window.open(`mailto:${approveModal.email}?subject=${subject}&body=${body}`, "_blank");
-    await handleUpdateStatus(approveModal.id, "completed");
-    setSending(false);
-    setApproveModal(null);
+    const subject = `🎉【Nexus】プロジェクト参加決定 ＆ メンバー登録のお知らせ！`;
+    const body = emailBody;
+
+    try {
+      const res = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: approveModal.email, subject, body }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "メールの自動送信に失敗しました");
+
+      await handleUpdateStatus(approveModal.id, "completed");
+      alert("🎉 メールが自動送信され、ステータスを「採用済み」に変更しました！");
+    } catch (e: any) {
+      alert(`⚠️ メール送信エラー: ${e.message}`);
+    } finally {
+      setSending(false);
+      setApproveModal(null);
+    }
   };
 
   const handleSendRejection = async () => {
     if (!rejectModal) return;
     setSending(true);
-    const subject = encodeURIComponent(`【Nexus】プロジェクトご応募の結果について`);
-    const body = encodeURIComponent(rejectEmailBody);
-    window.open(`mailto:${rejectModal.email}?subject=${subject}&body=${body}`, "_blank");
-    await handleUpdateStatus(rejectModal.id, "rejected");
-    setSending(false);
-    setRejectModal(null);
+    
+    const subject = `【Nexus】プロジェクトご応募の結果について`;
+    const body = rejectEmailBody;
+
+    try {
+      const res = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: rejectModal.email, subject, body }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "メールの自動送信に失敗しました");
+
+      await handleUpdateStatus(rejectModal.id, "rejected");
+      alert("⚫ お見送りメールが自動送信され、ステータスを「お見送り済み」に変更しました！");
+    } catch (e: any) {
+      alert(`⚠️ メール送信エラー: ${e.message}`);
+    } finally {
+      setSending(false);
+      setRejectModal(null);
+    }
   };
+
 
   const statusBadge = (status: string) => {
     const map: any = {
