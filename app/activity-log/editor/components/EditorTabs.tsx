@@ -761,8 +761,9 @@ export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any
     </div>
   );
 }
+
 // 📬 参加申請・通知センタータブ（採用 ＆ お見送りメール送信モーダル付き）
-export function ApplicationsTab({ inquiries, handleUpdateStatus }: { inquiries: any[], handleUpdateStatus: (id: string, status: string) => void }) {
+export function ApplicationsTab({ inquiries, handleUpdateStatus, showToast }: { inquiries: any[], handleUpdateStatus: (id: string, status: string) => void, showToast?: (msg: string, type?: 'success' | 'error') => void }) {
   const [approveModal, setApproveModal] = useState<any>(null);
   const [rejectModal, setRejectModal] = useState<any>(null);
   const [emailBody, setEmailBody] = useState("");
@@ -789,20 +790,19 @@ export function ApplicationsTab({ inquiries, handleUpdateStatus }: { inquiries: 
 
 本日より、${name} さんは Nexus の正式メンバーです。これから一緒に最高のプロジェクトにしていきましょう！🚀
 
-■ NEXT STEP — まずやること
+これからの円滑なコミュニケーションと情報共有のため、コミュニティ公式のSlackワークスペースをご用意しています。
+以下の招待URLより、まずはご入室をお願いいたします。
 
-【公式Slackへの参加】
-　👉 https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA
+▼ Nexus 公式Slack招待URL
+https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA
 
-【#introduce チャンネルでの自己紹介】
-　Slackに参加されましたら、まずは #introduce チャンネルで一言ご挨拶をお願いします！
+Slackに入室されましたら、まずは「#自己紹介」チャンネルにて一言ご挨拶をいただけますと幸いです。
+また、今後の活動やキックオフMTGの日程調整などについては、Slack内のダイレクトメッセージやプロジェクト専用のプライベートチャンネルにて個別にご案内いたします。
 
-【キックオフ日程の調整】
-　30分ほどのオンラインキックオフを行いたいと思います。Slack上で日程調整のメッセージをお送りします。
+もしご不明な点やご質問がございましたら、本メールへの返信、または公式Slackの運営メンバーまでお気軽にお問い合わせください。
 
-これからどうぞよろしくお願いいたします！
+${name} さんとプロジェクトを進められることを、チーム一同心より楽しみにしております！
 
----
 Nexus 運営チーム
 連絡先: azalea.cape@gmail.com`
     );
@@ -811,29 +811,34 @@ Nexus 運営チーム
 
   const openRejectModal = (inq: any) => {
     const name = inq.name;
-    const proj = projectName(inq.content);
     setRejectEmailBody(
 `${name} さん
 
-この度は「${proj}」へのご応募をいただき、誠にありがとうございました。
-Nexus 運営チームです。
+お世話になっております。Nexus 運営チームです。
 
-慎重に検討いたしました結果、誠に残念ながら今回はご期待に沿うことが叶わない状況となりました。
+この度は、Nexus のコミュニティおよび共創プロジェクトへの参加をご申請いただき、誠にありがとうございました。
+また、お忙しい中、丁寧な志望理由やこれまでの学習内容・ご実績についてご記入いただきましたこと、重ねて御礼申し上げます。
 
-${name} さんのご応募への熱意と真摯な姿勢は、メンバー一同大変ありがたく拝見しておりました。今回の結果はプロジェクトの状況やタイミングによるものであり、${name} さんの可能性や熱意を否定するものでは決してありません。
+お送りいただいた内容について、運営メンバー全員で慎重に選考を行わせていただきました。
 
-今後もNexusでは新たなプロジェクトや活動が生まれ続けます。引き続きWebサイトやコミュニティの情報をチェックしていただき、またぜひ次の機会にご応募いただければ嬉しいです。
+大変心苦しいご案内となりますが、現在想定しているプロジェクトの進行フェーズや各役割における募集人員（キャパシティ）とのマッチングを総合的に検討いたしました結果、誠に残念ながら、今回はご参画を見送らせていただく運びとなりました。
 
-この度はご応募いただき、本当にありがとうございました。${name} さんの今後のご活躍を心よりお祈り申し上げます。
+せっかくの熱意あるご応募に対してご期待に沿えない結果となり、大変恐縮ではございますが、何卒ご理解いただけますと幸いです。
 
----
+なお、今回のご参画は叶いませんでしたが、Nexus では今後も定期的に新しいプロジェクトの立ち上げや、どなたでも自由に参加できる公開勉強会・イベントなどを企画してまいります。
+その際は公式サイトや公式SNS（あるいはご登録いただいた連絡先）にて告知を行いますので、もしよろしければ今後のイベントや次のプロジェクト募集の機会に、ぜひまた関わっていただけますと大変嬉しく思います。
+
+末筆ではございますが、${name} さんの今後の学習や活動、ならびにご活躍を、運営チーム一同心より応援しております。
+
+この度は素晴らしい志望理由をお送りいただき、本当にありがとうございました。
+
 Nexus 運営チーム
 連絡先: azalea.cape@gmail.com`
     );
     setRejectModal(inq);
   };
 
-    const handleSendApproval = async () => {
+  const handleSendApproval = async () => {
     if (!approveModal) return;
     setSending(true);
     const subject = `🎉【Nexus】プロジェクト参加決定 ＆ メンバー登録のお知らせ！`;
@@ -849,9 +854,18 @@ Nexus 運営チーム
       if (!res.ok) throw new Error(data.error || "メールの自動送信に失敗しました");
 
       await handleUpdateStatus(approveModal.id, "completed");
-      alert("🎉 メールが自動送信され、ステータスを「採用済み」に変更しました！");
+      
+      if (showToast) {
+        showToast("🎉 メールが自動送信され、ステータスを「採用済み」に変更しました！");
+      } else {
+        alert("🎉 メールが自動送信され、ステータスを「採用済み」に変更しました！");
+      }
     } catch (e: any) {
-      alert(`⚠️ メール送信エラー: ${e.message}`);
+      if (showToast) {
+        showToast(`メール送信エラー: ${e.message}`, "error");
+      } else {
+        alert(`⚠️ メール送信エラー: ${e.message}`);
+      }
     } finally {
       setSending(false);
       setApproveModal(null);
@@ -861,7 +875,6 @@ Nexus 運営チーム
   const handleSendRejection = async () => {
     if (!rejectModal) return;
     setSending(true);
-    
     const subject = `【Nexus】プロジェクトご応募の結果について`;
     const body = rejectEmailBody;
 
@@ -875,9 +888,18 @@ Nexus 運営チーム
       if (!res.ok) throw new Error(data.error || "メールの自動送信に失敗しました");
 
       await handleUpdateStatus(rejectModal.id, "rejected");
-      alert("⚫ お見送りメールが自動送信され、ステータスを「お見送り済み」に変更しました！");
+      
+      if (showToast) {
+        showToast("⚫ お見送りメールが自動送信され、ステータスを「お見送り済み」に変更しました！");
+      } else {
+        alert("⚫ お見送りメールが自動送信され、ステータスを「お見送り済み」に変更しました！");
+      }
     } catch (e: any) {
-      alert(`⚠️ メール送信エラー: ${e.message}`);
+      if (showToast) {
+        showToast(`メール送信エラー: ${e.message}`, "error");
+      } else {
+        alert(`⚠️ メール送信エラー: ${e.message}`);
+      }
     } finally {
       setSending(false);
       setRejectModal(null);

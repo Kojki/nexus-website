@@ -1266,6 +1266,7 @@ export default function NexusStudioPro() {
            <ApplicationsTab
               inquiries={inquiries}
               handleUpdateStatus={handleUpdateInquiryStatus}
+              showToast={showToast}
             />
           )}
         </div>
