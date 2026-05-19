@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { renderMarkdown } from "@/lib/markdown";
 
 const joinUrl =
   "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
@@ -269,14 +270,16 @@ export default function HomeEn() {
                       <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{act.date}</span>
                     </div>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--ink)', marginBottom: '12px', lineHeight: 1.4 }}>{act.title}</h3>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: '20px' }}>{act.summary}</p>
+                    <p style={{ color: "var(--ink-soft)", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+                      {renderMarkdown(act.summary ?? "")}
+                    </p>
                   </div>
                   {act.has_detail && (
-                    <Link href={`/activity-log/${act.slug}`} style={{ textDecoration: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: '0.85rem', marginTop: 'auto' }}>
+                    <Link href={`/activity-log/${act.slug}/`} style={{ textDecoration: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: '0.85rem', marginTop: 'auto' }}>
                       Read Detail →
                     </Link>
                   )}
-                </div>
+              </div>
               ))
             )}
           </div>
