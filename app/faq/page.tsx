@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -6,13 +9,64 @@ import Footer from "@/components/Footer";
 
 const joinUrl = "https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA";
 
-export default async function FAQ() {
-  // データベースからFAQを取得
-  const { data: faqs } = await supabase
-    .from('faqs')
-    .select('*')
-    .eq('is_published', true) // ▼ 今回の追加部分
-    .order('order_index', { ascending: true });
+export default function FAQ() {
+  const [faqs, setFaqs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 🌐 ブラウザ（クライアント）側で開いた瞬間に最新のデータをSupabaseから取得する
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        const { data } = await supabase
+          .from('faqs')
+          .select('*')
+          .eq('is_published', true)
+          .order('order_index', { ascending: true });
+
+        if (data) setFaqs(data);
+      } catch (err) {
+        console.error("Failed to load FAQs:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFaqs();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="page-fade-in">
+        <Navbar />
+        <div style={{ 
+          minHeight: "100vh", 
+          display: "flex", 
+          flexDirection: "column",
+          alignItems: "center", 
+          justifyContent: "center", 
+          background: "#f8f7f4", 
+          color: "#aaa", 
+          fontSize: "0.85rem", 
+          fontWeight: 800,
+          letterSpacing: "0.15em",
+          gap: "16px"
+        }}>
+          <div style={{
+            width: "30px",
+            height: "30px",
+            border: "2px solid #ddd",
+            borderTopColor: "var(--accent, #e65c00)",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite"
+          }} />
+          LOADING FAQ...
+          <style>{`
+            @keyframes spin { to { transform: rotate(360deg); } }
+          `}</style>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   return (
     <main className="page-fade-in">
@@ -28,7 +82,7 @@ export default async function FAQ() {
 
       <section className="concept-container">
         <div className="faq-list">
-          {faqs?.map((item, index) => (
+          {faqs.map((item, index) => (
             <div key={item.id} className="faq-item animate-slide-up" style={{ animationDelay: `${index * 80}ms` }}>
               <div className="faq-q">
                 <span className="faq-mark">Q</span>
@@ -54,3 +108,4 @@ export default async function FAQ() {
     </main>
   );
 }
+
