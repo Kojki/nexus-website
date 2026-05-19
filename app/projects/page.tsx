@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-// 📝 アプリ共通のマークダウンレンダラーをインポート
 import { renderMarkdown } from "@/lib/markdown";
 
 interface Project {
@@ -18,6 +16,14 @@ interface Project {
   created_at: string;
 }
 
+type ProjectFilter = 'all' | 'open' | 'closed';
+
+const projectFilters: { id: ProjectFilter; label: string }[] = [
+  { id: 'all', label: 'すべてのプロジェクト' },
+  { id: 'open', label: '🟢 メンバー募集中' },
+  { id: 'closed', label: '🔴 募集終了' },
+];
+
 const logClickEvent = async (type: string, name: string) => {
   try {
     await supabase.from("click_events").insert([{ event_type: type, target_name: name }]);
@@ -26,42 +32,35 @@ const logClickEvent = async (type: string, name: string) => {
   }
 };
 
-// ==========================================
-// 💡 マークダウンの記号をプレビュー用に取り除くヘルパー関数
-// ==========================================
 function stripMarkdown(text: string): string {
   if (!text) return "";
   return text
-    .replace(/^#+\s+/gm, "")            // ## や ### などの見出し記号を削除
-    .replace(/\*\*(.*?)\*\*/g, "$1")    // **太字** の記号を削除して中身だけに
-    .replace(/\*(.*?)\*/g, "$1")        // *斜体* の記号を削除
-    .replace(/\[(.*?)\]\(.*?\)/g, "$1")   // [リンク名](URL) を「リンク名」だけに
-    .replace(/^-\s+/gm, "")             // リストのハイフン「- 」を削除
-    .replace(/`/g, "");                 // バッククォートを削除
+    .replace(/^#+\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+    .replace(/^-\s+/gm, "")
+    .replace(/`/g, "");
 }
 
-// ==========================================
-// 💡 折りたたみ ＆ マークダウン対応 プロジェクトカード
-// ==========================================
 function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string) => void }) {
   const [hover, setHover] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false); // 個別の展開ステート
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  // プレビュー用にマークダウン記号を除去したきれいなテキストを作成
   const cleanPreviewText = stripMarkdown(proj.description || "");
   const isLong = cleanPreviewText.length > 120;
 
   return (
-    <div 
+    <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ 
-        background: "var(--warm-white)", 
-        borderRadius: "24px", 
-        border: hover ? "1px solid var(--accent)" : "1px solid var(--border)", 
-        padding: "32px", 
-        display: "flex", 
-        flexDirection: "column", 
+      style={{
+        background: "var(--warm-white)",
+        borderRadius: "24px",
+        border: hover ? "1px solid var(--accent)" : "1px solid var(--border)",
+        padding: "32px",
+        display: "flex",
+        flexDirection: "column",
         justifyContent: "space-between",
         boxShadow: hover ? "0 20px 40px rgba(0,0,0,0.04)" : "0 4px 20px rgba(0,0,0,0.01)",
         transform: hover ? "translateY(-8px)" : "translateY(0px)",
@@ -73,10 +72,10 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
     >
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <span style={{ 
-            fontSize: "0.7rem", 
-            fontWeight: 800, 
-            padding: "4px 10px", 
+          <span style={{
+            fontSize: "0.7rem",
+            fontWeight: 800,
+            padding: "4px 10px",
             borderRadius: "6px",
             background: proj.status === 'open' ? "var(--accent-pale)" : "var(--border)",
             color: proj.status === 'open' ? "var(--accent)" : "var(--muted)",
@@ -90,14 +89,12 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
           {proj.title}
         </h3>
 
-        {/* 📝 プロジェクト詳細（タップ展開 ＆ マークダウン適用） */}
         <div style={{ marginBottom: "24px", transition: "all 0.3s ease" }}>
           {isExpanded ? (
             <div style={{ fontSize: "0.92rem", lineHeight: 1.7, animation: "fadeIn 0.2s ease" }}>
-              {/* 展開時はマークダウンを適用してリッチ表示 */}
               {renderMarkdown(proj.description)}
               {isLong && (
-                <button 
+                <button
                   onClick={() => setIsExpanded(false)}
                   style={{
                     background: "none", border: "none", color: "var(--accent)",
@@ -111,12 +108,11 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
             </div>
           ) : (
             <div style={{ fontSize: "0.9rem", color: "var(--ink-soft)", lineHeight: 1.6 }}>
-              {/* 通常時はマークダウン記号を除去した綺麗なテキストをプレビュー */}
               <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                 {isLong ? `${cleanPreviewText.slice(0, 120)}...` : cleanPreviewText}
               </p>
               {isLong && (
-                <button 
+                <button
                   onClick={() => setIsExpanded(true)}
                   style={{
                     background: "none", border: "none", color: "var(--accent)",
@@ -160,19 +156,19 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
         )}
 
         {proj.status === 'open' ? (
-          <button 
+          <button
             onClick={() => onApply(proj.title)}
-            style={{ 
+            style={{
               width: "100%",
-              display: "flex", 
-              alignItems: "center", 
+              display: "flex",
+              alignItems: "center",
               justifyContent: "center",
-              background: "var(--ink)", 
-              color: "var(--warm-white)", 
-              padding: "12px 24px", 
-              borderRadius: "14px", 
-              fontSize: "0.85rem", 
-              fontWeight: 800, 
+              background: "var(--ink)",
+              color: "var(--warm-white)",
+              padding: "12px 24px",
+              borderRadius: "14px",
+              fontSize: "0.85rem",
+              fontWeight: 800,
               border: "none",
               cursor: "pointer",
               transition: "all 0.2s ease"
@@ -183,16 +179,16 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
             このプロジェクトに参加申請する ➔
           </button>
         ) : (
-          <div style={{ 
-            display: "flex", 
-            alignItems: "center", 
+          <div style={{
+            display: "flex",
+            alignItems: "center",
             justifyContent: "center",
-            background: "var(--border)", 
-            color: "var(--muted)", 
-            padding: "12px 24px", 
-            borderRadius: "14px", 
-            fontSize: "0.85rem", 
-            fontWeight: 800, 
+            background: "var(--border)",
+            color: "var(--muted)",
+            padding: "12px 24px",
+            borderRadius: "14px",
+            fontSize: "0.85rem",
+            fontWeight: 800,
             textAlign: "center",
             cursor: "not-allowed"
           }}>
@@ -206,10 +202,9 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('all');
+  const [filter, setFilter] = useState<ProjectFilter>('all');
   const [loading, setLoading] = useState(true);
 
-  // --- ドロワー（スライドパネル）状態管理 ---
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [targetProjectTitle, setTargetProjectTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -237,7 +232,7 @@ export default function ProjectsPage() {
           .select("*")
           .eq("is_deleted", false)
           .order("order_index", { ascending: true });
-        
+
         if (error) throw error;
         setProjects(data || []);
         localStorage.setItem(cacheKey, JSON.stringify(data || []));
@@ -247,6 +242,7 @@ export default function ProjectsPage() {
         setLoading(false);
       }
     };
+
     fetchProjects();
   }, []);
 
@@ -280,16 +276,17 @@ export default function ProjectsPage() {
       if (error) throw error;
 
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/contact-slack`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify(dbPayload),
+        const { data, error: notifyError } = await supabase.functions.invoke("contact-slack", {
+          body: dbPayload,
         });
-      } catch (slackErr) {
-        console.error("Slack通知に失敗しました:", slackErr);
+
+        if (notifyError) {
+          console.error("通知送信に失敗しました:", notifyError);
+        } else if (data?.deliveries) {
+          console.info("通知送信結果:", data.deliveries);
+        }
+      } catch (notifyErr) {
+        console.error("通知送信に失敗しました:", notifyErr);
       }
 
       setIsSuccess(true);
@@ -311,16 +308,16 @@ export default function ProjectsPage() {
     <div style={{ background: "var(--warm-white)", minHeight: "100vh", color: "var(--ink)", fontFamily: "'Inter', 'Noto Sans JP', sans-serif" }}>
       <Navbar />
 
-      <section style={{ 
-        position: "relative", padding: "180px 24px 80px", 
+      <section style={{
+        position: "relative", padding: "180px 24px 80px",
         background: "radial-gradient(circle at top right, rgba(230, 92, 0, 0.05), transparent 40%), radial-gradient(circle at bottom left, rgba(0, 0, 0, 0.03), transparent 50%)",
         borderBottom: "1px solid var(--border)", textAlign: "center"
       }}>
         <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-          <span style={{ 
-            background: "var(--accent-pale)", color: "var(--accent)", 
-            padding: "6px 14px", borderRadius: "99px", fontSize: "0.75rem", 
-            fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" 
+          <span style={{
+            background: "var(--accent-pale)", color: "var(--accent)",
+            padding: "6px 14px", borderRadius: "99px", fontSize: "0.75rem",
+            fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase"
           }}>
             Co-Creation Board
           </span>
@@ -335,14 +332,10 @@ export default function ProjectsPage() {
 
       <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "60px 24px 120px" }}>
         <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "48px" }}>
-          {[
-            { id: 'all', label: 'すべてのプロジェクト' },
-            { id: 'open', label: '🟢 メンバー募集中' },
-            { id: 'closed', label: '🔴 募集終了' }
-          ].map(btn => (
+          {projectFilters.map(btn => (
             <button
               key={btn.id}
-              onClick={() => setFilter(btn.id as any)}
+              onClick={() => setFilter(btn.id)}
               style={{
                 background: filter === btn.id ? "var(--ink)" : "var(--warm-white)",
                 color: filter === btn.id ? "var(--warm-white)" : "var(--ink-soft)",
@@ -388,9 +381,8 @@ export default function ProjectsPage() {
         )}
       </main>
 
-      {/* 🔮 プレミアム・スライドドロワーUI */}
       {isDrawerOpen && (
-        <div 
+        <div
           onClick={() => setIsDrawerOpen(false)}
           style={{
             position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
@@ -399,7 +391,7 @@ export default function ProjectsPage() {
             animation: "fadeInBlur 0.3s ease forwards"
           }}
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
             style={{
               width: "100%", maxWidth: "500px", height: "100%", background: "var(--warm-white)",
@@ -409,8 +401,7 @@ export default function ProjectsPage() {
               animation: "slideLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards"
             }}
           >
-            {/* 閉じるボタン */}
-            <button 
+            <button
               onClick={() => setIsDrawerOpen(false)}
               style={{
                 position: "absolute", top: "24px", right: "24px", background: "var(--accent-pale)",
@@ -444,7 +435,7 @@ export default function ProjectsPage() {
 
                   <div className="form-group" style={{ marginBottom: "20px" }}>
                     <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>お名前 <span className="required-badge">必須</span></label>
-                    <input 
+                    <input
                       type="text" required className="form-input" placeholder="山田 太郎"
                       value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     />
@@ -452,7 +443,7 @@ export default function ProjectsPage() {
 
                   <div className="form-group" style={{ marginBottom: "20px" }}>
                     <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>所属・学校名</label>
-                    <input 
+                    <input
                       type="text" className="form-input" placeholder="〇〇大学 〇〇学部"
                       value={formData.organization} onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                     />
@@ -460,7 +451,7 @@ export default function ProjectsPage() {
 
                   <div className="form-group" style={{ marginBottom: "20px" }}>
                     <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>メールアドレス <span className="required-badge">必須</span></label>
-                    <input 
+                    <input
                       type="email" required className="form-input" placeholder="example@nexus-connect.jp"
                       value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     />
@@ -468,7 +459,7 @@ export default function ProjectsPage() {
 
                   <div className="form-group" style={{ marginBottom: "24px" }}>
                     <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>メッセージ・自己紹介 <span className="required-badge">必須</span></label>
-                    <textarea 
+                    <textarea
                       required className="form-textarea" style={{ minHeight: "140px" }}
                       value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     />

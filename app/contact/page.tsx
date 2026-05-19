@@ -17,7 +17,6 @@ export default function Contact() {
     content: "",
   });
 
-  // 🤖 ボット検知用の見えないハニーポットフィールド
   const [honeypot, setHoneypot] = useState("");
 
   const categories = ["ご質問", "ご意見・ご感想", "取材のご依頼", "企業・大学関係者の方", "その他"];
@@ -26,7 +25,6 @@ export default function Contact() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // 🤖 スパム判定
     if (honeypot !== "") {
       console.log("Bot spam inquiry blocked successfully.");
       setTimeout(() => {
@@ -37,17 +35,21 @@ export default function Contact() {
     }
 
     try {
-      // 1. Supabaseへ書き込み
       const { error } = await supabase.from("inquiries").insert([formData]);
       if (error) throw error;
 
-      // 2. Edge Function による安全なSlack通知
       try {
-        await supabase.functions.invoke("contact-slack", {
+        const { data, error: notifyError } = await supabase.functions.invoke("contact-slack", {
           body: formData,
         });
-      } catch (slackErr) {
-        console.error("Slack通知に失敗しました:", slackErr);
+
+        if (notifyError) {
+          console.error("通知送信に失敗しました:", notifyError);
+        } else if (data?.deliveries) {
+          console.info("通知送信結果:", data.deliveries);
+        }
+      } catch (notifyErr) {
+        console.error("通知送信に失敗しました:", notifyErr);
       }
 
       setIsSubmitted(true);
@@ -84,20 +86,17 @@ export default function Contact() {
           </div>
         ) : (
           <form className="contact-form animate-slide-up" onSubmit={handleSubmit}>
-            
-            {/* 🤖 スパムトラップ */}
             <div style={{ display: "none" }} aria-hidden="true">
-              <input 
-                type="text" 
-                name="website_hidden_trap_field" 
-                value={honeypot} 
-                onChange={(e) => setHoneypot(e.target.value)} 
-                tabIndex={-1} 
-                placeholder="Do not fill this field if you are a human" 
+              <input
+                type="text"
+                name="website_hidden_trap_field"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                tabIndex={-1}
+                placeholder="Do not fill this field if you are a human"
               />
             </div>
 
-            {/* カテゴリ選択 */}
             <div className="form-group">
               <label htmlFor="category">お問い合わせカテゴリ</label>
               <select
@@ -110,7 +109,6 @@ export default function Contact() {
               </select>
             </div>
 
-            {/* 名前 */}
             <div className="form-group">
               <label htmlFor="name">お名前 <span className="required-badge">必須</span></label>
               <input
@@ -124,10 +122,9 @@ export default function Contact() {
               />
             </div>
 
-            {/* 所属（任意） */}
             <div className="form-group">
               <label htmlFor="organization" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                所属・組織名 
+                所属・組織名
                 <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: '0.8rem' }}>任意</span>
               </label>
               <input
@@ -140,7 +137,6 @@ export default function Contact() {
               />
             </div>
 
-            {/* メールアドレス */}
             <div className="form-group">
               <label htmlFor="email">メールアドレス <span className="required-badge">必須</span></label>
               <input
@@ -154,7 +150,6 @@ export default function Contact() {
               />
             </div>
 
-            {/* 内容 */}
             <div className="form-group">
               <label htmlFor="content">メッセージ <span className="required-badge">必須</span></label>
               <textarea
@@ -177,5 +172,4 @@ export default function Contact() {
     </main>
   );
 }
-
 
