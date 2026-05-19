@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
   try {
+    // 🔑 実行時にのみ環境変数を取得し、存在チェックを行います
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "サーバーに RESEND_API_KEY が設定されていません。" },
+        { status: 500 }
+      );
+    }
+
+    // 📬 必要な時にだけ Resend を初期化します（ビルドエラーを回避）
+    const resend = new Resend(apiKey);
+
     const { to, subject, body } = await request.json();
 
     if (!to || !subject || !body) {
@@ -15,8 +25,6 @@ export async function POST(request: Request) {
     }
 
     const data = await resend.emails.send({
-      // ドメイン未認証時は以下のように onboarding@resend.dev を使用します
-      // ドメイン認証後は "Nexus 運営チーム <info@yourdomain.com>" のように自由に変更可能です
       from: "Nexus <onboarding@resend.dev>",
       to: [to],
       subject: subject,
@@ -29,3 +37,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
