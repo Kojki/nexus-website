@@ -338,6 +338,28 @@ export default function NexusStudioPro() {
     }
   };
 
+  const handleUpdateAllowedUserEmail = async (oldEmail: string, newEmail: string) => {
+    if (userRole !== "owner") {
+      showToast("操作権限がありません", "error");
+      return;
+    }
+    const cleanNewEmail = newEmail.toLowerCase().trim();
+    if (!cleanNewEmail) return;
+    try {
+      const { error } = await supabase
+        .from('allowed_users')
+        .update({ email: cleanNewEmail })
+        .eq('email', oldEmail);
+      if (error) throw error;
+
+      logAdminAction("update_allowed_user_email", `登録メールアドレスを「${oldEmail}」から「${cleanNewEmail}」に変更しました`);
+      showToast(`メールアドレスを ${cleanNewEmail} に変更しました`);
+      fetchData(true);
+    } catch (e: any) {
+      showToast("変更に失敗しました。すでに登録されている可能性があります。", "error");
+    }
+  };
+
   // 画像アップローダー
   const handleUpload = async (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
     let file: File | undefined;
@@ -1178,6 +1200,7 @@ export default function NexusStudioPro() {
               onAddUser={handleAddAllowedUser}
               onRemoveUser={handleRemoveAllowedUser}
               onChangeRole={handleChangeUserRole}
+              onUpdateUserEmail={handleUpdateAllowedUserEmail}
               trashItems={{
                 activities: deletedActivities,
                 members: deletedMembers,

@@ -708,7 +708,7 @@ export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any
       ) : inquiries.map((i: any) => {
         const subject = encodeURIComponent(`【Nexus】お問い合わせへのご返信（件名: ${i.category}）`);
         const body = encodeURIComponent(`${i.name} 様\n\nお問い合わせいただきありがとうございます。\nNexus運営チームです。\n\n---\n\n`);
-        const mailtoLink = `mailto:${i.email}?subject=${subject}?body=${body}`;
+        const mailtoLink = `mailto:${i.email}?subject=${subject}&body=${body}`;
 
         return (
           <div key={i.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", marginBottom: "24px", gap: "12px" }}>

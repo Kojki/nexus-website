@@ -15,6 +15,7 @@ interface Props {
   onAddUser: (email: string, role: string) => Promise<void>;
   onRemoveUser: (email: string) => Promise<void>;
   onChangeRole: (email: string, role: string) => Promise<void>;
+  onUpdateUserEmail?: (oldEmail: string, newEmail: string) => Promise<void>;
   
   trashItems?: {
     activities: any[];
@@ -45,6 +46,7 @@ export function SystemDashboardTab({
   onAddUser,
   onRemoveUser,
   onChangeRole,
+  onUpdateUserEmail,
   trashItems = { activities: [], members: [], projects: [], faqs: [] },
   onRestoreItem,
   onPermanentDelete,
@@ -66,6 +68,10 @@ export function SystemDashboardTab({
   const [myProposals, setMyProposals] = useState<any[]>([]);
   const [reminderCooldown, setReminderCooldown] = useState<string | null>(null);
   const [sendingReminder, setSendingReminder] = useState(false);
+
+  // 🔑 メールアドレス（アカウント名）変更用ステート
+  const [editingEmail, setEditingEmail] = useState<string | null>(null);
+  const [editEmailValue, setEditEmailValue] = useState("");
 
   // 📢 伝言板の読み込み
   const fetchBulletin = async () => {
@@ -779,19 +785,59 @@ export function SystemDashboardTab({
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {allowedUsers.map((u) => {
                 const isSelf = u.email.toLowerCase() === currentUserEmail.toLowerCase();
+                const isEditingThis = editingEmail === u.email;
+
                 return (
                   <div key={u.email} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", background: "#fdfbf8", borderRadius: "12px", border: "1px solid #f2ede4", flexWrap: "wrap", gap: "12px" }}>
-                    <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                      <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "#333", fontFamily: "monospace" }}>{u.email}</span>
-                      {isSelf && (
-                        <span style={{ background: "var(--accent-pale)", color: "var(--accent)", padding: "2px 8px", borderRadius: "6px", fontSize: "0.65rem", fontWeight: 800 }}>あなた</span>
-                      )}
-                    </div>
+                    {isEditingThis ? (
+                      <div style={{ display: "flex", gap: "12px", alignItems: "center", flex: 1, minWidth: "280px" }}>
+                        <input
+                          type="email"
+                          value={editEmailValue}
+                          onChange={(e) => setEditEmailValue(e.target.value)}
+                          style={{ ...S.select, padding: "6px 12px", fontSize: "0.9rem", fontFamily: "monospace", flex: 1, height: "auto" }}
+                        />
+                        <button
+                          onClick={async () => {
+                            if (onUpdateUserEmail) {
+                              await onUpdateUserEmail(u.email, editEmailValue);
+                            }
+                            setEditingEmail(null);
+                          }}
+                          style={{ ...S.primaryBtn, padding: "8px 16px", fontSize: "0.8rem", width: "auto", height: "auto" }}
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() => setEditingEmail(null)}
+                          style={{ background: "white", color: "#666", border: "1px solid #ccc", padding: "8px 16px", borderRadius: "8px", fontSize: "0.8rem", cursor: "pointer" }}
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                        <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "#333", fontFamily: "monospace" }}>{u.email}</span>
+                        {isSelf ? (
+                          <span style={{ background: "var(--accent-pale)", color: "var(--accent)", padding: "2px 8px", borderRadius: "6px", fontSize: "0.65rem", fontWeight: 800 }}>あなた</span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setEditingEmail(u.email);
+                              setEditEmailValue(u.email);
+                            }}
+                            style={{ background: "none", border: "none", color: "var(--accent)", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                          >
+                            編集 (名前変更)
+                          </button>
+                        )}
+                      </div>
+                    )}
                     
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <select 
                         value={u.role} 
-                        disabled={isSelf} 
+                        disabled={isSelf || isEditingThis} 
                         onChange={(e) => onChangeRole(u.email, e.target.value)}
                         style={{ ...S.select, width: "auto", padding: "6px 12px", fontSize: "0.8rem", height: "auto", background: u.role === "owner" ? "#fff0f0" : "white" }}
                       >
@@ -802,12 +848,12 @@ export function SystemDashboardTab({
 
                       <button 
                         onClick={() => onRemoveUser(u.email)}
-                        disabled={isSelf} 
+                        disabled={isSelf || isEditingThis} 
                         style={{ 
                           ...S.dangerBtn, 
                           padding: "6px 12px", 
-                          opacity: isSelf ? 0.3 : 1,
-                          cursor: isSelf ? "not-allowed" : "pointer"
+                          opacity: (isSelf || isEditingThis) ? 0.3 : 1,
+                          cursor: (isSelf || isEditingThis) ? "not-allowed" : "pointer"
                         }}
                       >
                         削除

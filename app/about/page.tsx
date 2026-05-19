@@ -99,7 +99,7 @@ export default function About() {
       <section className="concept-container">
         {[1, 2, 3].map((num) => (
           <div key={num} className={`concept-block animate-slide-up delay-${num}00`}>
-            <span className="concept-stat-highlight" style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}>
+            <span className="concept-stat-highlight">
               {renderText(get(`block_${num}_title`, '...'))}
             </span>
             <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
