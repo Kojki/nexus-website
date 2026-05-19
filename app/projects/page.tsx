@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+// 📝 アプリ共通のマークダウンレンダラーをインポート
+import { renderMarkdown } from "@/lib/markdown";
 
 interface Project {
   id: string;
@@ -25,10 +27,13 @@ const logClickEvent = async (type: string, name: string) => {
 };
 
 // ==========================================
-// 💡 安全なプロジェクトカード用の個別コンポーネント (useStateを正しくカプセル化)
+// 💡 折りたたみ ＆ マークダウン対応 プロジェクトカード
 // ==========================================
 function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string) => void }) {
   const [hover, setHover] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false); // 個別の展開ステート
+
+  const isLong = proj.description && proj.description.length > 120;
 
   return (
     <div 
@@ -69,9 +74,44 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
           {proj.title}
         </h3>
 
-        <p style={{ fontSize: "0.9rem", color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: "24px", whiteSpace: "pre-wrap" }}>
-          {proj.description}
-        </p>
+        {/* 📝 プロジェクト詳細（タップ展開 ＆ マークダウン適用） */}
+        <div style={{ marginBottom: "24px", transition: "all 0.3s ease" }}>
+          {isExpanded ? (
+            <div style={{ fontSize: "0.92rem", lineHeight: 1.7, animation: "fadeIn 0.2s ease" }}>
+              {renderMarkdown(proj.description)}
+              {isLong && (
+                <button 
+                  onClick={() => setIsExpanded(false)}
+                  style={{
+                    background: "none", border: "none", color: "var(--accent)",
+                    fontSize: "0.8rem", fontWeight: 800, cursor: "pointer",
+                    padding: "12px 0 0", display: "flex", alignItems: "center", gap: "4px"
+                  }}
+                >
+                  ▲ 閉じる (折りたたむ)
+                </button>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: "0.9rem", color: "var(--ink-soft)", lineHeight: 1.6 }}>
+              <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                {isLong ? `${proj.description.slice(0, 120)}...` : proj.description}
+              </p>
+              {isLong && (
+                <button 
+                  onClick={() => setIsExpanded(true)}
+                  style={{
+                    background: "none", border: "none", color: "var(--accent)",
+                    fontSize: "0.82rem", fontWeight: 800, cursor: "pointer",
+                    padding: "8px 0 0", display: "flex", alignItems: "center", gap: "4px"
+                  }}
+                >
+                  ▼ 続きを読む ➔
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div>
