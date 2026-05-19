@@ -27,13 +27,29 @@ const logClickEvent = async (type: string, name: string) => {
 };
 
 // ==========================================
+// 💡 マークダウンの記号をプレビュー用に取り除くヘルパー関数
+// ==========================================
+function stripMarkdown(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/^#+\s+/gm, "")            // ## や ### などの見出し記号を削除
+    .replace(/\*\*(.*?)\*\*/g, "$1")    // **太字** の記号を削除して中身だけに
+    .replace(/\*(.*?)\*/g, "$1")        // *斜体* の記号を削除
+    .replace(/\[(.*?)\]\(.*?\)/g, "$1")   // [リンク名](URL) を「リンク名」だけに
+    .replace(/^-\s+/gm, "")             // リストのハイフン「- 」を削除
+    .replace(/`/g, "");                 // バッククォートを削除
+}
+
+// ==========================================
 // 💡 折りたたみ ＆ マークダウン対応 プロジェクトカード
 // ==========================================
 function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string) => void }) {
   const [hover, setHover] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false); // 個別の展開ステート
 
-  const isLong = proj.description && proj.description.length > 120;
+  // プレビュー用にマークダウン記号を除去したきれいなテキストを作成
+  const cleanPreviewText = stripMarkdown(proj.description || "");
+  const isLong = cleanPreviewText.length > 120;
 
   return (
     <div 
@@ -78,6 +94,7 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
         <div style={{ marginBottom: "24px", transition: "all 0.3s ease" }}>
           {isExpanded ? (
             <div style={{ fontSize: "0.92rem", lineHeight: 1.7, animation: "fadeIn 0.2s ease" }}>
+              {/* 展開時はマークダウンを適用してリッチ表示 */}
               {renderMarkdown(proj.description)}
               {isLong && (
                 <button 
@@ -94,8 +111,9 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
             </div>
           ) : (
             <div style={{ fontSize: "0.9rem", color: "var(--ink-soft)", lineHeight: 1.6 }}>
+              {/* 通常時はマークダウン記号を除去した綺麗なテキストをプレビュー */}
               <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                {isLong ? `${proj.description.slice(0, 120)}...` : proj.description}
+                {isLong ? `${cleanPreviewText.slice(0, 120)}...` : cleanPreviewText}
               </p>
               {isLong && (
                 <button 
@@ -162,7 +180,7 @@ function ProjectCard({ proj, onApply }: { proj: Project; onApply: (title: string
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "var(--ink)"; }}
           >
-            このプロジェクトに参画申請する ➔
+            このプロジェクトに参加申請する ➔
           </button>
         ) : (
           <div style={{ 
@@ -238,7 +256,7 @@ export default function ProjectsPage() {
       name: "",
       organization: "",
       email: "",
-      content: `【参画希望プロジェクト】\n${projectTitle}\n\n【志望理由 / スキルなど】\n`,
+      content: `【参加希望プロジェクト】\n${projectTitle}\n\n【志望理由 / スキルなど】\n`,
     });
     setIsSuccess(false);
     setIsDrawerOpen(true);
@@ -254,7 +272,7 @@ export default function ProjectsPage() {
         name: formData.name,
         organization: formData.organization,
         email: formData.email,
-        category: "プロジェクト参画希望",
+        category: "プロジェクト参加希望",
         content: formData.content,
       };
 
@@ -453,7 +471,7 @@ export default function ProjectsPage() {
                 </div>
 
                 <button type="submit" className="button button-dark" style={{ width: "100%", marginTop: "16px" }} disabled={isSubmitting}>
-                  {isSubmitting ? "送信中..." : "この内容で参画を申請する"}
+                  {isSubmitting ? "送信中..." : "この内容で参加を申請する"}
                 </button>
               </form>
             )}
