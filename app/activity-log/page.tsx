@@ -7,6 +7,7 @@ import { Activity } from "./types";
 import { activities as staticActivities } from "./data";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { renderMarkdown } from "@/lib/markdown";
 
 export const dynamic = "force-dynamic";
 export default function ActivityLogIndex() {
@@ -137,7 +138,9 @@ export default function ActivityLogIndex() {
                     <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>{item.date}</span>
                   </div>
                   <h3 style={{ fontSize: "1.25rem", color: "var(--ink)", marginBottom: "8px", fontWeight: 700 }}>{item.title}</h3>
-                  <p style={{ color: "var(--ink-soft)", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>{item.summary}</p>
+                  <p style={{ color: "var(--ink-soft)", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
+  {renderMarkdown(item.summary ?? "")}
+</p>
                   {item.hasDetail && <div style={{ marginTop: "16px", color: "var(--accent)", fontWeight: 700, fontSize: "0.9rem" }}>詳細をチェックする →</div>}
                 </div>
               );
