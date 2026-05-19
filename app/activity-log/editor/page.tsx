@@ -11,7 +11,7 @@ import { logAdminAction } from "@/lib/analytics";
 
 import { Tab, PagePath, S, NavBtn } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
-import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab, ProjectsTab } from "./components/EditorTabs"; 
+import { ContentTab, ActivityTab, MembersTab, FaqTab, InquiriesTab, ProjectsTab, ApplicationsTab } from "./components/EditorTabs";
 
 import { SystemDashboardTab } from "./components/SystemDashboardTab";
 
@@ -1114,6 +1114,7 @@ export default function NexusStudioPro() {
           <NavBtn active={activeTab === "content"} onClick={() => { setActiveTab("content"); setIsHeaderCollapsed(true); }} icon="🌐">編集</NavBtn>
           <NavBtn active={activeTab === "members"} onClick={() => { setActiveTab("members"); setIsHeaderCollapsed(true); }} icon="👤">メンバー</NavBtn>
           <NavBtn active={activeTab === "faq"} onClick={() => { setActiveTab("faq"); setIsHeaderCollapsed(true); }} icon="❓">FAQ</NavBtn>
+          <NavBtn active={activeTab === "applications"} onClick={() => { setActiveTab("applications"); setIsHeaderCollapsed(true); }} icon="📬">参加申請</NavBtn>
           <NavBtn active={activeTab === "inquiries"} onClick={() => { setActiveTab("inquiries"); setIsHeaderCollapsed(true); }} icon="📩">問い合わせ</NavBtn>
         </nav>
 
@@ -1238,11 +1239,10 @@ export default function NexusStudioPro() {
               handlers={{ handleSaveFaq, handleDelete, handleTogglePublish, startEditFaq, cancelEditFaq, handleInsertDefaultFaqs }} 
             />
           )}
-          {activeTab === "inquiries" && (
-            <InquiriesTab 
-              inquiries={inquiries} 
-              handleUpdateStatus={handleUpdateInquiryStatus} 
-              
+          {activeTab === "applications" && (
+           <ApplicationsTab
+              inquiries={inquiries}
+              handleUpdateStatus={handleUpdateInquiryStatus}
             />
           )}
         </div>

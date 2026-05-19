@@ -761,4 +761,250 @@ export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any
     </div>
   );
 }
+// 📬 参加申請・通知センタータブ（採用 ＆ お見送りメール送信モーダル付き）
+export function ApplicationsTab({ inquiries, handleUpdateStatus }: { inquiries: any[], handleUpdateStatus: (id: string, status: string) => void }) {
+  const [approveModal, setApproveModal] = useState<any>(null);
+  const [rejectModal, setRejectModal] = useState<any>(null);
+  const [emailBody, setEmailBody] = useState("");
+  const [rejectEmailBody, setRejectEmailBody] = useState("");
+  const [sending, setSending] = useState(false);
 
+  const projectApplications = inquiries.filter(i => i.category === "プロジェクト参加希望");
+  const otherInquiries = inquiries.filter(i => i.category !== "プロジェクト参加希望");
+
+  const projectName = (content: string) => {
+    const match = content?.match(/【参画希望プロジェクト】\n(.+)/);
+    return match ? match[1].trim() : "プロジェクト";
+  };
+
+  const openApproveModal = (inq: any) => {
+    const name = inq.name;
+    const proj = projectName(inq.content);
+    setEmailBody(
+`${name} さん
+
+おめでとうございます！Nexus 運営チームです。
+
+お送りいただいた志望理由やこれまでの活動内容を拝見し、ぜひ「${proj}」のコアメンバーとして一緒に未来を創っていただきたいと、メンバー全員の意見が一致いたしました！
+
+本日より、${name} さんは Nexus の正式メンバーです。これから一緒に最高のプロジェクトにしていきましょう！🚀
+
+■ NEXT STEP — まずやること
+
+【公式Slackへの参加】
+　👉 https://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA
+
+【#introduce チャンネルでの自己紹介】
+　Slackに参加されましたら、まずは #introduce チャンネルで一言ご挨拶をお願いします！
+
+【キックオフ日程の調整】
+　30分ほどのオンラインキックオフを行いたいと思います。Slack上で日程調整のメッセージをお送りします。
+
+これからどうぞよろしくお願いいたします！
+
+---
+Nexus 運営チーム
+連絡先: azalea.cape@gmail.com`
+    );
+    setApproveModal(inq);
+  };
+
+  const openRejectModal = (inq: any) => {
+    const name = inq.name;
+    const proj = projectName(inq.content);
+    setRejectEmailBody(
+`${name} さん
+
+この度は「${proj}」へのご応募をいただき、誠にありがとうございました。
+Nexus 運営チームです。
+
+慎重に検討いたしました結果、誠に残念ながら今回はご期待に沿うことが叶わない状況となりました。
+
+${name} さんのご応募への熱意と真摯な姿勢は、メンバー一同大変ありがたく拝見しておりました。今回の結果はプロジェクトの状況やタイミングによるものであり、${name} さんの可能性や熱意を否定するものでは決してありません。
+
+今後もNexusでは新たなプロジェクトや活動が生まれ続けます。引き続きWebサイトやコミュニティの情報をチェックしていただき、またぜひ次の機会にご応募いただければ嬉しいです。
+
+この度はご応募いただき、本当にありがとうございました。${name} さんの今後のご活躍を心よりお祈り申し上げます。
+
+---
+Nexus 運営チーム
+連絡先: azalea.cape@gmail.com`
+    );
+    setRejectModal(inq);
+  };
+
+  const handleSendApproval = async () => {
+    if (!approveModal) return;
+    setSending(true);
+    const subject = encodeURIComponent(`🎉【Nexus】プロジェクト参加決定 ＆ メンバー登録のお知らせ！`);
+    const body = encodeURIComponent(emailBody);
+    window.open(`mailto:${approveModal.email}?subject=${subject}&body=${body}`, "_blank");
+    await handleUpdateStatus(approveModal.id, "completed");
+    setSending(false);
+    setApproveModal(null);
+  };
+
+  const handleSendRejection = async () => {
+    if (!rejectModal) return;
+    setSending(true);
+    const subject = encodeURIComponent(`【Nexus】プロジェクトご応募の結果について`);
+    const body = encodeURIComponent(rejectEmailBody);
+    window.open(`mailto:${rejectModal.email}?subject=${subject}&body=${body}`, "_blank");
+    await handleUpdateStatus(rejectModal.id, "rejected");
+    setSending(false);
+    setRejectModal(null);
+  };
+
+  const statusBadge = (status: string) => {
+    const map: any = {
+      processing: <span style={{ background: "#e6f0ff", color: "#0066cc", padding: "3px 9px", borderRadius: "8px", fontSize: "0.72rem", fontWeight: 800 }}>🔵 選考中</span>,
+      completed:  <span style={{ background: "#e6ffe6", color: "#006600", padding: "3px 9px", borderRadius: "8px", fontSize: "0.72rem", fontWeight: 800 }}>🟢 採用済み</span>,
+      rejected:   <span style={{ background: "#f0f0f0", color: "#666",    padding: "3px 9px", borderRadius: "8px", fontSize: "0.72rem", fontWeight: 800 }}>⚫ お見送り済み</span>,
+    };
+    return map[status] || <span style={{ background: "#fff0e0", color: "#cc6600", padding: "3px 9px", borderRadius: "8px", fontSize: "0.72rem", fontWeight: 800 }}>🟡 新着</span>;
+  };
+
+  const ModalBase = ({ title, email, body, setBody, onSend, onClose, sendLabel, sendColor }: any) => (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "white", borderRadius: "20px", padding: "36px", maxWidth: "560px", width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ fontWeight: 900, fontSize: "1.1rem" }}>{title}</div>
+        <div style={{ fontSize: "0.82rem", color: "#666" }}>宛先: <b>{email}</b> — 内容を確認・編集してから送信してください</div>
+        <textarea
+          value={body}
+          onChange={e => setBody(e.target.value)}
+          style={{ width: "100%", minHeight: "280px", borderRadius: "12px", border: "1px solid #ddd", padding: "14px", fontSize: "0.82rem", lineHeight: 1.7, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
+        />
+        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: "10px", border: "1px solid #ddd", background: "white", cursor: "pointer", fontWeight: 700 }}>キャンセル</button>
+          <button onClick={onSend} disabled={sending} style={{ padding: "10px 24px", borderRadius: "10px", border: "none", background: sendColor, color: "white", cursor: "pointer", fontWeight: 800, fontSize: "0.9rem" }}>
+            {sendLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      {approveModal && (
+        <ModalBase
+          title="🎉 採用決定メールの送信"
+          email={approveModal.email}
+          body={emailBody}
+          setBody={setEmailBody}
+          onSend={handleSendApproval}
+          onClose={() => setApproveModal(null)}
+          sendLabel="✉️ この内容で採用決定メールを送信する"
+          sendColor="#111"
+        />
+      )}
+      {rejectModal && (
+        <ModalBase
+          title="📩 お見送りメールの送信"
+          email={rejectModal.email}
+          body={rejectEmailBody}
+          setBody={setRejectEmailBody}
+          onSend={handleSendRejection}
+          onClose={() => setRejectModal(null)}
+          sendLabel="✉️ この内容でお見送りメールを送信する"
+          sendColor="#666"
+        />
+      )}
+
+      <h2 style={S.sectionTitle}>📬 参加申請・通知センター</h2>
+
+      {/* 参加申請セクション */}
+      <div style={{ marginBottom: "40px" }}>
+        <div style={{ fontWeight: 900, fontSize: "1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+          🚀 プロジェクト参加申請
+          <span style={{ background: "#fff0e0", color: "#cc6600", borderRadius: "99px", padding: "2px 10px", fontSize: "0.72rem", fontWeight: 800 }}>
+            {projectApplications.filter(i => !i.status || i.status === "new" || i.status === "unprocessed").length} 件 未対応
+          </span>
+        </div>
+
+        {projectApplications.length === 0 ? (
+          <div style={S.emptyState}>参加申請はまだありません</div>
+        ) : projectApplications.map((i: any) => (
+          <div key={i.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", marginBottom: "20px", gap: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 800, background: "#e6f0ff", color: "#0044cc", padding: "3px 9px", borderRadius: "6px" }}>
+                  {projectName(i.content)}
+                </span>
+                {statusBadge(i.status)}
+              </div>
+              <span style={{ fontSize: "0.72rem", color: "#aaa" }}>{new Date(i.created_at).toLocaleString('ja-JP')}</span>
+            </div>
+
+            <div style={{ fontWeight: 800, fontSize: "1rem" }}>
+              {i.name} 様{" "}
+              <span style={{ fontWeight: 400, fontSize: "0.82rem", color: "#666" }}>{i.organization && `（${i.organization}）`}</span>
+            </div>
+
+            <div style={{ fontSize: "0.85rem", color: "#444", lineHeight: 1.7, background: "#f8f7f4", padding: "14px", borderRadius: "10px", width: "100%", boxSizing: "border-box", whiteSpace: "pre-wrap" }}>
+              {i.content}
+            </div>
+
+            <div style={{ display: "flex", gap: "8px", width: "100%", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
+              <span style={{ fontSize: "0.78rem", color: "#666", marginRight: "auto" }}>✉️ {i.email}</span>
+              {i.status !== "processing" && i.status !== "completed" && i.status !== "rejected" && (
+                <button onClick={() => handleUpdateStatus(i.id, "processing")}
+                  style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #99c0ff", background: "#e6f0ff", color: "#0044cc", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
+                  🔵 選考中へ
+                </button>
+              )}
+              {i.status !== "completed" && i.status !== "rejected" && (
+                <button onClick={() => openApproveModal(i)}
+                  style={{ padding: "7px 14px", borderRadius: "8px", border: "none", background: "#111", color: "white", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
+                  🎉 採用決定
+                </button>
+              )}
+              {i.status !== "completed" && i.status !== "rejected" && (
+                <button onClick={() => openRejectModal(i)}
+                  style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #ddd", background: "white", color: "#888", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
+                  📩 お見送り
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 通常お問い合わせ */}
+      <div>
+        <div style={{ fontWeight: 900, fontSize: "1rem", marginBottom: "16px" }}>📩 通常のお問い合わせ</div>
+        {otherInquiries.length === 0 ? (
+          <div style={S.emptyState}>お問い合わせはありません</div>
+        ) : otherInquiries.map((i: any) => {
+          const subject = encodeURIComponent(`【Nexus】お問い合わせへのご返信`);
+          const body = encodeURIComponent(`${i.name} 様\n\nお問い合わせいただきありがとうございます。\nNexus運営チームです。\n\n`);
+          return (
+            <div key={i.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", marginBottom: "16px", gap: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <span style={{ fontSize: "0.72rem", background: "#eee", padding: "3px 8px", borderRadius: "6px", fontWeight: 700 }}>{i.category}</span>
+                  {statusBadge(i.status)}
+                </div>
+                <span style={{ fontSize: "0.72rem", color: "#aaa" }}>{new Date(i.created_at).toLocaleString('ja-JP')}</span>
+              </div>
+              <div style={{ fontWeight: 800 }}>{i.name} 様</div>
+              <div style={{ fontSize: "0.85rem", color: "#444", lineHeight: 1.6, background: "#f8f7f4", padding: "12px", borderRadius: "8px", width: "100%", boxSizing: "border-box", whiteSpace: "pre-wrap" }}>{i.content}</div>
+              <div style={{ display: "flex", gap: "10px", width: "100%", justifyContent: "flex-end", alignItems: "center" }}>
+                <select value={i.status || "unprocessed"} onChange={e => handleUpdateStatus(i.id, e.target.value)}
+                  style={{ ...S.select, width: "auto", padding: "4px 10px", fontSize: "0.78rem", height: "auto" }}>
+                  <option value="unprocessed">🟡 未対応</option>
+                  <option value="processing">🔵 対応中</option>
+                  <option value="completed">🟢 対応完了</option>
+                </select>
+                <a href={`mailto:${i.email}?subject=${subject}&body=${body}`}
+                  style={{ background: "#111", color: "white", padding: "7px 14px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: 800, textDecoration: "none" }}>
+                  ✉️ 返信する
+                </a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
