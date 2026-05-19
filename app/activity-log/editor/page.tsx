@@ -154,6 +154,7 @@ export default function NexusStudioPro() {
       setPendingFaqs(pendF || []);
 
       const { data: iData } = await supabase.from('inquiries').select('*').order('created_at', { ascending: false });
+      console.log("【デバッグ】取得されたお問い合わせ一覧:", iData);
       setInquiries(iData || []);
 
       const { data: pvData } = await supabase.from('page_views').select('*');
