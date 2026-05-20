@@ -4,13 +4,13 @@ import React, { useEffect, useState } from "react";
 import { S } from "./SharedUI";
 import { PERMISSION_LABELS, ROLE_DEFAULT_PERMISSIONS } from "../hooks/useEditorData";
 
-const ROLES = ["owner", "admin", "reviewer", "proposer", "guest"] as const;
+const ROLES = ["owner", "editor", "project_manager", "public_relations", "proposer"] as const;
 const ROLE_LABELS: Record<string, string> = {
   owner: "オーナー",
-  admin: "管理者",
-  reviewer: "編集長",
+  editor: "編集者",
+  project_manager: "PJマネージャー",
+  public_relations: "広報",
   proposer: "提案者",
-  guest: "ゲスト",
 };
 
 type RoleId = (typeof ROLES)[number];
@@ -62,7 +62,7 @@ export function RoleSettingsTab({ rolePermissions, onSaveRolePermissions, hasPer
                 <div>
                   <div style={{ fontSize: "1rem", fontWeight: 900, marginBottom: "6px" }}>{ROLE_LABELS[roleId]}（{roleId}）</div>
                   <div style={{ color: "#777", fontSize: "0.85rem" }}>
-                    {roleId === "owner" ? "システムの最高権限です。" : roleId === "admin" ? "管理者は下位役職の管理と公開を行えます。" : roleId === "reviewer" ? "編集長は提案と承認の補佐ができます。" : roleId === "proposer" ? "提案者は編集提案を送信できます。" : "ゲストは閲覧のみです。"}
+                    {roleId === "owner" ? "システムの最高権限です。すべての権限を管理できます。" : roleId === "editor" ? "編集者はコンテンツ編集・公開、および問い合わせ対応ができます。" : roleId === "project_manager" ? "PJマネージャーはプロジェクト管理と記事公開を調整できます。" : roleId === "public_relations" ? "広報は問い合わせ対応と情報発信の管理を行います。" : roleId === "proposer" ? "提案者は編集提案を送信できます。" : ""}
                   </div>
                 </div>
                 <button

@@ -39,7 +39,7 @@ export function PreviewPanel({
       position: stacked ? "static" : "sticky",
       top: stacked ? undefined : "70px",
       height: stacked ? "auto" : "calc(100vh - 70px)",
-      minHeight: stacked ? "420px" : undefined,
+      minHeight: stacked ? "280px" : undefined,
       boxSizing: "border-box"
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>

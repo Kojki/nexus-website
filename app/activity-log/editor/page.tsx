@@ -312,7 +312,7 @@ export default function NexusStudioPro() {
 
         {/* コンテンツエリア */}
         <div style={{ flex: 1, display: "flex", flexDirection: activeTab === "content" ? "column" : "row", overflow: "hidden" }}>
-          <div style={{ flex: 1, padding: "40px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "30px" }}>
+          <div style={{ flex: activeTab === "content" ? "0 0 62%" : 1, minHeight: 0, padding: "40px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "30px" }}>
             
             {activeTab === "content" && (
               <ContentTab
@@ -415,7 +415,7 @@ export default function NexusStudioPro() {
 
           {/* 🔑 PreviewPanel に必要な全propsを正しく渡す */}
           {activeTab === "content" && (
-            <div style={{ width: "100%", padding: "0 40px 40px", background: "#f5f3ef" }}>
+            <div style={{ flex: "0 0 38%", minHeight: 0, padding: "0 40px 40px", background: "#f5f3ef", overflow: "auto" }}>
               <PreviewPanel
                 stacked
                 activeTab={activeTab as any}
