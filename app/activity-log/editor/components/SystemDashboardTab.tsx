@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase"; 
 import { S } from "./SharedUI";
+import { ROLE_DEFAULT_PERMISSIONS, PERMISSION_LABELS } from "../hooks/useEditorData";
 
 interface Props {
   analytics: {
@@ -9,14 +10,16 @@ interface Props {
     popularPages: any[];
   };
   logs: any[];
-  userRole: "owner" | "editor" | "proposer" | null;
+  userRole: string | null;
   allowedUsers: any[];
   currentUserEmail: string;
   onAddUser: (email: string, role: string) => Promise<void>;
   onRemoveUser: (email: string) => Promise<void>;
   onChangeRole: (email: string, role: string) => Promise<void>;
   onUpdateUserEmail?: (oldEmail: string, newEmail: string) => Promise<void>;
-  
+  onUpdateUserPermissions?: (email: string, permissions: string[]) => Promise<void>;
+  hasPermission: (permission: string) => boolean;
+
   trashItems?: {
     activities: any[];
     members: any[];
@@ -47,6 +50,8 @@ export function SystemDashboardTab({
   onRemoveUser,
   onChangeRole,
   onUpdateUserEmail,
+  onUpdateUserPermissions,
+  hasPermission,
   trashItems = { activities: [], members: [], projects: [], faqs: [] },
   onRestoreItem,
   onPermanentDelete,
@@ -64,16 +69,13 @@ export function SystemDashboardTab({
     members: { name: string; type: string; clicks: number }[];
   }>({ projects: [], members: [] });
 
-  // 💡 提案者専用の変数 ＆ ステート
   const [myProposals, setMyProposals] = useState<any[]>([]);
   const [reminderCooldown, setReminderCooldown] = useState<string | null>(null);
   const [sendingReminder, setSendingReminder] = useState(false);
 
-  // 🔑 メールアドレス（アカウント名）変更用ステート
   const [editingEmail, setEditingEmail] = useState<string | null>(null);
   const [editEmailValue, setEditEmailValue] = useState("");
 
-  // 📢 伝言板の読み込み
   const fetchBulletin = async () => {
     try {
       const { data } = await supabase
@@ -95,7 +97,6 @@ export function SystemDashboardTab({
     }
   };
 
-  // 📈 クリックイベント統計の集計
   const fetchClickStats = async () => {
     try {
       const { data, error } = await supabase.from('click_events').select('*');
@@ -134,11 +135,9 @@ export function SystemDashboardTab({
     }
   };
 
-  // 💡 [新設] 提案者自身の提案データとリマインダー制限時間を確認
   const checkProposerData = async () => {
-    if (userRole !== "proposer") return;
+    if (hasPermission("publish_content")) return;
     try {
-      // 1. 自分が送信したすべての提案を取得
       const { data: list } = await supabase
         .from('content_proposals')
         .select('*')
@@ -146,7 +145,6 @@ export function SystemDashboardTab({
         .order('created_at', { ascending: false });
       setMyProposals(list || []);
 
-      // 2. 24時間リミットのチェック
       const { data: reminder } = await supabase
         .from('proposal_reminders')
         .select('last_sent_at')
@@ -198,12 +196,10 @@ export function SystemDashboardTab({
     }
   };
 
-  // 📣 [新設] 管理者への確認依頼通知（1日1回制限ロック ＆ 監査ログ ＆ Slack連携）
   const handleNotifyAdmins = async () => {
-    if (userRole !== "proposer" || sendingReminder) return;
+    if (hasPermission("publish_content") || sendingReminder) return;
     setSendingReminder(true);
     try {
-      // 1. 再度24時間リミットの二重確認
       const { data: reminder } = await supabase
         .from('proposal_reminders')
         .select('last_sent_at')
@@ -230,14 +226,12 @@ export function SystemDashboardTab({
           .insert([{ proposer_email: currentUserEmail, last_sent_at: nowStr }]);
       }
 
-      // 2. 監査ログに「緊急の未承認確認アラート」を書き込み (これで管理者が管理画面を開いた瞬間に最上部に大きく表示されます)
       await supabase.from('audit_logs').insert([{
         actor_email: currentUserEmail,
         action: "proposal_reminder",
         details: `💡 提案者 [${currentUserEmail}] から「未承認の提案」について確認依頼通知が届きました。`
       }]);
 
-      // 3. 環境変数かコード内にWebhookUrlがあればSlack通知を送信
       const slackWebhookUrl = process.env.NEXT_PUBLIC_SLACK_WEBHOOK_URL;
       if (slackWebhookUrl) {
         const slackMessage = {
@@ -278,14 +272,12 @@ export function SystemDashboardTab({
     }
   };
 
-  // ゴミ箱のアイテム総数
   const totalTrashCount = 
     (trashItems.activities?.length || 0) + 
     (trashItems.members?.length || 0) + 
     (trashItems.projects?.length || 0) + 
     (trashItems.faqs?.length || 0);
 
-  // 📬 届いた提案（承認待ち）のアイテム総数
   const totalProposalCount = 
     (pendingProposals.activities?.length || 0) + 
     (pendingProposals.members?.length || 0) + 
@@ -293,7 +285,6 @@ export function SystemDashboardTab({
     (pendingProposals.faqs?.length || 0) +
     (pendingProposals.content?.length || 0);
 
-  // 📣 管理者への新着提案督促があるかの検証 (監査ログから抽出)
   const proposerReminders = logs.filter(log => log.action === "proposal_reminder" && (Date.now() - new Date(log.created_at).getTime()) < 24 * 60 * 60 * 1000);
 
   const maxProjClicks = Math.max(...clickStats.projects.map(p => p.clicks), 1);
@@ -321,7 +312,7 @@ export function SystemDashboardTab({
             </span>
           </div>
           
-          {userRole === "owner" && !isEditing && (
+          {hasPermission("manage_bulletin") && !isEditing && (
             <button 
               onClick={() => setIsEditing(true)}
               style={{
@@ -382,8 +373,8 @@ export function SystemDashboardTab({
         )}
       </div>
 
-      {/* 📬 【高優先アラート】提案者からの緊急確認要請（管理者・編集者のみ表示） */}
-      {(userRole === "owner" || userRole === "editor") && proposerReminders.length > 0 && (
+      {/* 📬 【高優先アラート】提案者からの確認要請 */}
+      {(hasPermission("publish_content") || hasPermission("manage_users")) && proposerReminders.length > 0 && (
         <div style={{
           background: "linear-gradient(135deg, #fff5f5, #ffe6e6)",
           border: "2px solid #ff4d4d",
@@ -407,8 +398,8 @@ export function SystemDashboardTab({
         </div>
       )}
 
-      {/* 📬 届いた提案ボックス (管理者 ＆ 編集者のみ表示) */}
-      {(userRole === "owner" || userRole === "editor") && (
+      {/* 📬 届いた提案ボックス */}
+      {hasPermission("publish_content") && (
         <div style={{ 
           background: "white", 
           padding: "32px", 
@@ -421,7 +412,7 @@ export function SystemDashboardTab({
             📬 届いた編集提案・承認待ちリスト ({totalProposalCount} 件)
           </h3>
           <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "20px" }}>
-            提案者（proposer）から届いた作成・編集申請です。承認されると本番サイトに自動公開されます。
+            提案者から届いた作成・編集申請です。承認されると本番サイトに自動公開されます。
           </p>
 
           {totalProposalCount === 0 ? (
@@ -500,8 +491,8 @@ export function SystemDashboardTab({
         </div>
       )}
 
-      {/* 💡 【提案者専用】自分の送信済み提案状況 ＆ 1日1回管理者通知機能 (Proposer のみ表示) */}
-      {userRole === "proposer" && (
+      {/* 💡 【提案者専用】自分の送信済み提案状況 */}
+      {!hasPermission("publish_content") && (
         <div style={{ 
           background: "white", 
           padding: "32px", 
@@ -622,7 +613,7 @@ export function SystemDashboardTab({
               <h4 style={{ fontSize: "0.85rem", fontWeight: 800, color: "var(--muted)", marginBottom: "16px" }}>🚀 参画申請の多いプロジェクト</h4>
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {clickStats.projects.length === 0 ? (
-                  <div style={{ fontSize: "0.8rem", color: "#ccc", padding: "10px 0" }}>クリックデータがありません</div>
+                   <div style={{ fontSize: "0.8rem", color: "#ccc", padding: "10px 0" }}>クリックデータがありません</div>
                 ) : (
                   clickStats.projects.map((item) => {
                     const pct = (item.clicks / maxProjClicks) * 100;
@@ -668,8 +659,8 @@ export function SystemDashboardTab({
           </div>
         </div>
 
-        {/* 🗑️ データ回復用ゴミ箱 (管理者・編集者のみ表示) */}
-        {(userRole === "owner" || userRole === "editor") && (
+        {/* 🗑️ データ回復用ゴミ箱 */}
+        {hasPermission("manage_trash") && (
           <div style={{ 
             background: "white", 
             padding: "32px", 
@@ -747,11 +738,11 @@ export function SystemDashboardTab({
           </div>
         )}
         
-        {/* 👑 権限・ログイン許可リスト管理 (オーナー専用) */}
-        {userRole === "owner" && (
+        {/* 👑 権限・ログイン許可リスト管理 */}
+        {hasPermission("manage_users") && (
           <div style={{ background: "white", padding: "32px", borderRadius: "24px", border: "2px solid var(--accent)", boxShadow: "0 10px 30px rgba(0,0,0,0.02)" }}>
             <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "var(--accent)" }}>
-              🔑 権限・ログイン許可リスト管理 (オーナー専用)
+              🔑 権限・ログイン許可リスト管理 (権限管理者用)
             </h3>
             <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "24px" }}>
               ログインを許可するGoogleアカウントの管理および権限割当を行います。
@@ -774,6 +765,8 @@ export function SystemDashboardTab({
               />
               <select name="role" style={{ ...S.select, width: "auto", padding: "10px 16px", height: "auto" }}>
                 <option value="proposer">💡 提案者 (proposer)</option>
+                <option value="public_relations">📢 広報担当 (PR)</option>
+                <option value="project_manager">🚀 PJマネージャー</option>
                 <option value="editor">📝 編集者 (editor)</option>
                 <option value="owner">👑 オーナー (owner)</option>
               </select>
@@ -782,82 +775,144 @@ export function SystemDashboardTab({
               </button>
             </form>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {allowedUsers.map((u) => {
                 const isSelf = u.email.toLowerCase() === currentUserEmail.toLowerCase();
                 const isEditingThis = editingEmail === u.email;
 
                 return (
-                  <div key={u.email} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", background: "#fdfbf8", borderRadius: "12px", border: "1px solid #f2ede4", flexWrap: "wrap", gap: "12px" }}>
-                    {isEditingThis ? (
-                      <div style={{ display: "flex", gap: "12px", alignItems: "center", flex: 1, minWidth: "280px" }}>
-                        <input
-                          type="email"
-                          value={editEmailValue}
-                          onChange={(e) => setEditEmailValue(e.target.value)}
-                          style={{ ...S.select, padding: "6px 12px", fontSize: "0.9rem", fontFamily: "monospace", flex: 1, height: "auto" }}
-                        />
-                        <button
-                          onClick={async () => {
-                            if (onUpdateUserEmail) {
-                              await onUpdateUserEmail(u.email, editEmailValue);
-                            }
-                            setEditingEmail(null);
-                          }}
-                          style={{ ...S.primaryBtn, padding: "8px 16px", fontSize: "0.8rem", width: "auto", height: "auto" }}
-                        >
-                          保存
-                        </button>
-                        <button
-                          onClick={() => setEditingEmail(null)}
-                          style={{ background: "white", color: "#666", border: "1px solid #ccc", padding: "8px 16px", borderRadius: "8px", fontSize: "0.8rem", cursor: "pointer" }}
-                        >
-                          キャンセル
-                        </button>
-                      </div>
-                    ) : (
-                      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                        <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "#333", fontFamily: "monospace" }}>{u.email}</span>
-                        {isSelf ? (
-                          <span style={{ background: "var(--accent-pale)", color: "var(--accent)", padding: "2px 8px", borderRadius: "6px", fontSize: "0.65rem", fontWeight: 800 }}>あなた</span>
-                        ) : (
+                  <div key={u.email} style={{ 
+                    display: "flex", flexDirection: "column", gap: "12px",
+                    padding: "20px", background: "#fdfbf8", borderRadius: "16px", 
+                    border: "1px solid #f2ede4", transition: "all 0.2s"
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                      {isEditingThis ? (
+                        <div style={{ display: "flex", gap: "12px", alignItems: "center", flex: 1, minWidth: "280px" }}>
+                          <input
+                            type="email"
+                            value={editEmailValue}
+                            onChange={(e) => setEditEmailValue(e.target.value)}
+                            style={{ ...S.select, padding: "6px 12px", fontSize: "0.9rem", fontFamily: "monospace", flex: 1, height: "auto" }}
+                          />
                           <button
-                            onClick={() => {
-                              setEditingEmail(u.email);
-                              setEditEmailValue(u.email);
+                            onClick={async () => {
+                              if (onUpdateUserEmail) {
+                                await onUpdateUserEmail(u.email, editEmailValue);
+                              }
+                              setEditingEmail(null);
                             }}
-                            style={{ background: "none", border: "none", color: "var(--accent)", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                            style={{ ...S.primaryBtn, padding: "8px 16px", fontSize: "0.8rem", width: "auto", height: "auto" }}
                           >
-                            編集 (名前変更)
+                            保存
                           </button>
-                        )}
-                      </div>
-                    )}
-                    
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <select 
-                        value={u.role} 
-                        disabled={isSelf || isEditingThis} 
-                        onChange={(e) => onChangeRole(u.email, e.target.value)}
-                        style={{ ...S.select, width: "auto", padding: "6px 12px", fontSize: "0.8rem", height: "auto", background: u.role === "owner" ? "#fff0f0" : "white" }}
-                      >
-                        <option value="proposer">💡 提案者</option>
-                        <option value="editor">📝 編集者</option>
-                        <option value="owner">👑 オーナー</option>
-                      </select>
+                          <button
+                            onClick={() => setEditingEmail(null)}
+                            style={{ background: "white", color: "#666", border: "1px solid #ccc", padding: "8px 16px", borderRadius: "8px", fontSize: "0.8rem", cursor: "pointer" }}
+                          >
+                            キャンセル
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#333", fontFamily: "monospace" }}>{u.email}</span>
+                          {isSelf ? (
+                            <span style={{ background: "var(--accent-pale)", color: "var(--accent)", padding: "2px 8px", borderRadius: "6px", fontSize: "0.65rem", fontWeight: 800 }}>あなた</span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                  setEditingEmail(u.email);
+                                  setEditEmailValue(u.email);
+                              }}
+                              style={{ background: "none", border: "none", color: "var(--accent)", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                            >
+                              編集 (名前変更)
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <select 
+                          value={u.role} 
+                          disabled={isSelf || isEditingThis} 
+                          onChange={(e) => onChangeRole(u.email, e.target.value)}
+                          style={{ ...S.select, width: "auto", padding: "6px 12px", fontSize: "0.8rem", height: "auto", background: u.role === "owner" ? "#fff0f0" : "white" }}
+                        >
+                          <option value="proposer">💡 提案者 (proposer)</option>
+                          <option value="public_relations">📢 広報担当 (PR)</option>
+                          <option value="project_manager">🚀 PJマネージャー</option>
+                          <option value="editor">📝 編集者 (editor)</option>
+                          <option value="owner">👑 オーナー (owner)</option>
+                          <option value="custom">🛠️ カスタム (custom)</option>
+                        </select>
 
-                      <button 
-                        onClick={() => onRemoveUser(u.email)}
-                        disabled={isSelf || isEditingThis} 
-                        style={{ 
-                          ...S.dangerBtn, 
-                          padding: "6px 12px", 
-                          opacity: (isSelf || isEditingThis) ? 0.3 : 1,
-                          cursor: (isSelf || isEditingThis) ? "not-allowed" : "pointer"
-                        }}
-                      >
-                        削除
-                      </button>
+                        <button 
+                          onClick={() => onRemoveUser(u.email)}
+                          disabled={isSelf || isEditingThis} 
+                          style={{ 
+                            ...S.dangerBtn, 
+                            padding: "6px 12px", 
+                            opacity: (isSelf || isEditingThis) ? 0.3 : 1,
+                            cursor: (isSelf || isEditingThis) ? "not-allowed" : "pointer"
+                          }}
+                        >
+                          削除
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 🔑 個別権限チェックボックスエリア */}
+                    <div style={{
+                      marginTop: "4px", padding: "14px",
+                      background: "rgba(255, 255, 255, 0.6)", borderRadius: "10px", border: "1px solid #e2ede4",
+                      display: "flex", flexDirection: "column", gap: "8px"
+                    }}>
+                      <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#666", marginBottom: "4px" }}>
+                        🔒 詳細な個別権限のON/OFF (※変更を加えると役職は自動的に「カスタム」に切り替わります)
+                      </div>
+                      <div style={{
+                        display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                        gap: "8px 16px"
+                      }}>
+                        {/* 👇 ここで Object.entries の型キャストを行い、TSエラーを完璧に防いでいます！ */}
+                        {(Object.entries(PERMISSION_LABELS) as [string, { label: string; desc: string }][]).map(([permKey, info]) => {
+                          const userPerms = u.permissions || ROLE_DEFAULT_PERMISSIONS[u.role] || [];
+                          const isChecked = userPerms.includes(permKey);
+                          const isToggleDisabled = isSelf || isEditingThis;
+
+                          return (
+                            <label 
+                              key={permKey} 
+                              style={{
+                                display: "flex", alignItems: "center", gap: "8px",
+                                fontSize: "0.75rem", color: "#444", cursor: isToggleDisabled ? "not-allowed" : "pointer",
+                                opacity: isToggleDisabled ? 0.6 : 1, userSelect: "none"
+                              }}
+                              title={info.desc}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                disabled={isToggleDisabled}
+                                onChange={(e) => {
+                                  let nextPerms = [...userPerms];
+                                  if (e.target.checked) {
+                                    nextPerms.push(permKey);
+                                  } else {
+                                    nextPerms = nextPerms.filter((p) => p !== permKey);
+                                  }
+                                  if (onUpdateUserPermissions) {
+                                    onUpdateUserPermissions(u.email, nextPerms);
+                                  }
+                                }}
+                                style={{ cursor: isToggleDisabled ? "not-allowed" : "pointer" }}
+                              />
+                              <span style={{ fontWeight: isChecked ? 700 : 400 }}>{info.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 );
@@ -900,8 +955,7 @@ export function SystemDashboardTab({
               <div style={{ color: "#aaa", fontSize: "0.85rem", textAlign: "center", padding: "20px" }}>操作履歴はまだありません。</div>
             ) : (
               logs.map((log) => {
-                // 提案者自身の場合、自分以外の監査ログを隠してセキュリティを担保
-                const isProposer = userRole === "proposer";
+                const isProposer = !hasPermission("publish_content");
                 const isMyLog = log.actor_email.toLowerCase() === currentUserEmail.toLowerCase();
                 if (isProposer && !isMyLog) return null;
 
@@ -928,5 +982,3 @@ export function SystemDashboardTab({
     </div>
   );
 }
-
-
