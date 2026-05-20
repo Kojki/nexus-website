@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { renderMarkdown } from "@/lib/markdown";
+import Script from "next/script";
 
 interface Project {
   id: string;
@@ -215,6 +216,8 @@ export default function ProjectsPage() {
     email: "",
     content: "",
   });
+  
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
 
   const cacheKey = "nexus_projects_cache";
 
@@ -246,6 +249,26 @@ export default function ProjectsPage() {
     fetchProjects();
   }, []);
 
+  // ドロワーが開いた時にTurnstileを表示する制御
+  useEffect(() => {
+    if (isDrawerOpen) {
+      const timer = setTimeout(() => {
+        const container = document.getElementById("turnstile-container");
+        if (container && (window as any).turnstile) {
+          (window as any).turnstile.render("#turnstile-container", {
+            sitekey: "0x4AAAAAADTIS5foNq1XskWJ", 
+            callback: (token: string) => {
+              setTurnstileToken(token);
+            },
+          });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      setTurnstileToken("");
+    }
+  }, [isDrawerOpen]);
+
   const openApplyDrawer = (projectTitle: string) => {
     setTargetProjectTitle(projectTitle);
     setFormData({
@@ -261,6 +284,12 @@ export default function ProjectsPage() {
 
   const handleDrawerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!turnstileToken) {
+      alert("セキュリティ認証（ボット防止）を完了させてください。");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -270,29 +299,32 @@ export default function ProjectsPage() {
         email: formData.email,
         category: "プロジェクト参加希望",
         content: formData.content,
+        turnstileToken, // トークンを送信
       };
 
-      const { error } = await supabase.from("inquiries").insert([dbPayload]);
-      if (error) throw error;
+      // 🌐 パブリックな安全なEdge Function経由で書き込みを行います
+      const { data, error } = await supabase.functions.invoke("submit-inquiry", {
+        body: dbPayload,
+      });
 
-      try {
-        const { data, error: notifyError } = await supabase.functions.invoke("contact-slack", {
-          body: dbPayload,
-        });
-
-        if (notifyError) {
-          console.error("通知送信に失敗しました:", notifyError);
-        } else if (data?.deliveries) {
-          console.info("通知送信結果:", data.deliveries);
+      if (error) {
+        try {
+          const errBody = await error.context.json();
+          throw new Error(errBody.error || error.message);
+        } catch {
+          throw new Error(error.message);
         }
-      } catch (notifyErr) {
-        console.error("通知送信に失敗しました:", notifyErr);
       }
 
       setIsSuccess(true);
-    } catch (error) {
-      alert("送信に失敗しました。時間をおいて再度お試しください。");
+    } catch (error: any) {
+      alert(`送信に失敗しました: ${error.message}`);
       console.error(error);
+      
+      if ((window as any).turnstile) {
+        (window as any).turnstile.reset("#turnstile-container");
+        setTurnstileToken("");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -430,7 +462,7 @@ export default function ProjectsPage() {
                   </span>
                   <h2 style={{ fontSize: "1.6rem", fontWeight: 900, margin: "16px 0 8px" }}>参画申請フォーム</h2>
                   <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: "0 0 32px" }}>
-                    新しいプロジェクトの立ち上げや共創に参加しましょう。
+                    新しいプロジェクトの立ち立ち上げや共創に参加しましょう。
                   </p>
 
                   <div className="form-group" style={{ marginBottom: "20px" }}>
@@ -444,7 +476,7 @@ export default function ProjectsPage() {
                   <div className="form-group" style={{ marginBottom: "20px" }}>
                     <label style={{ fontSize: "0.85rem", fontWeight: 700, display: "block", marginBottom: "8px" }}>所属・学校名</label>
                     <input
-                      type="text" className="form-input" placeholder="〇〇大学 〇〇学部"
+                      type="text" className="form-input" placeholder="例：〇〇大学 〇〇学部"
                       value={formData.organization} onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                     />
                   </div>
@@ -466,9 +498,22 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
-                <button type="submit" className="button button-dark" style={{ width: "100%", marginTop: "16px" }} disabled={isSubmitting}>
-                  {isSubmitting ? "送信中..." : "この内容で参加を申請する"}
-                </button>
+                <div>
+                  {/* Cloudflare Turnstile コンテナ */}
+                  <div 
+                    id="turnstile-container" 
+                    style={{ 
+                      marginTop: "16px", 
+                      display: "flex", 
+                      justifyContent: "center", 
+                      minHeight: "65px" 
+                    }}
+                  ></div>
+
+                  <button type="submit" className="button button-dark" style={{ width: "100%", marginTop: "16px" }} disabled={isSubmitting}>
+                    {isSubmitting ? "送信中..." : "この内容で参加を申請する"}
+                  </button>
+                </div>
               </form>
             )}
           </div>
@@ -476,6 +521,7 @@ export default function ProjectsPage() {
       )}
 
       <Footer />
+      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
     </div>
   );
 }

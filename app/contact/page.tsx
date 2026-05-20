@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Script from "next/script";
 
 export default function Contact() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -18,12 +19,29 @@ export default function Contact() {
   });
 
   const [honeypot, setHoneypot] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
 
   const categories = ["ご質問", "ご意見・ご感想", "取材のご依頼", "企業・大学関係者の方", "その他"];
 
+  // マウント時にTurnstileを表示する制御
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const container = document.getElementById("contact-turnstile-container");
+      if (container && (window as any).turnstile) {
+        (window as any).turnstile.render("#contact-turnstile-container", {
+          sitekey: "1x00000000000000000000SG", // テスト用Site Key
+          callback: (token: string) => {
+            setTurnstileToken(token);
+          },
+        });
+        clearInterval(timer);
+      }
+    }, 100);
+    return () => clearInterval(timer);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
     if (honeypot !== "") {
       console.log("Bot spam inquiry blocked successfully.");
@@ -34,28 +52,46 @@ export default function Contact() {
       return;
     }
 
+    if (!turnstileToken) {
+      alert("セキュリティ認証（ボット防止）を完了させてください。");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      const { error } = await supabase.from("inquiries").insert([formData]);
-      if (error) throw error;
+      const dbPayload = {
+        name: formData.name,
+        organization: formData.organization,
+        email: formData.email,
+        category: formData.category,
+        content: formData.content,
+        turnstileToken,
+      };
 
-      try {
-        const { data, error: notifyError } = await supabase.functions.invoke("contact-slack", {
-          body: formData,
-        });
+      // 🌐 パブリックな安全なEdge Function経由で書き込みを行います
+      const { data, error } = await supabase.functions.invoke("submit-inquiry", {
+        body: dbPayload,
+      });
 
-        if (notifyError) {
-          console.error("通知送信に失敗しました:", notifyError);
-        } else if (data?.deliveries) {
-          console.info("通知送信結果:", data.deliveries);
+      if (error) {
+        try {
+          const errBody = await error.context.json();
+          throw new Error(errBody.error || error.message);
+        } catch {
+          throw new Error(error.message);
         }
-      } catch (notifyErr) {
-        console.error("通知送信に失敗しました:", notifyErr);
       }
 
       setIsSubmitted(true);
-    } catch (error) {
-      alert("送信に失敗しました。時間をおいて再度お試しください。");
+    } catch (error: any) {
+      alert(`送信に失敗しました: ${error.message}`);
       console.error(error);
+
+      if ((window as any).turnstile) {
+        (window as any).turnstile.reset("#contact-turnstile-container");
+        setTurnstileToken("");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -162,6 +198,18 @@ export default function Contact() {
               ></textarea>
             </div>
 
+            {/* Cloudflare Turnstile コンテナ */}
+            <div 
+              id="contact-turnstile-container" 
+              style={{ 
+                marginTop: "16px", 
+                marginBottom: "16px",
+                display: "flex", 
+                justifyContent: "center", 
+                minHeight: "65px" 
+              }}
+            ></div>
+
             <button type="submit" className="button button-dark" style={{ width: "100%" }} disabled={isSubmitting}>
               {isSubmitting ? "送信中..." : "この内容で送信する"}
             </button>
@@ -169,6 +217,7 @@ export default function Contact() {
         )}
       </section>
       <Footer />
+      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
     </main>
   );
 }
