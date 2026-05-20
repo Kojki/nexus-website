@@ -311,7 +311,7 @@ export default function NexusStudioPro() {
         )}
 
         {/* コンテンツエリア */}
-        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: activeTab === "content" ? "column" : "row", overflow: "hidden" }}>
           <div style={{ flex: 1, padding: "40px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "30px" }}>
             
             {activeTab === "content" && (
@@ -415,22 +415,25 @@ export default function NexusStudioPro() {
 
           {/* 🔑 PreviewPanel に必要な全propsを正しく渡す */}
           {activeTab === "content" && (
-            <PreviewPanel
-              activeTab={activeTab as any}
-              activePage={activePage}
-              liveData={liveData}
-              title={form.activities.title}
-              imageUrl={form.activities.imageUrl}
-              summary={form.activities.summary}
-              faqs={faqs}
-              fQuestion={form.faqs.fQuestion}
-              fAnswer={form.faqs.fAnswer}
-              members={members}
-              mName={form.members.mName}
-              mRole={form.members.mRole}
-              mMessage={form.members.mMessage}
-              mPhotoUrl={form.members.mPhotoUrl}
-            />
+            <div style={{ width: "100%", padding: "0 40px 40px", background: "#f5f3ef" }}>
+              <PreviewPanel
+                stacked
+                activeTab={activeTab as any}
+                activePage={activePage}
+                liveData={liveData}
+                title={form.activities.title}
+                imageUrl={form.activities.imageUrl}
+                summary={form.activities.summary}
+                faqs={faqs}
+                fQuestion={form.faqs.fQuestion}
+                fAnswer={form.faqs.fAnswer}
+                members={members}
+                mName={form.members.mName}
+                mRole={form.members.mRole}
+                mMessage={form.members.mMessage}
+                mPhotoUrl={form.members.mPhotoUrl}
+              />
+            </div>
           )}
         </div>
       </main>

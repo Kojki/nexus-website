@@ -17,6 +17,7 @@ interface Props {
   mRole?: string;
   mMessage?: string;
   mPhotoUrl?: string;
+  stacked?: boolean;
 }
 
 const renderText = (text?: string | null) => {
@@ -28,10 +29,19 @@ const renderText = (text?: string | null) => {
 
 export function PreviewPanel({ 
   activeTab, activePage, liveData, title, imageUrl, summary,
-  faqs, fQuestion, fAnswer, members, mName, mRole, mMessage, mPhotoUrl
+  faqs, fQuestion, fAnswer, members, mName, mRole, mMessage, mPhotoUrl,
+  stacked = false
 }: Props) {
   return (
-    <div className="dashboard-preview" style={{ background: "#f0efeb", padding: "24px", position: "sticky", top: "70px", height: "calc(100vh - 70px)", boxSizing: "border-box" }}>
+    <div className="dashboard-preview" style={{
+      background: "#f0efeb",
+      padding: "24px",
+      position: stacked ? "static" : "sticky",
+      top: stacked ? undefined : "70px",
+      height: stacked ? "auto" : "calc(100vh - 70px)",
+      minHeight: stacked ? "420px" : undefined,
+      boxSizing: "border-box"
+    }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
         <span style={{ fontSize: "0.65rem", fontWeight: 900, color: "#999", letterSpacing: "0.15em" }}>LIVE PREVIEW</span>
         <span style={{ background: "#111", color: "white", padding: "4px 8px", borderRadius: "4px", fontSize: "0.6rem", fontWeight: 800 }}>
