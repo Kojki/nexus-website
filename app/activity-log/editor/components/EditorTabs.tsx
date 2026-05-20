@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { PageTabBtn, InputField, S, PagePath } from "./SharedUI";
+import { supabase } from "@/lib/supabase"; // 👈 Supabase をインポートしました！
 
-// 🟢 共通の超プレミアム画像ドラッグ＆ドロップ・アップローダー
+// 🟢 共通の画像ドラッグ＆ドロップ・アップローダー
 function DragDropImageZone({ label, imageUrl, uploading, onUpload, onClear }: any) {
   const [dragging, setDragging] = useState(false);
   
@@ -845,13 +846,12 @@ Nexus 運営チーム
     const body = emailBody;
 
     try {
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: approveModal.email, subject, body }),
+      // Next.js APIの代わりに Supabase Edge Function を呼び出す
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: { to: approveModal.email, subject, body },
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "メールの自動送信に失敗しました");
+
+      if (error) throw error;
 
       await handleUpdateStatus(approveModal.id, "completed");
       
@@ -879,13 +879,12 @@ Nexus 運営チーム
     const body = rejectEmailBody;
 
     try {
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: rejectModal.email, subject, body }),
+      // Next.js APIの代わりに Supabase Edge Function を呼び出す
+      const { data, error } = await supabase.functions.invoke("send-email", {
+        body: { to: rejectModal.email, subject, body },
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "メールの自動送信に失敗しました");
+
+      if (error) throw error;
 
       await handleUpdateStatus(rejectModal.id, "rejected");
       
