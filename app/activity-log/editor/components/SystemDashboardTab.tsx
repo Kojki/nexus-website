@@ -747,7 +747,40 @@ export function SystemDashboardTab({
             <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "24px" }}>
               ログインを許可するGoogleアカウントの管理および権限割当を行います。
             </p>
-            
+            <details style={{ marginBottom: "24px", background: "#fdfbf8", borderRadius: "12px", border: "1px solid #f2ede4" }}>
+              <summary style={{ padding: "16px", fontWeight: 800, fontSize: "0.85rem", color: "#555", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", userSelect: "none" }}>
+                📖 各役職のデフォルト権限一覧（クリックで開く）
+              </summary>
+              <div style={{ padding: "0 16px 16px", overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ background: "#f5f3ef" }}>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", width: "35%" }}>権限の種類</th>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>👑<br/>オーナー</th>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>📝<br/>編集者</th>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>🚀<br/>PJマネージャー</th>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>📢<br/>広報</th>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>💡<br/>提案者</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(PERMISSION_LABELS).map(([key, info]) => (
+                      <tr key={key} style={{ borderBottom: "1px solid #eee" }}>
+                        <td style={{ padding: "10px" }}>
+                          <div style={{ fontWeight: 900, color: "#111", marginBottom: "4px" }}>{info.label}</div>
+                          <div style={{ fontSize: "0.65rem", color: "#888" }}>{info.desc}</div>
+                        </td>
+                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.owner.includes(key) ? "✅" : "-"}</td>
+                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.editor.includes(key) ? "✅" : "-"}</td>
+                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.project_manager.includes(key) ? "✅" : "-"}</td>
+                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.public_relations.includes(key) ? "✅" : "-"}</td>
+                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.proposer.includes(key) ? "✅" : "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
             <form onSubmit={(e) => {
               e.preventDefault();
               const form = e.currentTarget;

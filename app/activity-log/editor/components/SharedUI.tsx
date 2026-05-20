@@ -4,14 +4,14 @@ export type Tab = "activity" | "content" | "members" | "faq" | "inquiries";
 export type PagePath = "home" | "about" | "en" | "guidelines" | "privacy";
 
 // --- 共通コンポーネント ---
-export function NavBtn({ children, active, onClick, icon }: any) {
+export function NavBtn({ label, children, active, onClick, icon }: any) {
   return (
     <button onClick={onClick} style={{
       padding: "10px 18px", borderRadius: "12px", border: "none", cursor: "pointer",
       background: active ? "#111" : "transparent", color: active ? "white" : "#666",
       fontWeight: active ? 800 : 500, display: "flex", alignItems: "center", gap: "8px", transition: "0.2s"
     }}>
-      <span style={{ fontSize: "1rem" }}>{icon}</span>{children}
+      <span style={{ fontSize: "1rem" }}>{icon}</span>{label || children}
     </button>
   );
 }
