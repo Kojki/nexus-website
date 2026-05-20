@@ -26,7 +26,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Nexus <onboarding@resend.dev>",
+        from: "Nexus <info@nexus-connect.jp>",
         to: [to],
         subject: subject,
         text: body,
