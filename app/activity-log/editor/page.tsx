@@ -10,8 +10,7 @@ import {
   MembersTab, 
   FaqTab, 
   InquiriesTab, 
-  ProjectsTab, 
-  ApplicationsTab 
+  ProjectsTab 
 } from "./components/EditorTabs";
 import { SystemDashboardTab } from "./components/SystemDashboardTab";
 
@@ -186,8 +185,7 @@ export default function NexusStudioPro() {
             {hasPermission("manage_members") && <NavBtn active={activeTab === "members"} label="👤 メンバー情報管理" icon="👥" onClick={() => setActiveTab("members")} />}
             {hasPermission("manage_projects") && <NavBtn active={activeTab === "projects"} label="🚀 コラボ PJ 管理" icon="💼" onClick={() => setActiveTab("projects")} />}
             {hasPermission("manage_faqs") && <NavBtn active={activeTab === "faqs"} label="❓ FAQ 質問管理" icon="💬" onClick={() => setActiveTab("faqs")} />}
-            {hasPermission("manage_inquiries") && <NavBtn active={activeTab === "inquiries"} label="📩 お問い合わせ対応" icon="📬" onClick={() => setActiveTab("inquiries")} />}
-            {hasPermission("manage_inquiries") && <NavBtn active={activeTab === "applications"} label="🤝 メンバー申請一覧" icon="🤝" onClick={() => setActiveTab("applications")} />}
+            {hasPermission("manage_inquiries") && <NavBtn active={activeTab === "inquiries"} label="📬 申請・お問い合わせ管理" icon="📬" onClick={() => setActiveTab("inquiries")} />}
             {hasPermission("view_analytics") && <NavBtn active={activeTab === "system"} label="📊 システム・解析" icon="⚙️" onClick={() => setActiveTab("system")} />}
           </nav>
         </div>
@@ -218,8 +216,7 @@ export default function NexusStudioPro() {
               {activeTab === "members" && "👤 コミュニティメンバー情報の並び替え・管理"}
               {activeTab === "projects" && "🚀 共創コラボレーションプロジェクトの管理"}
               {activeTab === "faqs" && "❓ よくある質問 (FAQ) テンプレート管理"}
-              {activeTab === "inquiries" && "📩 外部からの一般お問い合わせ対応履歴"}
-              {activeTab === "applications" && "🤝 コミュニティへの参加申請者一覧"}
+              {activeTab === "inquiries" && "📬 お問い合わせ・参加申請の管理"}
               {activeTab === "system" && "📊 アクセス統計解析・セキュリティ監視ログ"}
             </h2>
           </div>
@@ -363,13 +360,6 @@ export default function NexusStudioPro() {
 
             {activeTab === "inquiries" && (
               <InquiriesTab
-                inquiries={inquiries}
-                handleUpdateStatus={actions.handleUpdateInquiryStatus}
-              />
-            )}
-
-            {activeTab === "applications" && (
-              <ApplicationsTab
                 inquiries={inquiries}
                 handleUpdateStatus={actions.handleUpdateInquiryStatus}
                 handleDelete={actions.handleDelete}

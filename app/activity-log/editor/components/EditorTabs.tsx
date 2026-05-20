@@ -689,76 +689,251 @@ export function FaqTab({ state, setters, handlers }: any) {
 }
 
 // 📩 お問い合わせ履歴タブ
-export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any[], handleUpdateStatus: (id: string, status: string) => void }) {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "processing":
-        return <span style={{ background: "#e6f0ff", color: "#0066cc", padding: "4px 10px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800 }}>🔵 対応中</span>;
-      case "completed":
-        return <span style={{ background: "#e6ffe6", color: "#006600", padding: "4px 10px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800 }}>🟢 対応完了</span>;
-      default:
-        return <span style={{ background: "#fff0f0", color: "#cc0000", padding: "4px 10px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800 }}>🟡 未対応</span>;
+// 📩 お問い合わせ・参加申請 統合管理タブ
+export function InquiriesTab({ 
+  inquiries, 
+  handleUpdateStatus, 
+  handleDelete, 
+  showToast 
+}: { 
+  inquiries: any[], 
+  handleUpdateStatus: (id: string, status: string) => void, 
+  handleDelete?: (table: string, id: string, bypassConfirm?: boolean) => void,
+  showToast?: (msg: string, type?: 'success' | 'error') => void 
+}) {
+  const [approveModal, setApproveModal] = useState<any>(null);
+  const [rejectModal, setRejectModal] = useState<any>(null);
+  const [deleteModal, setDeleteModal] = useState<any>(null);
+  const [emailBody, setEmailBody] = useState("");
+  const [rejectEmailBody, setRejectEmailBody] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const projectApplications = inquiries.filter(i => i.category === "プロジェクト参加希望");
+  const otherInquiries = inquiries.filter(i => i.category !== "プロジェクト参加希望");
+
+  const projectName = (content: string) => {
+    const match = content?.match(/【参画希望プロジェクト】\n(.+)/);
+    return match ? match[1].trim() : "プロジェクト";
+  };
+
+  const openApproveModal = (inq: any) => {
+    const name = inq.name;
+    const proj = projectName(inq.content);
+    setEmailBody(`${name} さん\n\nおめでとうございます！Nexus 運営チームです。\n\nお送りいただいた志望理由を拝見し、ぜひ「${proj}」のコアメンバーとして一緒に未来を創っていただきたいと、メンバー全員の意見が一致いたしました！\n\n本日より、${name} さんは Nexus の正式メンバーです。これから一緒に最高のプロジェクトにしていきましょう！🚀\n\nこれからのコミュニケーションのため、公式Slackワークスペースへご入室をお願いいたします。\n\n▼ Nexus 公式Slack招待URL\nhttps://join.slack.com/t/nexus-45x8670/shared_invite/zt-3x2vq5935-O7CsSen0PLwlDjNAQvpjgA\n\nNexus 運営チーム\n連絡先: azalea.cape@gmail.com`);
+    setApproveModal(inq);
+  };
+
+  const openRejectModal = (inq: any) => {
+    const name = inq.name;
+    setRejectEmailBody(`${name} さん\n\nお世話になっております。Nexus 運営チームです。\n\nこの度は、ご申請いただき誠にありがとうございました。\n慎重に選考を行わせていただきましたが、現在想定しているプロジェクトのキャパシティとのマッチングを検討した結果、誠に残念ながら、今回はご参画を見送らせていただく運びとなりました。\n\nご期待に沿えない結果となり大変恐縮ですが、何卒ご理解いただけますと幸いです。\n\nNexus 運営チーム\n連絡先: azalea.cape@gmail.com`);
+    setRejectModal(inq);
+  };
+
+  const handleSendApproval = async () => {
+    if (!approveModal) return;
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-email", {
+        body: { to: approveModal.email, subject: "🎉【Nexus】プロジェクト参加決定のお知らせ！", body: emailBody },
+      });
+      if (error) throw error;
+      await handleUpdateStatus(approveModal.id, "completed");
+      if (showToast) showToast("🎉 採用決定メールを送信しました！");
+    } catch (e: any) {
+      if (showToast) showToast(`メール送信エラー: ${e.message}`, "error");
+    } finally {
+      setSending(false);
+      setApproveModal(null);
     }
   };
 
+  const handleSendRejection = async () => {
+    if (!rejectModal) return;
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-email", {
+        body: { to: rejectModal.email, subject: "【Nexus】プロジェクトご応募の結果について", body: rejectEmailBody },
+      });
+      if (error) throw error;
+      await handleUpdateStatus(rejectModal.id, "rejected");
+      if (showToast) showToast("⚫ お見送りメールを送信しました！");
+    } catch (e: any) {
+      if (showToast) showToast(`メール送信エラー: ${e.message}`, "error");
+    } finally {
+      setSending(false);
+      setRejectModal(null);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteModal || !handleDelete) return;
+    setSending(true);
+    try {
+      await handleDelete("inquiries", deleteModal.id, true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSending(false);
+      setDeleteModal(null);
+    }
+  };
+
+  const statusBadge = (status: string) => {
+    const map: any = {
+      processing: <span style={{ background: "#e6f0ff", color: "#0066cc", padding: "3px 9px", borderRadius: "8px", fontSize: "0.72rem", fontWeight: 800 }}>🔵 対応中/選考中</span>,
+      completed:  <span style={{ background: "#e6ffe6", color: "#006600", padding: "3px 9px", borderRadius: "8px", fontSize: "0.72rem", fontWeight: 800 }}>🟢 完了/採用済み</span>,
+      rejected:   <span style={{ background: "#f0f0f0", color: "#666",    padding: "3px 9px", borderRadius: "8px", fontSize: "0.72rem", fontWeight: 800 }}>⚫ お見送り済み</span>,
+    };
+    return map[status] || <span style={{ background: "#fff0e0", color: "#cc6600", padding: "3px 9px", borderRadius: "8px", fontSize: "0.72rem", fontWeight: 800 }}>🟡 未対応</span>;
+  };
+
+  const ModalBase = ({ title, email, body, setBody, onSend, onClose, sendLabel, sendColor }: any) => (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "white", borderRadius: "20px", padding: "36px", maxWidth: "560px", width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ fontWeight: 900, fontSize: "1.1rem" }}>{title}</div>
+        <div style={{ fontSize: "0.82rem", color: "#666" }}>宛先: <b>{email}</b> — 内容を確認・編集してから送信してください</div>
+        <textarea value={body} onChange={e => setBody(e.target.value)} style={{ width: "100%", minHeight: "280px", borderRadius: "12px", border: "1px solid #ddd", padding: "14px", fontSize: "0.82rem", lineHeight: 1.7, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
+        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: "10px", border: "1px solid #ddd", background: "white", cursor: "pointer", fontWeight: 700 }}>キャンセル</button>
+          <button onClick={onSend} disabled={sending} style={{ padding: "10px 24px", borderRadius: "10px", border: "none", background: sendColor, color: "white", cursor: "pointer", fontWeight: 800, fontSize: "0.9rem" }}>
+            {sendLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div>
-      <h2 style={S.sectionTitle}>お問い合わせ履歴</h2>
-      {inquiries.length === 0 ? (
-        <div style={{ ...S.emptyState, textAlign: "center" }}>メッセージはありません。</div>
-      ) : inquiries.map((i: any) => {
-        const subject = encodeURIComponent(`【Nexus】お問い合わせへのご返信（件名: ${i.category}）`);
-        const body = encodeURIComponent(`${i.name} 様\n\nお問い合わせいただきありがとうございます。\nNexus運営チームです。\n\n---\n\n`);
-        const mailtoLink = `mailto:${i.email}?subject=${subject}&body=${body}`;
-
-        return (
-          <div key={i.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", marginBottom: "24px", gap: "12px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 800, background: "#eee", padding: "4px 8px", borderRadius: "6px" }}>{i.category}</span>
-                {getStatusBadge(i.status)}
-              </div>
-              <span style={{ fontSize: "0.75rem", color: "#888" }}>{new Date(i.created_at).toLocaleString('ja-JP')}</span>
+      {approveModal && <ModalBase title="🎉 採用決定メールの送信" email={approveModal.email} body={emailBody} setBody={setEmailBody} onSend={handleSendApproval} onClose={() => setApproveModal(null)} sendLabel="✉️ 採用決定メールを送信" sendColor="#111" />}
+      {rejectModal && <ModalBase title="📩 お見送りメールの送信" email={rejectModal.email} body={rejectEmailBody} setBody={setRejectEmailBody} onSend={handleSendRejection} onClose={() => setRejectModal(null)} sendLabel="✉️ お見送りメールを送信" sendColor="#666" />}
+      
+      {/* 削除確認モーダル (ポップアップ) */}
+      {deleteModal && (
+        <div onClick={() => setDeleteModal(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "white", borderRadius: "20px", padding: "36px", maxWidth: "460px", width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "20px", textAlign: "center" }}>
+            <div style={{ fontSize: "2.5rem" }}>⚠️</div>
+            <div style={{ fontWeight: 900, fontSize: "1.25rem", color: "#cc0000" }}>メッセージを完全に削除しますか？</div>
+            <div style={{ fontSize: "0.85rem", color: "#666", lineHeight: 1.6 }}>
+              <b>{deleteModal.name} 様</b> のデータ<br />
+              （カテゴリ: {deleteModal.category}）<br />
+              をデータベースから完全に消去します。この操作は取り消せません。
             </div>
-            
-            <div style={{ fontWeight: 800, fontSize: "1.1rem" }}>{i.name} 様</div>
-            {i.organization && <div style={{ fontSize: "0.85rem", color: "#666" }}>{i.organization}</div>}
-            
-            <div style={{ fontSize: "0.9rem", color: "#333", lineHeight: 1.6, background: "#f8f7f4", padding: "16px", borderRadius: "8px", width: "100%", boxSizing: "border-box", whiteSpace: "pre-wrap" }}>
+            <div style={{ display: "flex", gap: "12px", marginTop: "10px" }}>
+              <button onClick={() => setDeleteModal(null)} style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "1px solid #ddd", background: "white", cursor: "pointer", fontWeight: 700 }}>キャンセル</button>
+              <button onClick={handleConfirmDelete} disabled={sending} style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "none", background: "#cc0000", color: "white", cursor: "pointer", fontWeight: 800 }}>
+                {sending ? "削除中..." : "本当に削除する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <h2 style={S.sectionTitle}>📬 お問い合わせ・参加申請の管理</h2>
+
+      {/* 🚀 プロジェクト参加申請 セクション */}
+      <div style={{ marginBottom: "50px" }}>
+        <div style={{ fontWeight: 900, fontSize: "1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+          🚀 プロジェクト参加申請
+          <span style={{ background: "#fff0e0", color: "#cc6600", borderRadius: "99px", padding: "2px 10px", fontSize: "0.72rem", fontWeight: 800 }}>
+            {projectApplications.filter(i => !i.status || i.status === "unprocessed").length} 件 未対応
+          </span>
+        </div>
+        {projectApplications.length === 0 ? (
+          <div style={S.emptyState}>参加申請はまだありません</div>
+        ) : projectApplications.map((i: any) => (
+          <div key={i.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", marginBottom: "20px", gap: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 800, background: "#e6f0ff", color: "#0044cc", padding: "3px 9px", borderRadius: "6px" }}>{projectName(i.content)}</span>
+                {statusBadge(i.status)}
+              </div>
+              <span style={{ fontSize: "0.72rem", color: "#aaa" }}>{new Date(i.created_at).toLocaleString('ja-JP')}</span>
+            </div>
+            <div style={{ fontWeight: 800, fontSize: "1rem" }}>
+              {i.name} 様 <span style={{ fontWeight: 400, fontSize: "0.82rem", color: "#666" }}>{i.organization && `（${i.organization}）`}</span>
+            </div>
+            <div style={{ fontSize: "0.85rem", color: "#444", lineHeight: 1.7, background: "#f8f7f4", padding: "14px", borderRadius: "10px", width: "100%", boxSizing: "border-box", whiteSpace: "pre-wrap" }}>
               {i.content}
             </div>
+            <div style={{ display: "flex", gap: "8px", width: "100%", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
+              <span style={{ fontSize: "0.78rem", color: "#666", marginRight: "auto" }}>✉️ {i.email}</span>
+              
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginRight: "12px" }}>
+                <label style={{ fontSize: "0.7rem", fontWeight: 800, color: "#888" }}>手動変更:</label>
+                <select value={i.status || "unprocessed"} onChange={e => handleUpdateStatus(i.id, e.target.value)} style={{ width: "auto", padding: "4px 8px", fontSize: "0.75rem", borderRadius: "8px", border: "1px solid #ddd" }}>
+                  <option value="unprocessed">🟡 未対応</option>
+                  <option value="processing">🔵 選考中</option>
+                  <option value="completed">🟢 採用済み</option>
+                  <option value="rejected">⚫ お見送り</option>
+                </select>
+              </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", marginTop: "8px", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <label style={{ fontSize: "0.75rem", fontWeight: 800, color: "#666" }}>ステータス変更:</label>
-                <select 
-                  value={i.status || "unprocessed"} 
-                  onChange={(e) => handleUpdateStatus(i.id, e.target.value)} 
-                  style={{ ...S.select, width: "auto", padding: "4px 10px", fontSize: "0.8rem", height: "auto" }}
-                >
+              {i.status !== "completed" && i.status !== "rejected" && (
+                <button onClick={() => openApproveModal(i)} style={{ padding: "7px 14px", borderRadius: "8px", border: "none", background: "#111", color: "white", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
+                  🎉 採用決定
+                </button>
+              )}
+              {i.status !== "completed" && i.status !== "rejected" && (
+                <button onClick={() => openRejectModal(i)} style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #ddd", background: "white", color: "#888", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
+                  📩 お見送り
+                </button>
+              )}
+              {handleDelete && (
+                <button onClick={() => setDeleteModal(i)} style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #ffcccc", background: "#fff0f0", color: "#cc0000", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
+                  🗑️ 削除
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 📩 通常のお問い合わせ セクション */}
+      <div>
+        <div style={{ fontWeight: 900, fontSize: "1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+          📩 通常のお問い合わせ
+        </div>
+        {otherInquiries.length === 0 ? (
+          <div style={S.emptyState}>お問い合わせはありません</div>
+        ) : otherInquiries.map((i: any) => {
+          const subject = encodeURIComponent(`【Nexus】お問い合わせへのご返信（件名: ${i.category}）`);
+          const body = encodeURIComponent(`${i.name} 様\n\nお問い合わせいただきありがとうございます。\nNexus運営チームです。\n\n---\n\n`);
+          const mailtoLink = `mailto:${i.email}?subject=${subject}&body=${body}`;
+
+          return (
+            <div key={i.id} style={{ ...S.listItem, flexDirection: "column", alignItems: "flex-start", marginBottom: "20px", gap: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.72rem", background: "#eee", padding: "3px 8px", borderRadius: "6px", fontWeight: 700 }}>{i.category}</span>
+                  {statusBadge(i.status)}
+                </div>
+                <span style={{ fontSize: "0.72rem", color: "#aaa" }}>{new Date(i.created_at).toLocaleString('ja-JP')}</span>
+              </div>
+              <div style={{ fontWeight: 800 }}>{i.name} 様</div>
+              <div style={{ fontSize: "0.85rem", color: "#444", lineHeight: 1.6, background: "#f8f7f4", padding: "12px", borderRadius: "8px", width: "100%", boxSizing: "border-box", whiteSpace: "pre-wrap" }}>
+                {i.content}
+              </div>
+              <div style={{ display: "flex", gap: "10px", width: "100%", justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "0.78rem", color: "#666", marginRight: "auto" }}>✉️ {i.email}</span>
+                <select value={i.status || "unprocessed"} onChange={e => handleUpdateStatus(i.id, e.target.value)} style={{ width: "auto", padding: "4px 10px", fontSize: "0.78rem", borderRadius: "8px", border: "1px solid #ddd" }}>
                   <option value="unprocessed">🟡 未対応</option>
                   <option value="processing">🔵 対応中</option>
                   <option value="completed">🟢 対応完了</option>
                 </select>
-              </div>
-
-              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                <div style={{ fontSize: "0.8rem", color: "#666" }}>✉️ {i.email}</div>
-                <a 
-                  href={mailtoLink} 
-                  style={{ 
-                    background: "#111", color: "white", padding: "8px 16px", 
-                    borderRadius: "8px", fontSize: "0.85rem", fontWeight: 800, 
-                    textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" 
-                  }}
-                >
-                  ✉️ メールで返信する
+                <a href={mailtoLink} style={{ background: "#111", color: "white", padding: "6px 14px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: 800, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  ✉️ 返信する
                 </a>
+                {handleDelete && (
+                  <button onClick={() => setDeleteModal(i)} style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #ffcccc", background: "#fff0f0", color: "#cc0000", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
+                    🗑️ 削除
+                  </button>
+                )}
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
