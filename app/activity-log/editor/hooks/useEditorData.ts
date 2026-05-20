@@ -46,11 +46,14 @@ export interface AuditLogItem {
 // 🔑 ロールとデフォルト権限のマトリクス
 // 🔑 役職の階層順序（数値が大きいほど上位）
 export const ROLE_HIERARCHY: Record<string, number> = {
-  owner:    4,
-  admin:    3,
-  reviewer: 2,
-  proposer: 1,
-  guest:    0,
+  owner:            7,
+  admin:            6,
+  editor:           5,
+  project_manager:  4,
+  public_relations: 3,
+  reviewer:         2,
+  proposer:         1,
+  guest:            0,
 };
 
 // 🔑 ロールとデフォルト権限のマトリクス
@@ -81,6 +84,23 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "delete_inquiries",
     "restore_trash",
     "empty_trash",
+  ],
+  editor: [
+    "propose_content",
+    "publish_content",
+    "view_inquiries",
+    "reply_inquiries",
+    "delete_inquiries",
+  ],
+  project_manager: [
+    "propose_content",
+    "publish_content",
+    "view_inquiries",
+    "reply_inquiries",
+  ],
+  public_relations: [
+    "propose_content",
+    "view_inquiries",
   ],
   reviewer: [
     "view_traffic_analytics",
