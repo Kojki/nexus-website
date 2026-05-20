@@ -13,7 +13,7 @@ import {
   ProjectsTab 
 } from "./components/EditorTabs";
 import { SystemDashboardTab } from "./components/SystemDashboardTab";
-import { RoleSettingsTab } from "./components/RoleSettingsTab.tsx";
+import { RoleSettingsTab } from "./components/RoleSettingsTab";
 
 export default function NexusStudioPro() {
   const {
