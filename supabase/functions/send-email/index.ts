@@ -34,10 +34,21 @@ serve(async (req) => {
     });
 
     const resData = await response.json();
+
+    // 🔴 修正ポイント: 送信が成功している場合(200や201など)は、強制的に「200」を返してSupabaseのエラー判定を回避します！
+    if (response.ok) {
+      return new Response(JSON.stringify(resData), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200, // 👈 ここを 200 に固定
+      });
+    }
+
+    // 失敗した場合はそのままのエラーコードを返します
     return new Response(JSON.stringify(resData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: response.status,
     });
+
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
