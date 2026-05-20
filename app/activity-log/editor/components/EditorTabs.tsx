@@ -694,12 +694,14 @@ export function InquiriesTab({
   inquiries, 
   handleUpdateStatus, 
   handleDelete, 
-  showToast 
+  showToast,
+  hasPermission
 }: { 
   inquiries: any[], 
   handleUpdateStatus: (id: string, status: string) => void, 
   handleDelete?: (table: string, id: string, bypassConfirm?: boolean) => void,
-  showToast?: (msg: string, type?: 'success' | 'error') => void 
+  showToast?: (msg: string, type?: 'success' | 'error') => void,
+  hasPermission: (permission: string) => boolean
 }) {
   const [approveModal, setApproveModal] = useState<any>(null);
   const [rejectModal, setRejectModal] = useState<any>(null);
@@ -861,7 +863,7 @@ export function InquiriesTab({
               
               <div style={{ display: "flex", alignItems: "center", gap: "6px", marginRight: "12px" }}>
                 <label style={{ fontSize: "0.7rem", fontWeight: 800, color: "#888" }}>手動変更:</label>
-                <select value={i.status || "unprocessed"} onChange={e => handleUpdateStatus(i.id, e.target.value)} style={{ width: "auto", padding: "4px 8px", fontSize: "0.75rem", borderRadius: "8px", border: "1px solid #ddd" }}>
+                <select value={i.status || "unprocessed"} onChange={e => handleUpdateStatus(i.id, e.target.value)} disabled={!hasPermission("reply_inquiries")} style={{ width: "auto", padding: "4px 8px", fontSize: "0.75rem", borderRadius: "8px", border: "1px solid #ddd", background: !hasPermission("reply_inquiries") ? "#f5f5f5" : "white" }}>
                   <option value="unprocessed">🟡 未対応</option>
                   <option value="processing">🔵 選考中</option>
                   <option value="completed">🟢 採用済み</option>
@@ -869,17 +871,17 @@ export function InquiriesTab({
                 </select>
               </div>
 
-              {i.status !== "completed" && i.status !== "rejected" && (
+              {hasPermission("reply_inquiries") && i.status !== "completed" && i.status !== "rejected" && (
                 <button onClick={() => openApproveModal(i)} style={{ padding: "7px 14px", borderRadius: "8px", border: "none", background: "#111", color: "white", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
                   🎉 採用決定
                 </button>
               )}
-              {i.status !== "completed" && i.status !== "rejected" && (
+              {hasPermission("reply_inquiries") && i.status !== "completed" && i.status !== "rejected" && (
                 <button onClick={() => openRejectModal(i)} style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #ddd", background: "white", color: "#888", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
                   📩 お見送り
                 </button>
               )}
-              {handleDelete && (
+              {handleDelete && hasPermission("delete_inquiries") && (
                 <button onClick={() => setDeleteModal(i)} style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #ffcccc", background: "#fff0f0", color: "#cc0000", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
                   🗑️ 削除
                 </button>
@@ -916,15 +918,15 @@ export function InquiriesTab({
               </div>
               <div style={{ display: "flex", gap: "10px", width: "100%", justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "0.78rem", color: "#666", marginRight: "auto" }}>✉️ {i.email}</span>
-                <select value={i.status || "unprocessed"} onChange={e => handleUpdateStatus(i.id, e.target.value)} style={{ width: "auto", padding: "4px 10px", fontSize: "0.78rem", borderRadius: "8px", border: "1px solid #ddd" }}>
+                <select value={i.status || "unprocessed"} onChange={e => handleUpdateStatus(i.id, e.target.value)} disabled={!hasPermission("reply_inquiries")} style={{ width: "auto", padding: "4px 10px", fontSize: "0.78rem", borderRadius: "8px", border: "1px solid #ddd", background: !hasPermission("reply_inquiries") ? "#f5f5f5" : "white" }}>
                   <option value="unprocessed">🟡 未対応</option>
                   <option value="processing">🔵 対応中</option>
                   <option value="completed">🟢 対応完了</option>
                 </select>
-                <a href={mailtoLink} style={{ background: "#111", color: "white", padding: "6px 14px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: 800, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <a href={mailtoLink} style={{ background: hasPermission("reply_inquiries") ? "#111" : "#ddd", color: hasPermission("reply_inquiries") ? "white" : "#999", padding: "6px 14px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: 800, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", pointerEvents: hasPermission("reply_inquiries") ? "auto" : "none" }}>
                   ✉️ 返信する
                 </a>
-                {handleDelete && (
+                {handleDelete && hasPermission("delete_inquiries") && (
                   <button onClick={() => setDeleteModal(i)} style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #ffcccc", background: "#fff0f0", color: "#cc0000", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
                     🗑️ 削除
                   </button>

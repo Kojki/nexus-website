@@ -44,69 +44,74 @@ export interface AuditLogItem {
 }
 
 // 🔑 ロールとデフォルト権限のマトリクス
+// 🔑 役職の階層順序（数値が大きいほど上位）
+export const ROLE_HIERARCHY: Record<string, number> = {
+  owner:    4,
+  admin:    3,
+  reviewer: 2,
+  proposer: 1,
+  guest:    0,
+};
+
+// 🔑 ロールとデフォルト権限のマトリクス
 export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   owner: [
-    "manage_users",
-    "manage_bulletin",
-    "view_analytics",
-    "edit_content",
+    "manage_roles_unlimited",
+    "manage_subordinate_roles",
+    "remove_users",
+    "view_traffic_analytics",
+    "view_audit_logs",
+    "propose_content",
     "publish_content",
-    "manage_activities",
-    "manage_members",
-    "manage_projects",
-    "manage_faqs",
-    "manage_inquiries",
-    "manage_trash"
+    "view_inquiries",
+    "reply_inquiries",
+    "delete_inquiries",
+    "restore_trash",
+    "empty_trash",
   ],
-  editor: [
-    "view_analytics",
-    "edit_content",
+  admin: [
+    "manage_subordinate_roles",
+    "remove_users",
+    "view_traffic_analytics",
+    "view_audit_logs",
+    "propose_content",
     "publish_content",
-    "manage_activities",
-    "manage_members",
-    "manage_projects",
-    "manage_faqs",
-    "manage_inquiries",
-    "manage_trash"
+    "view_inquiries",
+    "reply_inquiries",
+    "delete_inquiries",
+    "restore_trash",
+    "empty_trash",
   ],
-  public_relations: [
-    "view_analytics",
-    "edit_content",
+  reviewer: [
+    "view_traffic_analytics",
+    "propose_content",
     "publish_content",
-    "manage_activities",
-    "manage_members",
-    "manage_faqs"
-  ],
-  project_manager: [
-    "view_analytics",
-    "edit_content",
-    "publish_content",
-    "manage_members",
-    "manage_projects"
+    "view_inquiries",
+    "reply_inquiries",
+    "restore_trash",
   ],
   proposer: [
-    "edit_content",
-    "manage_activities",
-    "manage_members",
-    "manage_projects",
-    "manage_faqs"
+    "propose_content",
+    "view_inquiries",
   ],
-  custom: []
+  guest: [],
+  custom: [],
 };
 
 // 🔑 日本語の権限表示ラベルマッピング
 export const PERMISSION_LABELS: Record<string, { label: string; desc: string }> = {
-  manage_users: { label: "👥 ユーザー招待・権限管理", desc: "他の管理者の招待・削除・権限変更" },
-  manage_bulletin: { label: "📌 伝言板編集", desc: "運営伝言板のピン留め・更新" },
-  view_analytics: { label: "📊 システム・解析閲覧", desc: "システム情報、アクセス解析、セキュリティ監査ログの閲覧" },
-  edit_content: { label: "📝 文言の下書き", desc: "サイト文言の編集（提案・下書き保存）" },
-  publish_content: { label: "🚀 文言の本番公開", desc: "サイト文言の直接本番保存、他人の提案の承認・却下" },
-  manage_activities: { label: "✍️ 活動記録管理", desc: "活動記録の作成・編集・削除・公開" },
-  manage_members: { label: "👤 メンバー情報管理", desc: "メンバーの追加・編集・並び替え・削除・公開" },
-  manage_projects: { label: "🚀 プロジェクト管理", desc: "共創プロジェクトの追加・編集・並び替え・削除・公開" },
-  manage_faqs: { label: "❓ FAQ管理", desc: "FAQの追加・編集・削除・公開" },
-  manage_inquiries: { label: "📩 問い合わせ管理", desc: "問い合わせや参加申請のステータス変更・削除" },
-  manage_trash: { label: "🗑️ ゴミ箱・リカバリー", desc: "ゴミ箱内のデータの復元や、永久消去" }
+  manage_roles_unlimited:   { label: "👑 全権限の付与・剥奪",       desc: "すべての役職・権限を自由に変更できる（オーナー専用）" },
+  manage_subordinate_roles: { label: "🔧 下位役職の管理",           desc: "自分より下の役職のユーザーの役職変更・降格ができる" },
+  remove_users:             { label: "🚫 アカウント剥奪",           desc: "ユーザーのアクセス権をシステムから削除できる" },
+  view_traffic_analytics:   { label: "📊 アクセス状況の閲覧",       desc: "PV数・人気ページなどの統計データを見れる" },
+  view_audit_logs:          { label: "🛡️ 監査ログの閲覧",          desc: "誰がいつ何をしたか（操作履歴）を見れる" },
+  propose_content:          { label: "📝 編集提案",                 desc: "コンテンツの追加・編集を「提案（承認待ち）」として送信できる" },
+  publish_content:          { label: "🚀 本番公開・提案反映",       desc: "直接本番へ反映できる。他人の提案を承認・却下できる" },
+  view_inquiries:           { label: "📩 問い合わせの閲覧",         desc: "届いたメッセージや申請を「読む」ことだけできる" },
+  reply_inquiries:          { label: "✉️ 返信・メール送信",         desc: "採用/お見送り/返信メールの送信、ステータス変更ができる" },
+  delete_inquiries:         { label: "🗑️ 問い合わせの削除",        desc: "届いた問い合わせ・申請データを削除できる" },
+  restore_trash:            { label: "♻️ ゴミ箱からの復元",        desc: "削除されたデータをゴミ箱から元に戻せる" },
+  empty_trash:              { label: "💥 データの永久消去",         desc: "ゴミ箱のデータを完全に消去できる（取り消し不可）" },
 };
 
 export function useEditorData() {
@@ -126,6 +131,7 @@ export function useEditorData() {
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
   const [allowedUsers, setAllowedUsers] = useState<AllowedUserItem[]>([]);
+  const [rolePermissions, setRolePermissions] = useState<Record<string, string[]>>(ROLE_DEFAULT_PERMISSIONS);
 
   // モバイル表示トグル
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(true);
@@ -200,6 +206,18 @@ export function useEditorData() {
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const getDefaultPermissionsForRole = (role: string) => {
+    return rolePermissions[role] || ROLE_DEFAULT_PERMISSIONS[role] || [];
+  };
+
+  const canManageRole = (targetRole: string) => {
+    if (userRole === "owner") return true;
+    if (!hasPermission("manage_subordinate_roles")) return false;
+    const currentRank = ROLE_HIERARCHY[userRole || "guest"] ?? -1;
+    const targetRank = ROLE_HIERARCHY[targetRole] ?? -1;
+    return targetRank < currentRank;
   };
 
   const hasPermission = (permission: string) => {
@@ -355,7 +373,18 @@ export function useEditorData() {
       setIsAuthenticated(true);
       setUserRole(userData.role);
 
-      const activePerms = userData.permissions || ROLE_DEFAULT_PERMISSIONS[userData.role] || [];
+      const { data: rolePermRows, error: rolePermError } = await supabase
+        .from("role_permissions")
+        .select("role_id, permissions");
+      if (!rolePermError && rolePermRows && rolePermRows.length > 0) {
+        const loaded: Record<string, string[]> = { ...ROLE_DEFAULT_PERMISSIONS };
+        rolePermRows.forEach((row: any) => {
+          if (row.role_id) loaded[row.role_id] = row.permissions || [];
+        });
+        setRolePermissions(loaded);
+      }
+
+      const activePerms = userData.permissions || getDefaultPermissionsForRole(userData.role);
       setUserPermissions(activePerms);
 
       const { data: nData } = await supabase
@@ -407,13 +436,17 @@ export function useEditorData() {
 
   const handleAddAllowedUser = async (email: string, role: string) => {
     if (!email) return;
-    if (!hasPermission("manage_users")) {
+    if (!hasPermission("manage_subordinate_roles")) {
       showToast("操作権限がありません", "error");
+      return;
+    }
+    if (!canManageRole(role)) {
+      showToast("この役職を付与する権限がありません", "error");
       return;
     }
     const cleanEmail = email.toLowerCase().trim();
     try {
-      const defaultPerms = ROLE_DEFAULT_PERMISSIONS[role] || [];
+      const defaultPerms = getDefaultPermissionsForRole(role);
       const { error } = await supabase.from("allowed_users").insert([
         {
           email: cleanEmail,
@@ -432,12 +465,17 @@ export function useEditorData() {
   };
 
   const handleRemoveAllowedUser = async (email: string) => {
-    if (!hasPermission("manage_users")) {
+    if (!hasPermission("remove_users")) {
       showToast("操作権限がありません", "error");
       return;
     }
     if (email.toLowerCase() === currentUserEmail.toLowerCase()) {
       showToast("自分自身の権限を削除することはできません", "error");
+      return;
+    }
+    const targetUser = allowedUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (targetUser && !canManageRole(targetUser.role)) {
+      showToast("このユーザーの権限を削除する権限がありません", "error");
       return;
     }
     if (confirm(`本当に「${email}」のログイン許可を剥奪しますか？`)) {
@@ -455,7 +493,7 @@ export function useEditorData() {
   };
 
   const handleChangeUserRole = async (email: string, role: string) => {
-    if (!hasPermission("manage_users")) {
+    if (!hasPermission("manage_subordinate_roles")) {
       showToast("操作権限がありません", "error");
       return;
     }
@@ -463,8 +501,12 @@ export function useEditorData() {
       showToast("自分自身のロールは変更できません", "error");
       return;
     }
+    if (!canManageRole(role)) {
+      showToast("この役職に変更する権限がありません", "error");
+      return;
+    }
     try {
-      const defaultPerms = ROLE_DEFAULT_PERMISSIONS[role] || [];
+      const defaultPerms = getDefaultPermissionsForRole(role);
       const { error } = await supabase
         .from("allowed_users")
         .update({ role, permissions: defaultPerms })
@@ -480,8 +522,13 @@ export function useEditorData() {
   };
 
   const handleUpdateAllowedUserPermissions = async (email: string, permissions: string[]) => {
-    if (!hasPermission("manage_users")) {
+    if (!hasPermission("manage_subordinate_roles")) {
       showToast("操作権限がありません", "error");
+      return;
+    }
+    const targetUser = allowedUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (targetUser && !canManageRole(targetUser.role)) {
+      showToast("このユーザーの権限を変更する権限がありません", "error");
       return;
     }
     try {
@@ -507,8 +554,30 @@ export function useEditorData() {
     }
   };
 
+  const handleUpdateRolePermissions = async (roleId: string, permissions: string[]) => {
+    if (userRole !== "owner") {
+      showToast("役職設定を更新する権限がありません", "error");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("role_permissions").upsert([
+        { role_id: roleId, permissions }
+      ], { onConflict: "role_id" });
+      if (error) throw error;
+
+      setRolePermissions((prev) => ({
+        ...prev,
+        [roleId]: permissions
+      }));
+      showToast(`${roleId} のデフォルト権限を保存しました`);
+    } catch (e: any) {
+      showToast("役職設定の保存に失敗しました", "error");
+    }
+  };
+
   const handleUpdateAllowedUserEmail = async (oldEmail: string, newEmail: string) => {
-    if (!hasPermission("manage_users")) {
+    if (!hasPermission("manage_subordinate_roles")) {
       showToast("操作権限がありません", "error");
       return;
     }
@@ -649,7 +718,7 @@ export function useEditorData() {
   };
 
   const handleSaveActivity = async (isPublished: boolean = true) => {
-    if (!hasPermission("manage_activities")) {
+    if (!hasPermission("propose_content")) {
       showToast("操作権限がありません", "error");
       return;
     }
@@ -722,7 +791,7 @@ export function useEditorData() {
   };
 
   const handleSaveMember = async () => {
-    if (!hasPermission("manage_members")) {
+    if (!hasPermission("propose_content")) {
       showToast("操作権限がありません", "error");
       return;
     }
@@ -829,7 +898,7 @@ export function useEditorData() {
   };
 
   const handleSaveProject = async () => {
-    if (!hasPermission("manage_projects")) {
+    if (!hasPermission("propose_content")) {
       showToast("操作権限がありません", "error");
       return;
     }
@@ -891,7 +960,7 @@ export function useEditorData() {
   };
 
   const handleMoveProject = async (index: number, direction: "up" | "down") => {
-    if (!hasPermission("manage_projects") || !hasPermission("publish_content")) {
+    if (!hasPermission("publish_content")) {
       showToast("表示順序の変更権限がありません", "error");
       return;
     }
@@ -919,7 +988,7 @@ export function useEditorData() {
   };
 
   const handleUpdateInquiryStatus = async (id: string, status: string) => {
-    if (!hasPermission("manage_inquiries")) {
+    if (!hasPermission("reply_inquiries")) {
       showToast("お問合せステータスの変更権限がありません", "error");
       return;
     }
@@ -937,7 +1006,7 @@ export function useEditorData() {
   };
 
   const handleSaveFaq = async () => {
-    if (!hasPermission("manage_faqs")) {
+    if (!hasPermission("propose_content")) {
       showToast("操作権限がありません", "error");
       return;
     }
@@ -1032,13 +1101,7 @@ export function useEditorData() {
   };
 
   const handleTogglePublish = async (table: string, id: string, isPublished: boolean) => {
-    let pKey = "";
-    if (table === "activities") pKey = "manage_activities";
-    else if (table === "members") pKey = "manage_members";
-    else if (table === "faqs") pKey = "manage_faqs";
-    else if (table === "projects") pKey = "manage_projects";
-
-    if (!hasPermission(pKey) || !hasPermission("publish_content")) {
+    if (!hasPermission("publish_content")) {
       showToast("公開ステータスの直接変更権限がありません", "error");
       return;
     }
@@ -1058,7 +1121,7 @@ export function useEditorData() {
 
   const handleDelete = async (table: string, id: string, bypassConfirm = false) => {
     if (table === "inquiries") {
-      if (!hasPermission("manage_inquiries")) {
+      if (!hasPermission("delete_inquiries")) {
         showToast("お問合せの削除権限がありません", "error");
         return;
       }
@@ -1076,13 +1139,7 @@ export function useEditorData() {
       return;
     }
 
-    let pKey = "";
-    if (table === "activities") pKey = "manage_activities";
-    else if (table === "members") pKey = "manage_members";
-    else if (table === "faqs") pKey = "manage_faqs";
-    else if (table === "projects") pKey = "manage_projects";
-
-    if (!hasPermission(pKey)) {
+    if (!hasPermission("propose_content")) {
       showToast("削除権限がありません", "error");
       return;
     }
@@ -1103,7 +1160,7 @@ export function useEditorData() {
   };
 
   const handleRestoreItem = async (table: string, id: string) => {
-    if (!hasPermission("manage_trash")) {
+    if (!hasPermission("restore_trash")) {
       showToast("ゴミ箱操作権限がありません", "error");
       return;
     }
@@ -1121,7 +1178,7 @@ export function useEditorData() {
   };
 
   const handlePermanentDelete = async (table: string, id: string) => {
-    if (!hasPermission("manage_trash")) {
+    if (!hasPermission("empty_trash")) {
       showToast("永久消去権限がありません", "error");
       return;
     }
@@ -1268,6 +1325,7 @@ export function useEditorData() {
     userRole,
     currentUserEmail,
     allowedUsers,
+    rolePermissions,
     hasPermission,
     isHeaderCollapsed,
     setIsHeaderCollapsed,
@@ -1308,6 +1366,7 @@ export function useEditorData() {
       handleChangeUserRole,
       handleUpdateAllowedUserPermissions,
       handleUpdateAllowedUserEmail,
+      handleUpdateRolePermissions,
       handleSignOut,
       handleUpload,
       handleUpdateContentLocally,

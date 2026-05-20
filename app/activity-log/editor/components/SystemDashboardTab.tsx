@@ -312,7 +312,7 @@ export function SystemDashboardTab({
             </span>
           </div>
           
-          {hasPermission("manage_bulletin") && !isEditing && (
+          {hasPermission("manage_roles_unlimited") && !isEditing && (
             <button 
               onClick={() => setIsEditing(true)}
               style={{
@@ -374,7 +374,7 @@ export function SystemDashboardTab({
       </div>
 
       {/* 📬 【高優先アラート】提案者からの確認要請 */}
-      {(hasPermission("publish_content") || hasPermission("manage_users")) && proposerReminders.length > 0 && (
+      {hasPermission("publish_content") && proposerReminders.length > 0 && (
         <div style={{
           background: "linear-gradient(135deg, #fff5f5, #ffe6e6)",
           border: "2px solid #ff4d4d",
@@ -660,7 +660,7 @@ export function SystemDashboardTab({
         </div>
 
         {/* 🗑️ データ回復用ゴミ箱 */}
-        {hasPermission("manage_trash") && (
+        {(hasPermission("restore_trash") || hasPermission("empty_trash")) && (
           <div style={{ 
             background: "white", 
             padding: "32px", 
@@ -710,20 +710,24 @@ export function SystemDashboardTab({
                         <div style={{ display: "flex", gap: "10px" }}>
                           <button 
                             onClick={() => onRestoreItem && onRestoreItem(table, item.id)}
+                            disabled={!hasPermission("restore_trash")}
                             style={{
                               background: "#e6ffe6", color: "#008000", border: "1px solid #b3ffb3",
                               padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
-                              cursor: "pointer"
+                              cursor: !hasPermission("restore_trash") ? "not-allowed" : "pointer",
+                              opacity: !hasPermission("restore_trash") ? 0.45 : 1
                             }}
                           >
                             ↩️ 復元する
                           </button>
                           <button 
                             onClick={() => onPermanentDelete && onPermanentDelete(table, item.id)}
+                            disabled={!hasPermission("empty_trash")}
                             style={{
                               background: "#ffe6e6", color: "#cc0000", border: "1px solid #ffb3b3",
                               padding: "6px 12px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 800,
-                              cursor: "pointer"
+                              cursor: !hasPermission("empty_trash") ? "not-allowed" : "pointer",
+                              opacity: !hasPermission("empty_trash") ? 0.45 : 1
                             }}
                           >
                             🚨 永久消去
@@ -739,7 +743,7 @@ export function SystemDashboardTab({
         )}
         
         {/* 👑 権限・ログイン許可リスト管理 */}
-        {hasPermission("manage_users") && (
+        {(hasPermission("manage_roles_unlimited") || hasPermission("manage_subordinate_roles") || hasPermission("remove_users")) && (
           <div style={{ background: "white", padding: "32px", borderRadius: "24px", border: "2px solid var(--accent)", boxShadow: "0 10px 30px rgba(0,0,0,0.02)" }}>
             <h3 style={{ fontSize: "1.1rem", fontWeight: 900, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "var(--accent)" }}>
               🔑 権限・ログイン許可リスト管理 (権限管理者用)
@@ -868,7 +872,7 @@ export function SystemDashboardTab({
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <select 
                           value={u.role} 
-                          disabled={isSelf || isEditingThis} 
+                          disabled={isSelf || isEditingThis || !(hasPermission("manage_roles_unlimited") || hasPermission("manage_subordinate_roles"))} 
                           onChange={(e) => onChangeRole(u.email, e.target.value)}
                           style={{ ...S.select, width: "auto", padding: "6px 12px", fontSize: "0.8rem", height: "auto", background: u.role === "owner" ? "#fff0f0" : "white" }}
                         >
@@ -882,12 +886,12 @@ export function SystemDashboardTab({
 
                         <button 
                           onClick={() => onRemoveUser(u.email)}
-                          disabled={isSelf || isEditingThis} 
+                          disabled={isSelf || isEditingThis || !hasPermission("remove_users")}
                           style={{ 
                             ...S.dangerBtn, 
                             padding: "6px 12px", 
-                            opacity: (isSelf || isEditingThis) ? 0.3 : 1,
-                            cursor: (isSelf || isEditingThis) ? "not-allowed" : "pointer"
+                            opacity: (isSelf || isEditingThis || !hasPermission("remove_users")) ? 0.3 : 1,
+                            cursor: (isSelf || isEditingThis || !hasPermission("remove_users")) ? "not-allowed" : "pointer"
                           }}
                         >
                           削除
@@ -912,7 +916,7 @@ export function SystemDashboardTab({
                         {(Object.entries(PERMISSION_LABELS) as [string, { label: string; desc: string }][]).map(([permKey, info]) => {
                           const userPerms = u.permissions || ROLE_DEFAULT_PERMISSIONS[u.role] || [];
                           const isChecked = userPerms.includes(permKey);
-                          const isToggleDisabled = isSelf || isEditingThis;
+                          const isToggleDisabled = isSelf || isEditingThis || !(hasPermission("manage_roles_unlimited") || hasPermission("manage_subordinate_roles"));
 
                           return (
                             <label 

@@ -13,6 +13,7 @@ import {
   ProjectsTab 
 } from "./components/EditorTabs";
 import { SystemDashboardTab } from "./components/SystemDashboardTab";
+import { RoleSettingsTab } from "./components/RoleSettingsTab.tsx";
 
 export default function NexusStudioPro() {
   const {
@@ -28,6 +29,7 @@ export default function NexusStudioPro() {
     userRole,
     currentUserEmail,
     allowedUsers,
+    rolePermissions,
     hasPermission,
     pendingContentProposals,
     notifications,
@@ -181,12 +183,13 @@ export default function NexusStudioPro() {
 
           <nav style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <NavBtn active={activeTab === "content"} label="🌐 一般テキスト編集" icon="✍️" onClick={() => setActiveTab("content")} />
-            {hasPermission("manage_activities") && <NavBtn active={activeTab === "activities"} label="✍️ 活動記録管理" icon="📝" onClick={() => setActiveTab("activities")} />}
-            {hasPermission("manage_members") && <NavBtn active={activeTab === "members"} label="👤 メンバー情報管理" icon="👥" onClick={() => setActiveTab("members")} />}
-            {hasPermission("manage_projects") && <NavBtn active={activeTab === "projects"} label="🚀 コラボ PJ 管理" icon="💼" onClick={() => setActiveTab("projects")} />}
-            {hasPermission("manage_faqs") && <NavBtn active={activeTab === "faqs"} label="❓ FAQ 質問管理" icon="💬" onClick={() => setActiveTab("faqs")} />}
-            {hasPermission("manage_inquiries") && <NavBtn active={activeTab === "inquiries"} label="📬 申請・お問い合わせ管理" icon="📬" onClick={() => setActiveTab("inquiries")} />}
-            {hasPermission("view_analytics") && <NavBtn active={activeTab === "system"} label="📊 システム・解析" icon="⚙️" onClick={() => setActiveTab("system")} />}
+            {hasPermission("propose_content") && <NavBtn active={activeTab === "activities"} label="✍️ 活動記録管理" icon="📝" onClick={() => setActiveTab("activities")} />}
+            {hasPermission("propose_content") && <NavBtn active={activeTab === "members"} label="👤 メンバー情報管理" icon="👥" onClick={() => setActiveTab("members")} />}
+            {hasPermission("propose_content") && <NavBtn active={activeTab === "projects"} label="🚀 コラボ PJ 管理" icon="💼" onClick={() => setActiveTab("projects")} />}
+            {hasPermission("propose_content") && <NavBtn active={activeTab === "faqs"} label="❓ FAQ 質問管理" icon="💬" onClick={() => setActiveTab("faqs")} />}
+            {hasPermission("view_inquiries") && <NavBtn active={activeTab === "inquiries"} label="📬 申請・お問い合わせ管理" icon="📬" onClick={() => setActiveTab("inquiries")} />}
+            {(hasPermission("view_traffic_analytics") || hasPermission("view_audit_logs") || hasPermission("manage_subordinate_roles") || hasPermission("remove_users") || hasPermission("restore_trash") || hasPermission("empty_trash") || hasPermission("manage_roles_unlimited")) && <NavBtn active={activeTab === "system"} label="📊 システム・解析" icon="⚙️" onClick={() => setActiveTab("system")} />}
+            {userRole === "owner" && <NavBtn active={activeTab === "role-settings"} label="👑 役職設定" icon="🧩" onClick={() => setActiveTab("role-settings")} />}
           </nav>
         </div>
 
@@ -364,6 +367,7 @@ export default function NexusStudioPro() {
                 handleUpdateStatus={actions.handleUpdateInquiryStatus}
                 handleDelete={actions.handleDelete}
                 showToast={showToast}
+                hasPermission={hasPermission}
               />
             )}
 
@@ -397,6 +401,14 @@ export default function NexusStudioPro() {
                 }}
                 onApproveProposal={actions.handleApproveProposal}
                 onRejectProposal={actions.handleRejectProposal}
+              />
+            )}
+
+            {activeTab === "role-settings" && (
+              <RoleSettingsTab
+                rolePermissions={rolePermissions}
+                onSaveRolePermissions={actions.handleUpdateRolePermissions}
+                hasPermission={hasPermission}
               />
             )}
           </div>
