@@ -323,7 +323,7 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
             onClear={() => setters.setImageUrl("")}
           />
           
-          <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="## 大見出し&#13;### 中見出し&#13;- 箇流書き&#13;**太字** などが使用できます。" />
+          <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="## 大見出し&#13;### 中見出し&#13;- 箇条書き&#13;**太字** などが使用できます。" />
           <InputField label="URLスラッグ (例: project-kickoff) ※任意" value={state.slug} onChange={setters.setSlug} />
           
           <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
@@ -763,10 +763,21 @@ export function InquiriesTab({ inquiries, handleUpdateStatus }: { inquiries: any
   );
 }
 
-// 📬 参加申請・通知センタータブ（採用 ＆ お見送りメール送信モーダル付き）
-export function ApplicationsTab({ inquiries, handleUpdateStatus, showToast }: { inquiries: any[], handleUpdateStatus: (id: string, status: string) => void, showToast?: (msg: string, type?: 'success' | 'error') => void }) {
+// 📬 参加申請・通知センタータブ（採用 ＆ お見送りメール送信モーダル ＆ カスタム削除確認モーダル付き）
+export function ApplicationsTab({ 
+  inquiries, 
+  handleUpdateStatus, 
+  handleDelete, 
+  showToast 
+}: { 
+  inquiries: any[], 
+  handleUpdateStatus: (id: string, status: string) => void, 
+  handleDelete?: (table: string, id: string, bypassConfirm?: boolean) => void,
+  showToast?: (msg: string, type?: 'success' | 'error') => void 
+}) {
   const [approveModal, setApproveModal] = useState<any>(null);
   const [rejectModal, setRejectModal] = useState<any>(null);
+  const [deleteModal, setDeleteModal] = useState<any>(null); // 👈 削除確認用ステートを追加！
   const [emailBody, setEmailBody] = useState("");
   const [rejectEmailBody, setRejectEmailBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -846,7 +857,6 @@ Nexus 運営チーム
     const body = emailBody;
 
     try {
-      // Next.js APIの代わりに Supabase Edge Function を呼び出す
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: { to: approveModal.email, subject, body },
       });
@@ -879,7 +889,6 @@ Nexus 運営チーム
     const body = rejectEmailBody;
 
     try {
-      // Next.js APIの代わりに Supabase Edge Function を呼び出す
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: { to: rejectModal.email, subject, body },
       });
@@ -905,6 +914,19 @@ Nexus 運営チーム
     }
   };
 
+  // 👈 カスタム削除確認の実行処理
+  const handleConfirmDelete = async () => {
+    if (!deleteModal || !handleDelete) return;
+    setSending(true);
+    try {
+      await handleDelete("inquiries", deleteModal.id, true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSending(false);
+      setDeleteModal(null);
+    }
+  };
 
   const statusBadge = (status: string) => {
     const map: any = {
@@ -962,6 +984,31 @@ Nexus 運営チーム
         />
       )}
 
+      {/* 👈 プレミアムなカスタム削除確認モーダルを追加！ */}
+      {deleteModal && (
+        <div onClick={() => setDeleteModal(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "white", borderRadius: "20px", padding: "36px", maxWidth: "460px", width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "20px", textAlign: "center" }}>
+            <div style={{ fontSize: "2.5rem" }}>⚠️</div>
+            <div style={{ fontWeight: 900, fontSize: "1.25rem", color: "#cc0000" }}>申請データを削除しますか？</div>
+            <div style={{ fontSize: "0.85rem", color: "#666", lineHeight: 1.6 }}>
+              <b>{deleteModal.name} 様</b> の申請データ<br />
+              {deleteModal.category === "プロジェクト参加希望" 
+                ? `（プロジェクト: ${projectName(deleteModal.content)}）` 
+                : `（カテゴリ: ${deleteModal.category}）`
+              }<br />
+              をデータベースから完全に消去します。<br />
+              この操作は取り消せません。本当に削除してもよろしいですか？
+            </div>
+            <div style={{ display: "flex", gap: "12px", marginTop: "10px" }}>
+              <button onClick={() => setDeleteModal(null)} style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "1px solid #ddd", background: "white", cursor: "pointer", fontWeight: 700 }}>キャンセル</button>
+              <button onClick={handleConfirmDelete} disabled={sending} style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "none", background: "#cc0000", color: "white", cursor: "pointer", fontWeight: 800 }}>
+                {sending ? "削除中..." : "本当に削除する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h2 style={S.sectionTitle}>📬 参加申請・通知センター</h2>
 
       {/* 参加申請セクション */}
@@ -1016,6 +1063,13 @@ Nexus 運営チーム
                   📩 お見送り
                 </button>
               )}
+              {/* 👈 溜まったデータをいつでも削除できる「ゴミ箱ボタン」を追加 */}
+              {handleDelete && (
+                <button onClick={() => setDeleteModal(i)}
+                  style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #ffcccc", background: "#fff0f0", color: "#cc0000", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
+                  🗑️ 削除
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -1051,6 +1105,13 @@ Nexus 運営チーム
                   style={{ background: "#111", color: "white", padding: "7px 14px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: 800, textDecoration: "none" }}>
                   ✉️ 返信する
                 </a>
+                {/* 👈 通常お問い合わせ側にも同様の削除ボタンを追加！ */}
+                {handleDelete && (
+                  <button onClick={() => setDeleteModal(i)}
+                    style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #ffcccc", background: "#fff0f0", color: "#cc0000", fontWeight: 800, fontSize: "0.78rem", cursor: "pointer" }}>
+                    🗑️ 削除
+                  </button>
+                )}
               </div>
             </div>
           );

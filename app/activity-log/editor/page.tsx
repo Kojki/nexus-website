@@ -808,15 +808,15 @@ export default function NexusStudioPro() {
     }
   };
 
-  // 🗑️ 【論理削除】処理
-  const handleDelete = async (table: string, id: string) => {
+  // 🗑️ 【論理削除 / 完全削除】処理
+  const handleDelete = async (table: string, id: string, bypassConfirm = false) => {
     if (userRole === "proposer") {
       showToast("削除権限がありません", "error");
       return;
     }
 
     if (table === 'inquiries') {
-      if (confirm("お問合せ履歴を永久に消去しますか？")) {
+      if (bypassConfirm || confirm("お問合せ履歴を永久に消去しますか？")) {
         try {
           const { error } = await supabase.from(table).delete().eq('id', id);
           if (error) throw error;
@@ -1267,6 +1267,7 @@ export default function NexusStudioPro() {
            <ApplicationsTab
               inquiries={inquiries}
               handleUpdateStatus={handleUpdateInquiryStatus}
+              handleDelete={handleDelete}
               showToast={showToast}
             />
           )}
@@ -1286,4 +1287,3 @@ export default function NexusStudioPro() {
     </main>
   );
 }
-
