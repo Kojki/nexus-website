@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase"; 
 import { S } from "./SharedUI";
-import { ROLE_DEFAULT_PERMISSIONS, PERMISSION_LABELS } from "../hooks/useEditorData";
+import { ROLE_DEFAULT_PERMISSIONS, PERMISSION_LABELS, ROLE_LABELS } from "../hooks/useEditorData";
 
 interface Props {
   analytics: {
@@ -765,6 +765,7 @@ export function SystemDashboardTab({
                       <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>🚀<br/>PJマネージャー</th>
                       <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>📢<br/>広報</th>
                       <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>💡<br/>提案者</th>
+                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>👀<br/>訪問者</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -779,6 +780,7 @@ export function SystemDashboardTab({
                         <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.project_manager.includes(key) ? "✅" : "-"}</td>
                         <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.public_relations.includes(key) ? "✅" : "-"}</td>
                         <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.proposer.includes(key) ? "✅" : "-"}</td>
+                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.visitor?.includes(key) ? "✅" : "-"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -801,11 +803,12 @@ export function SystemDashboardTab({
                 style={{ ...S.select, flex: 1, minWidth: "220px", padding: "10px 16px", height: "auto" }}
               />
               <select name="role" style={{ ...S.select, width: "auto", padding: "10px 16px", height: "auto" }}>
-                <option value="proposer">💡 提案者 (proposer)</option>
-                <option value="public_relations">📢 広報担当 (PR)</option>
-                <option value="project_manager">🚀 PJマネージャー</option>
-                <option value="editor">📝 編集者 (editor)</option>
-                <option value="owner">👑 オーナー (owner)</option>
+                <option value="owner">👑 {ROLE_LABELS.owner} (owner)</option>
+                <option value="editor">📝 {ROLE_LABELS.editor} (editor)</option>
+                <option value="project_manager">🚀 {ROLE_LABELS.project_manager} (project_manager)</option>
+                <option value="public_relations">📢 {ROLE_LABELS.public_relations} (public_relations)</option>
+                <option value="proposer">💡 {ROLE_LABELS.proposer} (proposer)</option>
+                <option value="visitor">👀 {ROLE_LABELS.visitor} (visitor)</option>
               </select>
               <button type="submit" style={{ ...S.primaryBtn, width: "auto", padding: "10px 24px" }}>
                 ➕ 許可リストに追加
@@ -876,12 +879,13 @@ export function SystemDashboardTab({
                           onChange={(e) => onChangeRole(u.email, e.target.value)}
                           style={{ ...S.select, width: "auto", padding: "6px 12px", fontSize: "0.8rem", height: "auto", background: u.role === "owner" ? "#fff0f0" : "white" }}
                         >
-                          <option value="proposer">💡 提案者 (proposer)</option>
-                          <option value="public_relations">📢 広報担当 (PR)</option>
-                          <option value="project_manager">🚀 PJマネージャー</option>
-                          <option value="editor">📝 編集者 (editor)</option>
-                          <option value="owner">👑 オーナー (owner)</option>
-                          <option value="custom">🛠️ カスタム (custom)</option>
+                          <option value="owner">👑 {ROLE_LABELS.owner} (owner)</option>
+                          <option value="editor">📝 {ROLE_LABELS.editor} (editor)</option>
+                          <option value="project_manager">🚀 {ROLE_LABELS.project_manager} (project_manager)</option>
+                          <option value="public_relations">📢 {ROLE_LABELS.public_relations} (public_relations)</option>
+                          <option value="proposer">💡 {ROLE_LABELS.proposer} (proposer)</option>
+                          <option value="visitor">👀 {ROLE_LABELS.visitor} (visitor)</option>
+                          <option value="custom">🛠️ {ROLE_LABELS.custom} (custom)</option>
                         </select>
 
                         <button 

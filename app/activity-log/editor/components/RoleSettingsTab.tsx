@@ -2,16 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { S } from "./SharedUI";
-import { PERMISSION_LABELS, ROLE_DEFAULT_PERMISSIONS } from "../hooks/useEditorData";
+import { PERMISSION_LABELS, ROLE_DEFAULT_PERMISSIONS, ROLE_LABELS as ROLE_DISPLAY_NAMES } from "../hooks/useEditorData";
 
-const ROLES = ["owner", "editor", "project_manager", "public_relations", "proposer"] as const;
-const ROLE_LABELS: Record<string, string> = {
-  owner: "オーナー",
-  editor: "編集者",
-  project_manager: "PJマネージャー",
-  public_relations: "広報",
-  proposer: "提案者",
-};
+const ROLES = ["owner", "editor", "project_manager", "public_relations", "proposer", "visitor"] as const;
 
 type RoleId = (typeof ROLES)[number];
 
@@ -60,9 +53,9 @@ export function RoleSettingsTab({ rolePermissions, onSaveRolePermissions, hasPer
             <div key={roleId} style={{ border: "1px solid var(--border)", borderRadius: "20px", padding: "20px", background: "white" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap", marginBottom: "16px" }}>
                 <div>
-                  <div style={{ fontSize: "1rem", fontWeight: 900, marginBottom: "6px" }}>{ROLE_LABELS[roleId]}（{roleId}）</div>
+                  <div style={{ fontSize: "1rem", fontWeight: 900, marginBottom: "6px" }}>{ROLE_DISPLAY_NAMES[roleId] || roleId}（{roleId}）</div>
                   <div style={{ color: "#777", fontSize: "0.85rem" }}>
-                    {roleId === "owner" ? "システムの最高権限です。すべての権限を管理できます。" : roleId === "editor" ? "編集者はコンテンツ編集・公開、および問い合わせ対応ができます。" : roleId === "project_manager" ? "PJマネージャーはプロジェクト管理と記事公開を調整できます。" : roleId === "public_relations" ? "広報は問い合わせ対応と情報発信の管理を行います。" : roleId === "proposer" ? "提案者は編集提案を送信できます。" : ""}
+                    {roleId === "owner" ? "システムの最高権限です。すべての権限を管理できます。" : roleId === "editor" ? "編集者はコンテンツ編集・公開、および問い合わせ対応ができます。" : roleId === "project_manager" ? "PJマネージャーはプロジェクト管理と記事公開を調整できます。" : roleId === "public_relations" ? "広報担当は問い合わせ対応と情報発信の管理を行います。" : roleId === "proposer" ? "提案者は編集提案を送信できます。" : roleId === "visitor" ? "訪問者は提案者と同じ画面を見られますが、編集や保存の操作はできません。" : ""}
                   </div>
                 </div>
                 <button

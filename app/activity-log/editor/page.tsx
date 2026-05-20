@@ -183,11 +183,11 @@ export default function NexusStudioPro() {
 
           <nav style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <NavBtn active={activeTab === "content"} label="🌐 一般テキスト編集" icon="✍️" onClick={() => setActiveTab("content")} />
-            {hasPermission("propose_content") && <NavBtn active={activeTab === "activities"} label="✍️ 活動記録管理" icon="📝" onClick={() => setActiveTab("activities")} />}
-            {hasPermission("propose_content") && <NavBtn active={activeTab === "members"} label="👤 メンバー情報管理" icon="👥" onClick={() => setActiveTab("members")} />}
-            {hasPermission("propose_content") && <NavBtn active={activeTab === "projects"} label="🚀 コラボ PJ 管理" icon="💼" onClick={() => setActiveTab("projects")} />}
-            {hasPermission("propose_content") && <NavBtn active={activeTab === "faqs"} label="❓ FAQ 質問管理" icon="💬" onClick={() => setActiveTab("faqs")} />}
-            {hasPermission("view_inquiries") && <NavBtn active={activeTab === "inquiries"} label="📬 申請・お問い合わせ管理" icon="📬" onClick={() => setActiveTab("inquiries")} />}
+            {(hasPermission("propose_content") || userRole === "visitor") && <NavBtn active={activeTab === "activities"} label="✍️ 活動記録管理" icon="📝" onClick={() => setActiveTab("activities")} />}
+            {(hasPermission("propose_content") || userRole === "visitor") && <NavBtn active={activeTab === "members"} label="👤 メンバー情報管理" icon="👥" onClick={() => setActiveTab("members")} />}
+            {(hasPermission("propose_content") || userRole === "visitor") && <NavBtn active={activeTab === "projects"} label="🚀 コラボ PJ 管理" icon="💼" onClick={() => setActiveTab("projects")} />}
+            {(hasPermission("propose_content") || userRole === "visitor") && <NavBtn active={activeTab === "faqs"} label="❓ FAQ 質問管理" icon="💬" onClick={() => setActiveTab("faqs")} />}
+            {(hasPermission("view_inquiries") || userRole === "visitor") && <NavBtn active={activeTab === "inquiries"} label="📬 申請・お問い合わせ管理" icon="📬" onClick={() => setActiveTab("inquiries")} />}
             {(hasPermission("view_traffic_analytics") || hasPermission("view_audit_logs") || hasPermission("manage_subordinate_roles") || hasPermission("remove_users") || hasPermission("restore_trash") || hasPermission("empty_trash") || hasPermission("manage_roles_unlimited")) && <NavBtn active={activeTab === "system"} label="📊 システム・解析" icon="⚙️" onClick={() => setActiveTab("system")} />}
             {userRole === "owner" && <NavBtn active={activeTab === "role-settings"} label="👑 役職設定" icon="🧩" onClick={() => setActiveTab("role-settings")} />}
           </nav>
@@ -333,6 +333,7 @@ export default function NexusStudioPro() {
                 setters={activitySetters}
                 handlers={activityHandlers}
                 activities={activities}
+                userRole={userRole}
               />
             )}
 
@@ -341,6 +342,7 @@ export default function NexusStudioPro() {
                 state={memberState}
                 setters={memberSetters}
                 handlers={memberHandlers}
+                userRole={userRole}
               />
             )}
 
@@ -350,6 +352,7 @@ export default function NexusStudioPro() {
                 setters={projectSetters}
                 handlers={projectHandlers}
                 projects={projects}
+                userRole={userRole}
               />
             )}
 
@@ -358,6 +361,7 @@ export default function NexusStudioPro() {
                 state={faqState}
                 setters={faqSetters}
                 handlers={faqHandlers}
+                userRole={userRole}
               />
             )}
 
@@ -368,6 +372,7 @@ export default function NexusStudioPro() {
                 handleDelete={actions.handleDelete}
                 showToast={showToast}
                 hasPermission={hasPermission}
+                userRole={userRole}
               />
             )}
 

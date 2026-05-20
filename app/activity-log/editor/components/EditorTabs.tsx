@@ -72,9 +72,16 @@ function DragDropImageZone({ label, imageUrl, uploading, onUpload, onClear }: an
 
 // 🌐 サイト文言編集タブ（一括保存ボタン ＆ 最新情報同期ボタンを追加）
 export function ContentTab({ activePage, setActivePage, liveData, handleUpdateContent, onSave, onReload, publishing, userRole }: any) {
+  const isVisitor = userRole === "visitor";
+
   return (
     <div>
       <h2 style={S.sectionTitle}>サイト文言の編集</h2>
+      {isVisitor && (
+        <div style={{ marginBottom: "24px", padding: "16px", borderRadius: "18px", background: "#fff7e6", border: "1px solid #ffe2b3", color: "#8a4b00" }}>
+          👀 訪問者モード: 表示はできますが編集操作はできません。
+        </div>
+      )}
       
       {/* 🔄 更新/同期ボタン ＆ タブ切り替えエリア */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px", flexWrap: "wrap", gap: "12px" }}>
@@ -88,14 +95,15 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
         
         <button
           onClick={onReload}
+          disabled={isVisitor}
           style={{
             background: "white", border: "1px solid #ddd", borderRadius: "8px",
-            padding: "6px 12px", fontSize: "0.75rem", fontWeight: 800, color: "#666",
-            cursor: "pointer", display: "flex", alignItems: "center", gap: "6px",
+            padding: "6px 12px", fontSize: "0.75rem", fontWeight: 800, color: isVisitor ? "#aaa" : "#666",
+            cursor: isVisitor ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "6px",
             boxShadow: "0 2px 8px rgba(0,0,0,0.02)", transition: "all 0.2s"
           }}
-          onMouseEnter={(e) => e.currentTarget.style.background = "#f5f5f5"}
-          onMouseLeave={(e) => e.currentTarget.style.background = "white"}
+          onMouseEnter={(e) => { if (!isVisitor) e.currentTarget.style.background = "#f5f5f5" }}
+          onMouseLeave={(e) => { if (!isVisitor) e.currentTarget.style.background = "white" }}
         >
           🔄 最新のDB情報に同期 (編集を破棄)
         </button>
@@ -107,21 +115,21 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
           <>
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>メイン（HERO）エリア</h3>
-              <InputField label="メインキャッチコピー" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} placeholder="つながる、生み出す、Nexus" />
-              <InputField label="紹介サブテキスト" value={liveData.hero_copy || ""} onChange={(v: string) => handleUpdateContent("hero_copy", v)} textarea placeholder="意欲ある学生のためのコミュニティ..." />
+              <InputField label="メインキャッチコピー" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} placeholder="つながる、生み出す、Nexus" disabled={isVisitor} />
+              <InputField label="紹介サブテキスト" value={liveData.hero_copy || ""} onChange={(v: string) => handleUpdateContent("hero_copy", v)} textarea placeholder="意欲ある学生のためのコミュニティ..." disabled={isVisitor} />
             </div>
 
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>ABOUT（Nexusについて）エリア</h3>
-              <InputField label="セクション見出し" value={liveData.about_title || ""} onChange={(v: string) => handleUpdateContent("about_title", v)} />
-              <InputField label="本文段落 1" value={liveData.about_body_1 || ""} onChange={(v: string) => handleUpdateContent("about_body_1", v)} textarea />
-              <InputField label="本文段落 2" value={liveData.about_body_2 || ""} onChange={(v: string) => handleUpdateContent("about_body_2", v)} textarea />
+              <InputField label="セクション見出し" value={liveData.about_title || ""} onChange={(v: string) => handleUpdateContent("about_title", v)} disabled={isVisitor} />
+              <InputField label="本文段落 1" value={liveData.about_body_1 || ""} onChange={(v: string) => handleUpdateContent("about_body_1", v)} textarea disabled={isVisitor} />
+              <InputField label="本文段落 2" value={liveData.about_body_2 || ""} onChange={(v: string) => handleUpdateContent("about_body_2", v)} textarea disabled={isVisitor} />
             </div>
 
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>ACTIVITY（活動内容）エリア</h3>
-              <InputField label="セクション見出し" value={liveData.activity_title || ""} onChange={(v: string) => handleUpdateContent("activity_title", v)} />
-              <InputField label="概要説明テキスト" value={liveData.activity_copy || ""} onChange={(v: string) => handleUpdateContent("activity_copy", v)} textarea />
+              <InputField label="セクション見出し" value={liveData.activity_title || ""} onChange={(v: string) => handleUpdateContent("activity_title", v)} disabled={isVisitor} />
+              <InputField label="概要説明テキスト" value={liveData.activity_copy || ""} onChange={(v: string) => handleUpdateContent("activity_copy", v)} textarea disabled={isVisitor} />
             </div>
           </>
         )}
@@ -137,8 +145,8 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
             {[1, 2, 3].map(i => (
               <div key={i} style={S.editorCard}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>ブロック {i}</h3>
-                <InputField label="ブロックタイトル" value={liveData[`block_${i}_title`] || ""} onChange={(v: string) => handleUpdateContent(`block_${i}_title`, v)} />
-                <InputField label="ブロック本文" value={liveData[`block_${i}_body`] || ""} onChange={(v: string) => handleUpdateContent(`block_${i}_body`, v)} textarea />
+                <InputField label="ブロックタイトル" value={liveData[`block_${i}_title`] || ""} onChange={(v: string) => handleUpdateContent(`block_${i}_title`, v)} disabled={isVisitor} />
+                <InputField label="ブロック本文" value={liveData[`block_${i}_body`] || ""} onChange={(v: string) => handleUpdateContent(`block_${i}_body`, v)} textarea disabled={isVisitor} />
               </div>
             ))}
           </>
@@ -149,15 +157,15 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
           <>
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>ヘッダー・導入設定</h3>
-              <InputField label="大見出しタイトル" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} />
-              <InputField label="ガイドライン前文（導入テキスト）" value={liveData.intro_text || ""} onChange={(v: string) => handleUpdateContent("intro_text", v)} textarea />
+              <InputField label="大見出しタイトル" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} disabled={isVisitor} />
+              <InputField label="ガイドライン前文（導入テキスト）" value={liveData.intro_text || ""} onChange={(v: string) => handleUpdateContent("intro_text", v)} textarea disabled={isVisitor} />
             </div>
 
             {[1, 2, 3].map(num => (
               <div key={num} style={S.editorCard}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>ガイドラインルール 0{num}</h3>
-                <InputField label="ルールの見出し" value={liveData[`rule_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`rule_${num}_title`, v)} />
-                <InputField label="ルールの詳細本文" value={liveData[`rule_${num}_body`] || ""} onChange={(v: string) => handleUpdateContent(`rule_${num}_body`, v)} textarea />
+                <InputField label="ルールの見出し" value={liveData[`rule_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`rule_${num}_title`, v)} disabled={isVisitor} />
+                <InputField label="ルールの詳細本文" value={liveData[`rule_${num}_body`] || ""} onChange={(v: string) => handleUpdateContent(`rule_${num}_body`, v)} textarea disabled={isVisitor} />
               </div>
             ))}
           </>
@@ -168,15 +176,15 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
           <>
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>ヘッダー設定</h3>
-              <InputField label="タイトル" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} />
-              <InputField label="最終更新日 (例: 最終更新日：2026年5月)" value={liveData.last_updated || ""} onChange={(v: string) => handleUpdateContent("last_updated", v)} />
+              <InputField label="タイトル" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} disabled={isVisitor} />
+              <InputField label="最終更新日 (例: 最終更新日：2026年5月)" value={liveData.last_updated || ""} onChange={(v: string) => handleUpdateContent("last_updated", v)} disabled={isVisitor} />
             </div>
 
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(num => (
               <div key={num} style={S.editorCard}>
                 <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>セクション {num}</h3>
-                <InputField label="条項のタイトル" value={liveData[`section_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`section_${num}_title`, v)} />
-                <InputField label="条項の本文" value={liveData[`section_${num}_body`] || ""} onChange={(v: string) => handleUpdateContent(`section_${num}_body`, v)} textarea />
+                <InputField label="条項のタイトル" value={liveData[`section_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`section_${num}_title`, v)} disabled={isVisitor} />
+                <InputField label="条項の本文" value={liveData[`section_${num}_body`] || ""} onChange={(v: string) => handleUpdateContent(`section_${num}_body`, v)} textarea disabled={isVisitor} />
               </div>
             ))}
           </>
@@ -187,44 +195,44 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
           <>
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>👑 HERO AREA (ENGLISH)</h3>
-              <InputField label="Hero Title" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} placeholder="Connect, Create,\nGo Beyond." />
-              <InputField label="Hero Copy Text" value={liveData.hero_copy || ""} onChange={(v: string) => handleUpdateContent("hero_copy", v)} textarea />
+              <InputField label="Hero Title" value={liveData.hero_title || ""} onChange={(v: string) => handleUpdateContent("hero_title", v)} placeholder="Connect, Create,\nGo Beyond." disabled={isVisitor} />
+              <InputField label="Hero Copy Text" value={liveData.hero_copy || ""} onChange={(v: string) => handleUpdateContent("hero_copy", v)} textarea disabled={isVisitor} />
             </div>
 
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>🌐 ABOUT AREA (ENGLISH)</h3>
-              <InputField label="Section Title" value={liveData.about_title || ""} onChange={(v: string) => handleUpdateContent("about_title", v)} />
-              <InputField label="About Paragraph 1" value={liveData.about_body_1 || ""} onChange={(v: string) => handleUpdateContent("about_body_1", v)} textarea />
-              <InputField label="About Paragraph 2" value={liveData.about_body_2 || ""} onChange={(v: string) => handleUpdateContent("about_body_2", v)} textarea />
+              <InputField label="Section Title" value={liveData.about_title || ""} onChange={(v: string) => handleUpdateContent("about_title", v)} disabled={isVisitor} />
+              <InputField label="About Paragraph 1" value={liveData.about_body_1 || ""} onChange={(v: string) => handleUpdateContent("about_body_1", v)} textarea disabled={isVisitor} />
+              <InputField label="About Paragraph 2" value={liveData.about_body_2 || ""} onChange={(v: string) => handleUpdateContent("about_body_2", v)} textarea disabled={isVisitor} />
             </div>
 
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>🙋 FOR WHO AREA (ENGLISH)</h3>
-              <InputField label="Main Heading" value={liveData.forwho_title || ""} onChange={(v: string) => handleUpdateContent("forwho_title", v)} />
+              <InputField label="Main Heading" value={liveData.forwho_title || ""} onChange={(v: string) => handleUpdateContent("forwho_title", v)} disabled={isVisitor} />
               {[1, 2, 3, 4].map(num => (
                 <div key={num} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "12px" }}>
-                  <InputField label={`0${num}. Title`} value={liveData[`forwho_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`forwho_${num}_title`, v)} />
-                  <InputField label={`0${num}. Description`} value={liveData[`forwho_${num}_text`] || ""} onChange={(v: string) => handleUpdateContent(`forwho_${num}_text`, v)} />
+                  <InputField label={`0${num}. Title`} value={liveData[`forwho_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`forwho_${num}_title`, v)} disabled={isVisitor} />
+                  <InputField label={`0${num}. Description`} value={liveData[`forwho_${num}_text`] || ""} onChange={(v: string) => handleUpdateContent(`forwho_${num}_text`, v)} disabled={isVisitor} />
                 </div>
               ))}
             </div>
 
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>⚡ ACTIVITIES AREA (ENGLISH)</h3>
-              <InputField label="Section Title" value={liveData.activity_title || ""} onChange={(v: string) => handleUpdateContent("activity_title", v)} />
-              <InputField label="Activities Main Copy" value={liveData.activity_copy || ""} onChange={(v: string) => handleUpdateContent("activity_copy", v)} textarea />
+              <InputField label="Section Title" value={liveData.activity_title || ""} onChange={(v: string) => handleUpdateContent("activity_title", v)} disabled={isVisitor} />
+              <InputField label="Activities Main Copy" value={liveData.activity_copy || ""} onChange={(v: string) => handleUpdateContent("activity_copy", v)} textarea disabled={isVisitor} />
               {[1, 2, 3].map(num => (
                 <div key={num} style={{ marginTop: "16px" }}>
-                  <InputField label={`0${num}. Title`} value={liveData[`activity_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`activity_${num}_title`, v)} />
-                  <InputField label={`0${num}. Description`} value={liveData[`activity_${num}_text`] || ""} onChange={(v: string) => handleUpdateContent(`activity_${num}_text`, v)} textarea />
+                  <InputField label={`0${num}. Title`} value={liveData[`activity_${num}_title`] || ""} onChange={(v: string) => handleUpdateContent(`activity_${num}_title`, v)} disabled={isVisitor} />
+                  <InputField label={`0${num}. Description`} value={liveData[`activity_${num}_text`] || ""} onChange={(v: string) => handleUpdateContent(`activity_${num}_text`, v)} textarea disabled={isVisitor} />
                 </div>
               ))}
             </div>
 
             <div style={S.editorCard}>
               <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>💬 JOIN US AREA (ENGLISH)</h3>
-              <InputField label="Join Title" value={liveData.join_title || ""} onChange={(v: string) => handleUpdateContent("join_title", v)} />
-              <InputField label="Join Subtext" value={liveData.join_copy || ""} onChange={(v: string) => handleUpdateContent("join_copy", v)} textarea />
+              <InputField label="Join Title" value={liveData.join_title || ""} onChange={(v: string) => handleUpdateContent("join_title", v)} disabled={isVisitor} />
+              <InputField label="Join Subtext" value={liveData.join_copy || ""} onChange={(v: string) => handleUpdateContent("join_copy", v)} textarea disabled={isVisitor} />
             </div>
           </>
         )}
@@ -233,10 +241,12 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
         <div style={{ marginTop: "32px" }}>
           <button 
             onClick={onSave}
-            disabled={publishing}
+            disabled={publishing || isVisitor}
             style={{
               ...S.primaryBtn,
               background: userRole === "proposer" ? "#0055ff" : "#111",
+              opacity: isVisitor ? 0.65 : 1,
+              cursor: isVisitor ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -252,7 +262,10 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
 }
 
 // ✍️ 活動記録管理タブ
-export function ActivityTab({ state, setters, handlers, activities }: any) {
+export function ActivityTab({ state, setters, handlers, activities, userRole }: any) {
+  const isVisitor = userRole === "visitor";
+  const actionDisabled = isVisitor || state.publishing;
+
   return (
     <div>
       <h2 style={S.sectionTitle}>活動記録の管理</h2>
@@ -263,10 +276,10 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
         </h3>
         
         <div style={S.formStack}>
-          <InputField label="タイトル *" value={state.title} onChange={setters.setTitle} placeholder="第1回アイデア会議を開催しました" />
+          <InputField label="タイトル *" value={state.title} onChange={setters.setTitle} placeholder="第1回アイデア会議を開催しました" disabled={isVisitor} />
           
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <InputField label="日付 *" value={state.date} onChange={setters.setDate} />
+            <InputField label="日付 *" value={state.date} onChange={setters.setDate} disabled={isVisitor} />
             
             {/* カテゴリビジュアルカード */}
             <div style={{ marginBottom: "8px" }}>
@@ -282,14 +295,16 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
                     <button
                       key={cat.value}
                       type="button"
-                      onClick={() => setters.setCategory(cat.value)}
+                      onClick={() => !isVisitor && setters.setCategory(cat.value)}
+                      disabled={isVisitor}
                       style={{
                         background: isSelected ? "var(--accent-pale)" : "white",
                         border: isSelected ? "2px solid var(--accent)" : "1px solid var(--border)",
                         borderRadius: "14px",
                         padding: "16px",
                         textAlign: "left",
-                        cursor: "pointer",
+                        cursor: isVisitor ? "not-allowed" : "pointer",
+                        opacity: isVisitor ? 0.55 : 1,
                         transition: "all 0.2s ease",
                         display: "flex",
                         flexDirection: "column",
@@ -313,38 +328,39 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
             </div>
           </div>
           
-          <InputField label="要約 (一覧に表示されます) *" value={state.summary} onChange={setters.setSummary} textarea placeholder="**太字** や [リンク](URL) などのマークダウン記法が使えます" />
+          <InputField label="要約 (一覧に表示されます) *" value={state.summary} onChange={setters.setSummary} textarea placeholder="**太字** や [リンク](URL) などのマークダウン記法が使えます" disabled={isVisitor} />
           
           <DragDropImageZone 
             label="サムネイル画像"
             imageUrl={state.imageUrl}
             uploading={state.uploading}
-            onUpload={(file: File) => handlers.handleUpload(file, setters.setImageUrl)}
-            onClear={() => setters.setImageUrl("")}
+            onUpload={isVisitor ? () => {} : (file: File) => handlers.handleUpload(file, setters.setImageUrl)}
+            onClear={() => { if (!isVisitor) setters.setImageUrl(""); }}
           />
           
-          <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="## 大見出し&#13;### 中見出し&#13;- 箇条書き&#13;**太字** などが使用できます。" />
-          <InputField label="URLスラッグ (例: project-kickoff) ※任意" value={state.slug} onChange={setters.setSlug} />
+          <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="## 大見出し&#13;### 中見出し&#13;- 箇条書き&#13;**太字** などが使用できます。" disabled={isVisitor} />
+          <InputField label="URLスラッグ (例: project-kickoff) ※任意" value={state.slug} onChange={setters.setSlug} disabled={isVisitor} />
           
           <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
             <button 
               onClick={() => handlers.handleSaveActivity(false)} 
-              style={{...S.primaryBtn, background: "white", color: "#111", border: "2px solid #111"}} 
-              disabled={state.publishing || !state.title}
+              style={{...S.primaryBtn, background: "white", color: "#111", border: "2px solid #111", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer"}} 
+              disabled={actionDisabled || !state.title}
             >
               下書き保存する
             </button>
             <button 
               onClick={() => handlers.handleSaveActivity(true)} 
-              style={S.primaryBtn} 
-              disabled={state.publishing || !state.title}
+              style={{ ...S.primaryBtn, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
+              disabled={actionDisabled || !state.title}
             >
               {state.editingActivityId ? "更新して公開" : "今すぐ公開する"}
             </button>
             {state.editingActivityId && (
               <button 
                 onClick={handlers.cancelEditActivity} 
-                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white" }}
+                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
+                disabled={actionDisabled}
               >
                 キャンセル
               </button>
@@ -378,18 +394,20 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
 
               <div style={{ display: "flex", gap: "8px", width: "100%", justifyContent: "flex-end" }}>
                 <button 
-                  onClick={() => handlers.startEditActivity(act)} 
-                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px" }}
+                  onClick={() => !isVisitor && handlers.startEditActivity(act)} 
+                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px", opacity: isVisitor ? 0.5 : 1, cursor: isVisitor ? "not-allowed" : "pointer" }}
+                  disabled={isVisitor}
                 >
                   📝 編集
                 </button>
                 <button 
-                  onClick={() => handlers.handleTogglePublish('activities', act.id, !act.is_published)} 
-                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px" }}
+                  onClick={() => !isVisitor && handlers.handleTogglePublish('activities', act.id, !act.is_published)} 
+                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px", opacity: isVisitor ? 0.5 : 1, cursor: isVisitor ? "not-allowed" : "pointer" }}
+                  disabled={isVisitor}
                 >
                   {act.is_published ? "非公開にする" : "公開する"}
                 </button>
-                <button onClick={() => handlers.handleDelete('activities', act.id)} style={S.dangerBtn}>削除</button>
+                <button onClick={() => !isVisitor && handlers.handleDelete('activities', act.id)} style={{ ...S.dangerBtn, opacity: isVisitor ? 0.5 : 1, cursor: isVisitor ? "not-allowed" : "pointer" }} disabled={isVisitor}>削除</button>
               </div>
             </div>
           ))
@@ -400,7 +418,10 @@ export function ActivityTab({ state, setters, handlers, activities }: any) {
 }
 
 // 👤 メンバー管理タブ
-export function MembersTab({ state, setters, handlers }: any) {
+export function MembersTab({ state, setters, handlers, userRole }: any) {
+  const isVisitor = userRole === "visitor";
+  const actionDisabled = isVisitor;
+
   return (
     <div>
       <h2 style={S.sectionTitle}>メンバー管理</h2>
@@ -414,31 +435,32 @@ export function MembersTab({ state, setters, handlers }: any) {
             label="顔写真 *"
             imageUrl={state.mPhotoUrl}
             uploading={state.uploading}
-            onUpload={(file: File) => handlers.handleUpload(file, setters.setMPhotoUrl)}
-            onClear={() => setters.setMPhotoUrl("")}
+            onUpload={isVisitor ? () => {} : (file: File) => handlers.handleUpload(file, setters.setMPhotoUrl)}
+            onClear={() => { if (!isVisitor) setters.setMPhotoUrl(""); }}
           />
 
-          <InputField label="氏名 *" value={state.mName} onChange={setters.setMName} />
-          <InputField label="役割 (例: Founder)" value={state.mRole} onChange={setters.setMRole} />
-          <InputField label="所属 (例: 〇〇大学)" value={state.mAffiliation} onChange={setters.setMAffiliation} />
-          <InputField label="活動領域/専門 (例: 量子物理、フロントエンド開発)" value={state.mField} onChange={setters.setMField} />
-          <InputField label="保有スキルタグ (カンマ区切り。例: React, Python, UI/UX)" value={state.skills || ""} onChange={setters.setSkills} placeholder="スキルをカンマで並べます" />
-          <InputField label="GitHub プロフィール URL (任意)" value={state.githubUrl || ""} onChange={setters.setGithubUrl} placeholder="https://github.com/..." />
-          <InputField label="ポートフォリオ URL (任意)" value={state.portfolioUrl || ""} onChange={setters.setPortfolioUrl} placeholder="https://..." />
-          <InputField label="自己紹介・メンバーへのメッセージ" value={state.mMessage} onChange={setters.setMMessage} textarea />
+          <InputField label="氏名 *" value={state.mName} onChange={setters.setMName} disabled={isVisitor} />
+          <InputField label="役割 (例: Founder)" value={state.mRole} onChange={setters.setMRole} disabled={isVisitor} />
+          <InputField label="所属 (例: 〇〇大学)" value={state.mAffiliation} onChange={setters.setMAffiliation} disabled={isVisitor} />
+          <InputField label="活動領域/専門 (例: 量子物理、フロントエンド開発)" value={state.mField} onChange={setters.setMField} disabled={isVisitor} />
+          <InputField label="保有スキルタグ (カンマ区切り。例: React, Python, UI/UX)" value={state.skills || ""} onChange={setters.setSkills} placeholder="スキルをカンマで並べます" disabled={isVisitor} />
+          <InputField label="GitHub プロフィール URL (任意)" value={state.githubUrl || ""} onChange={setters.setGithubUrl} placeholder="https://github.com/..." disabled={isVisitor} />
+          <InputField label="ポートフォリオ URL (任意)" value={state.portfolioUrl || ""} onChange={setters.setPortfolioUrl} placeholder="https://..." disabled={isVisitor} />
+          <InputField label="自己紹介・メンバーへのメッセージ" value={state.mMessage} onChange={setters.setMMessage} textarea disabled={isVisitor} />
           
           <div style={{ display: "flex", gap: "12px" }}>
             <button 
               onClick={handlers.handleSaveMember} 
-              style={S.primaryBtn} 
-              disabled={!state.mName}
+              style={{ ...S.primaryBtn, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
+              disabled={actionDisabled || !state.mName}
             >
               {state.editingMemberId ? "更新して保存" : "追加する"}
             </button>
             {state.editingMemberId && (
               <button 
                 onClick={handlers.cancelEditMember} 
-                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white" }}
+                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
+                disabled={actionDisabled}
               >
                 キャンセル
               </button>
@@ -464,33 +486,35 @@ export function MembersTab({ state, setters, handlers }: any) {
               <div style={{ display: "flex", gap: "8px", flexDirection: "column", alignItems: "flex-end" }}>
                 <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                   <button 
-                    onClick={() => handlers.handleMoveMember(index, 'up')} 
-                    disabled={index === 0} 
-                    style={{ background: index === 0 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem" }}
+                    onClick={() => !isVisitor && handlers.handleMoveMember(index, 'up')} 
+                    disabled={index === 0 || actionDisabled} 
+                    style={{ background: index === 0 || actionDisabled ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 || actionDisabled ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem", opacity: index === 0 || actionDisabled ? 0.5 : 1 }}
                   >
                     ⬆️
                   </button>
                   <button 
-                    onClick={() => handlers.handleMoveMember(index, 'down')} 
-                    disabled={index === state.members.length - 1} 
-                    style={{ background: index === state.members.length - 1 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === state.members.length - 1 ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem" }}
+                    onClick={() => !isVisitor && handlers.handleMoveMember(index, 'down')} 
+                    disabled={index === state.members.length - 1 || actionDisabled} 
+                    style={{ background: index === state.members.length - 1 || actionDisabled ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === state.members.length - 1 || actionDisabled ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem", opacity: index === state.members.length - 1 || actionDisabled ? 0.5 : 1 }}
                   >
                     ⬇️
                   </button>
 
                   <button 
-                    onClick={() => handlers.startEditMember(m)} 
-                    style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px" }}
+                    onClick={() => !isVisitor && handlers.startEditMember(m)} 
+                    disabled={actionDisabled}
+                    style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px", opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
                   >
                     📝 編集
                   </button>
                   <button 
-                    onClick={() => handlers.handleTogglePublish('members', m.id, !m.is_published)} 
-                    style={{...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px"}}>
+                    onClick={() => !isVisitor && handlers.handleTogglePublish('members', m.id, !m.is_published)} 
+                    disabled={actionDisabled}
+                    style={{...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px", opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer"}}>
                     {m.is_published ? "非公開" : "公開"}
                   </button>
                 </div>
-                <button onClick={() => handlers.handleDelete('members', m.id)} style={S.dangerBtn}>削除</button>
+                <button onClick={() => !isVisitor && handlers.handleDelete('members', m.id)} disabled={actionDisabled} style={{ ...S.dangerBtn, opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}>削除</button>
               </div>
             </div>
           ))
@@ -501,7 +525,10 @@ export function MembersTab({ state, setters, handlers }: any) {
 }
 
 // 🚀 共創プロジェクト管理タブ (CRUD)
-export function ProjectsTab({ state, setters, handlers, projects }: any) {
+export function ProjectsTab({ state, setters, handlers, projects, userRole }: any) {
+  const isVisitor = userRole === "visitor";
+  const actionDisabled = isVisitor;
+
   return (
     <div>
       <h2 style={S.sectionTitle}>共創プロジェクト管理</h2>
@@ -511,17 +538,18 @@ export function ProjectsTab({ state, setters, handlers, projects }: any) {
           {state.editingProjectId ? "📝 プロジェクトの編集" : "新規プロジェクトの登録"}
         </h3>
         <div style={S.formStack}>
-          <InputField label="プロジェクトタイトル *" value={state.pTitle} onChange={setters.setPTitle} placeholder="学生向け量子計算体験ツールの開発" />
-          <InputField label="プロジェクト詳細説明 * (マークダウン可)" value={state.pDescription} onChange={setters.setPDescription} textarea large placeholder="プロジェクトの概要、ゴール、求めている内容など" />
-          <InputField label="使用する技術スタック (カンマ区切り)" value={state.pTechStack} onChange={setters.setPTechStack} placeholder="Next.js, Tailwind, Rust, Qiskit" />
-          <InputField label="募集するメンバーの役割 (カンマ区切り)" value={state.pRolesNeeded} onChange={setters.setPRolesNeeded} placeholder="Frontend Developer, Quantum Researcher" />
+          <InputField label="プロジェクトタイトル *" value={state.pTitle} onChange={setters.setPTitle} placeholder="学生向け量子計算体験ツールの開発" disabled={isVisitor} />
+          <InputField label="プロジェクト詳細説明 * (マークダウン可)" value={state.pDescription} onChange={setters.setPDescription} textarea large placeholder="プロジェクトの概要、ゴール、求めている内容など" disabled={isVisitor} />
+          <InputField label="使用する技術スタック (カンマ区切り)" value={state.pTechStack} onChange={setters.setPTechStack} placeholder="Next.js, Tailwind, Rust, Qiskit" disabled={isVisitor} />
+          <InputField label="募集するメンバーの役割 (カンマ区切り)" value={state.pRolesNeeded} onChange={setters.setPRolesNeeded} placeholder="Frontend Developer, Quantum Researcher" disabled={isVisitor} />
           
           <div style={S.group}>
             <label style={S.fieldLabel}>募集ステータス *</label>
             <select 
               value={state.pStatus} 
-              onChange={(e) => setters.setPStatus(e.target.value)} 
-              style={{ ...S.select, width: "100%", padding: "10px 16px", height: "auto" }}
+              onChange={(e) => !isVisitor && setters.setPStatus(e.target.value)} 
+              disabled={isVisitor}
+              style={{ ...S.select, width: "100%", padding: "10px 16px", height: "auto", opacity: isVisitor ? 0.65 : 1, cursor: isVisitor ? "not-allowed" : "pointer" }}
             >
               <option value="open">🟢 メンバー募集中 (open)</option>
               <option value="closed">🔴 募集終了 (closed)</option>
@@ -531,15 +559,16 @@ export function ProjectsTab({ state, setters, handlers, projects }: any) {
           <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
             <button 
               onClick={handlers.handleSaveProject} 
-              style={S.primaryBtn} 
-              disabled={!state.pTitle || !state.pDescription}
+              style={{ ...S.primaryBtn, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
+              disabled={actionDisabled || !state.pTitle || !state.pDescription}
             >
               {state.editingProjectId ? "更新して保存" : "プロジェクトを登録する"}
             </button>
             {state.editingProjectId && (
               <button 
                 onClick={handlers.cancelEditProject} 
-                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white" }}
+                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
+                disabled={actionDisabled}
               >
                 キャンセル
               </button>
@@ -566,16 +595,16 @@ export function ProjectsTab({ state, setters, handlers, projects }: any) {
                 
                 <div style={{ display: "flex", gap: "6px" }}>
                   <button 
-                    onClick={() => handlers.handleMoveProject(index, 'up')} 
-                    disabled={index === 0} 
-                    style={{ background: index === 0 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem" }}
+                    onClick={() => !isVisitor && handlers.handleMoveProject(index, 'up')} 
+                    disabled={index === 0 || actionDisabled} 
+                    style={{ background: index === 0 || actionDisabled ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 || actionDisabled ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem", opacity: index === 0 || actionDisabled ? 0.5 : 1 }}
                   >
                     ⬆️
                   </button>
                   <button 
-                    onClick={() => handlers.handleMoveProject(index, 'down')} 
-                    disabled={index === projects.length - 1} 
-                    style={{ background: index === projects.length - 1 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === projects.length - 1 ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem" }}
+                    onClick={() => !isVisitor && handlers.handleMoveProject(index, 'down')} 
+                    disabled={index === projects.length - 1 || actionDisabled} 
+                    style={{ background: index === projects.length - 1 || actionDisabled ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === projects.length - 1 || actionDisabled ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem", opacity: index === projects.length - 1 || actionDisabled ? 0.5 : 1 }}
                   >
                     ⬇️
                   </button>
@@ -590,12 +619,13 @@ export function ProjectsTab({ state, setters, handlers, projects }: any) {
 
               <div style={{ display: "flex", gap: "8px", width: "100%", justifyContent: "flex-end" }}>
                 <button 
-                  onClick={() => handlers.startEditProject(proj)} 
-                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px" }}
+                  onClick={() => !isVisitor && handlers.startEditProject(proj)} 
+                  disabled={actionDisabled}
+                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px", opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
                 >
                   📝 編集
                 </button>
-                <button onClick={() => handlers.handleDelete('projects', proj.id)} style={S.dangerBtn}>削除</button>
+                <button onClick={() => !isVisitor && handlers.handleDelete('projects', proj.id)} disabled={actionDisabled} style={{ ...S.dangerBtn, opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}>削除</button>
               </div>
             </div>
           ))
@@ -606,7 +636,10 @@ export function ProjectsTab({ state, setters, handlers, projects }: any) {
 }
 
 // ❓ FAQ管理タブ
-export function FaqTab({ state, setters, handlers }: any) {
+export function FaqTab({ state, setters, handlers, userRole }: any) {
+  const isVisitor = userRole === "visitor";
+  const actionDisabled = isVisitor;
+
   return (
     <div>
       <h2 style={S.sectionTitle}>FAQ管理</h2>
@@ -618,7 +651,8 @@ export function FaqTab({ state, setters, handlers }: any) {
           </p>
           <button 
             onClick={handlers.handleInsertDefaultFaqs} 
-            style={{ ...S.primaryBtn, display: "inline-flex", width: "auto", padding: "10px 24px" }}
+            disabled={actionDisabled}
+            style={{ ...S.primaryBtn, display: "inline-flex", width: "auto", padding: "10px 24px", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
           >
             初期データ（3件）を投入する
           </button>
@@ -630,21 +664,22 @@ export function FaqTab({ state, setters, handlers }: any) {
           {state.editingFaqId ? "📝 FAQの編集" : "FAQの追加"}
         </h3>
         <div style={S.formStack}>
-          <InputField label="質問 *" value={state.fQuestion} onChange={setters.setFQuestion} textarea />
-          <InputField label="回答 *" value={state.fAnswer} onChange={setters.setFAnswer} textarea />
+          <InputField label="質問 *" value={state.fQuestion} onChange={setters.setFQuestion} textarea disabled={isVisitor} />
+          <InputField label="回答 *" value={state.fAnswer} onChange={setters.setFAnswer} textarea disabled={isVisitor} />
           
           <div style={{ display: "flex", gap: "12px" }}>
             <button 
               onClick={handlers.handleSaveFaq} 
-              style={S.primaryBtn} 
-              disabled={!state.fQuestion || !state.fAnswer}
+              style={{ ...S.primaryBtn, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
+              disabled={actionDisabled || !state.fQuestion || !state.fAnswer}
             >
               {state.editingFaqId ? "更新して保存" : "追加する"}
             </button>
             {state.editingFaqId && (
               <button 
                 onClick={handlers.cancelEditFaq} 
-                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white" }}
+                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
+                disabled={actionDisabled}
               >
                 キャンセル
               </button>
@@ -667,18 +702,20 @@ export function FaqTab({ state, setters, handlers }: any) {
               
               <div style={{ display: "flex", gap: "8px", marginTop: "12px", width: "100%", justifyContent: "flex-end" }}>
                 <button 
-                  onClick={() => handlers.startEditFaq(f)} 
-                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px" }}
+                  onClick={() => !isVisitor && handlers.startEditFaq(f)} 
+                  disabled={actionDisabled}
+                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", padding: "4px 8px", borderRadius: "6px", opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
                 >
                   📝 編集
                 </button>
                 <button 
-                  onClick={() => handlers.handleTogglePublish('faqs', f.id, !f.is_published)} 
-                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px" }}
+                  onClick={() => !isVisitor && handlers.handleTogglePublish('faqs', f.id, !f.is_published)} 
+                  disabled={actionDisabled}
+                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px", opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
                 >
                   {f.is_published ? "非公開にする" : "公開する"}
                 </button>
-                <button onClick={() => handlers.handleDelete('faqs', f.id)} style={S.dangerBtn}>削除</button>
+                <button onClick={() => !isVisitor && handlers.handleDelete('faqs', f.id)} disabled={actionDisabled} style={{ ...S.dangerBtn, opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}>削除</button>
               </div>
             </div>
           ))
@@ -695,14 +732,17 @@ export function InquiriesTab({
   handleUpdateStatus, 
   handleDelete, 
   showToast,
-  hasPermission
+  hasPermission,
+  userRole
 }: { 
   inquiries: any[], 
   handleUpdateStatus: (id: string, status: string) => void, 
   handleDelete?: (table: string, id: string, bypassConfirm?: boolean) => void,
   showToast?: (msg: string, type?: 'success' | 'error') => void,
-  hasPermission: (permission: string) => boolean
+  hasPermission: (permission: string) => boolean,
+  userRole?: string | null
 }) {
+  const isVisitor = userRole === "visitor";
   const [approveModal, setApproveModal] = useState<any>(null);
   const [rejectModal, setRejectModal] = useState<any>(null);
   const [deleteModal, setDeleteModal] = useState<any>(null);

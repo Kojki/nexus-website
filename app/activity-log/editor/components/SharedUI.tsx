@@ -20,14 +20,26 @@ export function PageTabBtn({ children, active, onClick }: any) {
   return <button onClick={onClick} style={{ padding: "6px 12px", borderRadius: "8px", border: "none", cursor: "pointer", background: active ? "white" : "transparent", color: active ? "black" : "#888", fontSize: "0.7rem", fontWeight: active ? 800 : 500, boxShadow: active ? "0 2px 8px rgba(0,0,0,0.05)" : "none" }}>{children}</button>;
 }
 
-export function InputField({ label, value, onChange, textarea, large, placeholder }: any) {
+export function InputField({ label, value, onChange, textarea, large, placeholder, disabled }: any) {
   return (
     <div style={S.group}>
       <label style={S.fieldLabel}>{label}</label>
       {textarea ? (
-        <textarea style={{ ...S.input, minHeight: large ? "250px" : "100px" }} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+        <textarea
+          style={{ ...S.input, minHeight: large ? "250px" : "100px", opacity: disabled ? 0.6 : 1 }}
+          value={value}
+          onChange={e => !disabled && onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+        />
       ) : (
-        <input style={S.input} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+        <input
+          style={{ ...S.input, opacity: disabled ? 0.6 : 1 }}
+          value={value}
+          onChange={e => !disabled && onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+        />
       )}
     </div>
   );

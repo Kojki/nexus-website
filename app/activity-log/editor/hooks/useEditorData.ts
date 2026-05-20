@@ -53,7 +53,21 @@ export const ROLE_HIERARCHY: Record<string, number> = {
   public_relations: 3,
   reviewer:         2,
   proposer:         1,
-  guest:            0,
+  visitor:          0,
+  guest:           -1,
+};
+
+export const ROLE_LABELS: Record<string, string> = {
+  owner: "オーナー",
+  admin: "管理者",
+  editor: "編集者",
+  project_manager: "PJマネージャー",
+  public_relations: "広報担当",
+  reviewer: "編集長",
+  proposer: "提案者",
+  visitor: "訪問者",
+  guest: "ゲスト",
+  custom: "カスタム",
 };
 
 // 🔑 ロールとデフォルト権限のマトリクス
@@ -112,6 +126,9 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   ],
   proposer: [
     "propose_content",
+    "view_inquiries",
+  ],
+  visitor: [
     "view_inquiries",
   ],
   guest: [],
