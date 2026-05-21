@@ -135,6 +135,43 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   custom: [],
 };
 
+/** Gmail等の表記ゆれを吸収（許可リスト登録時は小文字化している） */
+export function normalizeEmail(email: string): string {
+  return email.toLowerCase().trim();
+}
+
+/** 役職テンプレートから有効なデフォルト権限を取得（空配列は未設定扱い） */
+export function resolveRolePermissions(
+  rolePermsMap: Record<string, string[]>,
+  role: string
+): string[] {
+  const fromMap = rolePermsMap[role];
+  if (fromMap && fromMap.length > 0) return fromMap;
+  return ROLE_DEFAULT_PERMISSIONS[role] || [];
+}
+
+/** DBの個別権限が空のときは役職デフォルトにフォールバック */
+export function resolveUserPermissions(
+  permissions: string[] | null | undefined,
+  role: string,
+  rolePermsMap: Record<string, string[]>
+): string[] {
+  if (permissions && permissions.length > 0) return permissions;
+  return resolveRolePermissions(rolePermsMap, role);
+}
+
+function mergeRolePermissionsFromDb(
+  rows: { role_id: string; permissions: string[] | null }[]
+): Record<string, string[]> {
+  const loaded: Record<string, string[]> = { ...ROLE_DEFAULT_PERMISSIONS };
+  rows.forEach((row) => {
+    if (row.role_id && row.permissions && row.permissions.length > 0) {
+      loaded[row.role_id] = row.permissions;
+    }
+  });
+  return loaded;
+}
+
 // 🔑 日本語の権限表示ラベルマッピング
 export const PERMISSION_LABELS: Record<string, { label: string; desc: string }> = {
   manage_roles_unlimited:   { label: "👑 全権限の付与・剥奪",       desc: "すべての役職・権限を自由に変更できる（オーナー専用）" },
@@ -246,7 +283,7 @@ export function useEditorData() {
   };
 
   const getDefaultPermissionsForRole = (role: string) => {
-    return rolePermissions[role] || ROLE_DEFAULT_PERMISSIONS[role] || [];
+    return resolveRolePermissions(rolePermissions, role);
   };
 
   const canManageRole = (targetRole: string) => {
@@ -391,14 +428,16 @@ export function useEditorData() {
         return;
       }
 
-      const email = session.user.email || "";
+      const email = normalizeEmail(session.user.email || "");
       setCurrentUserEmail(email);
 
-      const { data: userData, error: userError } = await supabase
+      const { data: allowedRows, error: userError } = await supabase
         .from("allowed_users")
-        .select("role, permissions")
-        .eq("email", email)
-        .single();
+        .select("role, permissions, email")
+        .ilike("email", email)
+        .limit(1);
+
+      const userData = allowedRows?.[0];
 
       if (userError || !userData) {
         alert(`アクセス権限がありません。\n登録メールアドレス: ${email}\n管理者に追加を依頼してください。`);
@@ -407,27 +446,35 @@ export function useEditorData() {
         return;
       }
 
+      // 許可リストの表記を正規化（大文字小文字の不一致で再ログインできなくなるのを防ぐ）
+      if (userData.email && userData.email !== email) {
+        await supabase.from("allowed_users").update({ email }).eq("email", userData.email);
+      }
+
       setIsAuthenticated(true);
       setUserRole(userData.role);
 
       const { data: rolePermRows, error: rolePermError } = await supabase
         .from("role_permissions")
         .select("role_id, permissions");
+
+      let effectiveRolePermissions = rolePermissions;
       if (!rolePermError && rolePermRows && rolePermRows.length > 0) {
-        const loaded: Record<string, string[]> = { ...ROLE_DEFAULT_PERMISSIONS };
-        rolePermRows.forEach((row: any) => {
-          if (row.role_id) loaded[row.role_id] = row.permissions || [];
-        });
-        setRolePermissions(loaded);
+        effectiveRolePermissions = mergeRolePermissionsFromDb(rolePermRows);
+        setRolePermissions(effectiveRolePermissions);
       }
 
-      const activePerms = userData.permissions || getDefaultPermissionsForRole(userData.role);
+      const activePerms = resolveUserPermissions(
+        userData.permissions,
+        userData.role,
+        effectiveRolePermissions
+      );
       setUserPermissions(activePerms);
 
       const { data: nData } = await supabase
         .from("notifications")
         .select("*")
-        .eq("email", email)
+        .eq("user_email", email)
         .order("created_at", { ascending: false });
       setNotifications(nData || []);
 
@@ -481,7 +528,7 @@ export function useEditorData() {
       showToast("この役職を付与する権限がありません", "error");
       return;
     }
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanEmail = normalizeEmail(email);
     try {
       const defaultPerms = getDefaultPermissionsForRole(role);
       const { error } = await supabase.from("allowed_users").insert([
@@ -517,7 +564,7 @@ export function useEditorData() {
     }
     if (confirm(`本当に「${email}」のログイン許可を剥奪しますか？`)) {
       try {
-        const { error } = await supabase.from("allowed_users").delete().eq("email", email);
+        const { error } = await supabase.from("allowed_users").delete().ilike("email", normalizeEmail(email));
         if (error) throw error;
 
         logAdminAction("remove_allowed_user", `ユーザー「${email}」のログイン権限を剥奪しました`);
@@ -547,10 +594,10 @@ export function useEditorData() {
       const { error } = await supabase
         .from("allowed_users")
         .update({ role, permissions: defaultPerms })
-        .eq("email", email);
+        .ilike("email", normalizeEmail(email));
       if (error) throw error;
 
-      logAdminAction("change_user_role", `ユーザー「${email}」のロールを「${role}」に変更し、デフォルト権限を適用しました`);
+      logAdminAction("change_user_role", `ユーザー「${normalizeEmail(email)}」のロールを「${role}」に変更し、デフォルト権限を適用しました`);
       showToast(`${email} の権限を変更しました`);
       fetchData(true);
     } catch (e: any) {
@@ -580,7 +627,7 @@ export function useEditorData() {
       const { error } = await supabase
         .from("allowed_users")
         .update({ permissions, role: updatedRole })
-        .eq("email", email);
+        .ilike("email", normalizeEmail(email));
       if (error) throw error;
 
       logAdminAction("update_user_permissions", `ユーザー「${email}」の個別権限をカスタマイズしました (決定ロール: ${updatedRole})`);
@@ -605,7 +652,7 @@ export function useEditorData() {
 
       setRolePermissions((prev) => ({
         ...prev,
-        [roleId]: permissions
+        [roleId]: permissions.length > 0 ? permissions : (ROLE_DEFAULT_PERMISSIONS[roleId] || [])
       }));
       showToast(`${roleId} のデフォルト権限を保存しました`);
     } catch (e: any) {
@@ -618,10 +665,13 @@ export function useEditorData() {
       showToast("操作権限がありません", "error");
       return;
     }
-    const cleanNewEmail = newEmail.toLowerCase().trim();
+    const cleanNewEmail = normalizeEmail(newEmail);
     if (!cleanNewEmail) return;
     try {
-      const { error } = await supabase.from("allowed_users").update({ email: cleanNewEmail }).eq("email", oldEmail);
+      const { error } = await supabase
+        .from("allowed_users")
+        .update({ email: cleanNewEmail })
+        .ilike("email", normalizeEmail(oldEmail));
       if (error) throw error;
 
       logAdminAction("update_allowed_user_email", `登録メールアドレスを「${oldEmail}」から「${cleanNewEmail}」に変更しました`);

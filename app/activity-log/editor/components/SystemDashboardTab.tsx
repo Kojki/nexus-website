@@ -918,7 +918,10 @@ export function SystemDashboardTab({
                       }}>
                         {/* 👇 ここで Object.entries の型キャストを行い、TSエラーを完璧に防いでいます！ */}
                         {(Object.entries(PERMISSION_LABELS) as [string, { label: string; desc: string }][]).map(([permKey, info]) => {
-                          const userPerms = u.permissions || ROLE_DEFAULT_PERMISSIONS[u.role] || [];
+                          const userPerms =
+                            u.permissions && u.permissions.length > 0
+                              ? u.permissions
+                              : ROLE_DEFAULT_PERMISSIONS[u.role] || [];
                           const isChecked = userPerms.includes(permKey);
                           const isToggleDisabled = isSelf || isEditingThis || !(hasPermission("manage_roles_unlimited") || hasPermission("manage_subordinate_roles"));
 
