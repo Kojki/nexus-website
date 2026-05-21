@@ -471,11 +471,17 @@ export function ActivityTab({ state, setters, handlers, activities, userRole, ha
 export function MembersTab({ state, setters, handlers, userRole, hasPermission }: any) {
   const { isReadOnly, canOnlyPropose, canPublish } = useTabAccess(userRole, hasPermission);
   const actionDisabled = isReadOnly;
+  const hasPending = Array.isArray(state.pendingMembers) && state.pendingMembers.length > 0;
 
   return (
     <div>
       <h2 style={S.sectionTitle}>メンバー管理</h2>
       {canOnlyPropose && <ProposerNotice />}
+      {canOnlyPropose && (
+        <div style={{ marginBottom: "24px", padding: "16px", borderRadius: "18px", background: "#fff4e6", border: "1px solid #f5d3aa", color: "#7a4e1a", fontSize: "0.9rem", lineHeight: 1.6 }}>
+          このアカウントは承認が必要な「提案者モード」です。新規登録したメンバーは先に承認待ちになり、管理者の承認後に正式に一覧に表示されます。
+        </div>
+      )}
       
       <div style={{ ...S.editorCard, marginBottom: "40px" }}>
         <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>
@@ -537,6 +543,20 @@ export function MembersTab({ state, setters, handlers, userRole, hasPermission }
         </div>
       </div>
 
+      {hasPending && (
+        <div style={{ ...S.editorCard, marginBottom: "32px", background: "#fff8f3", border: "1px solid #f4e1d4" }}>
+          <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "16px" }}>承認待ちのメンバー</h3>
+          <div style={{ display: "grid", gap: "12px" }}>
+            {state.pendingMembers.map((m: any) => (
+              <div key={m.id} style={{ padding: "16px", borderRadius: "16px", background: "white", border: "1px solid #f1e1d5" }}>
+                <div style={{ fontWeight: 800, marginBottom: "6px" }}>{m.name || "(名前未設定)"}</div>
+                <div style={{ fontSize: "0.85rem", color: "#666", marginBottom: "6px" }}>{m.role || "役割なし"}</div>
+                <div style={{ fontSize: "0.8rem", color: "#999" }}>公開待ち / 承認待ち</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div style={S.listContainer}>
         {state.members.length === 0 ? <div style={S.emptyState}>登録メンバーがいません</div> : 
           state.members.map((m: any, index: number) => (

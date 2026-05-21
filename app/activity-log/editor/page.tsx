@@ -107,6 +107,7 @@ export default function NexusStudioPro() {
   const memberState = {
     ...form.members,
     members,
+    pendingMembers,
     uploading,
   };
   const memberSetters = {
