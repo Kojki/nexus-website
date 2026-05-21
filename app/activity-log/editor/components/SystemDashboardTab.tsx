@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase"; 
 import { S } from "./SharedUI";
-import { ROLE_DEFAULT_PERMISSIONS, PERMISSION_LABELS, ROLE_LABELS, isValidEmail } from "../hooks/useEditorData";
+import {
+  ROLE_DEFAULT_PERMISSIONS,
+  PERMISSION_LABELS,
+  ROLE_LABELS,
+  isValidEmail,
+  CANONICAL_ROLES,
+  ALL_PERMISSION_KEYS,
+  normalizeRoleId
+} from "../hooks/useEditorData";
 
 interface Props {
   analytics: {
@@ -765,29 +773,29 @@ export function SystemDashboardTab({
                   <thead>
                     <tr style={{ background: "#f5f3ef" }}>
                       <th style={{ padding: "10px", borderBottom: "2px solid #ddd", width: "35%" }}>権限の種類</th>
-                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>👑<br/>オーナー</th>
-                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>📝<br/>編集者</th>
-                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>🚀<br/>PJマネージャー</th>
-                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>📢<br/>広報</th>
-                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>💡<br/>提案者</th>
-                      <th style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center" }}>👀<br/>訪問者</th>
+                      {CANONICAL_ROLES.map((r) => (
+                        <th key={r} style={{ padding: "10px", borderBottom: "2px solid #ddd", textAlign: "center", fontSize: "0.7rem" }}>
+                          {ROLE_LABELS[r]?.split(" / ")[0] || r}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.entries(PERMISSION_LABELS).map(([key, info]) => (
+                    {ALL_PERMISSION_KEYS.map((key) => {
+                      const info = PERMISSION_LABELS[key];
+                      return (
                       <tr key={key} style={{ borderBottom: "1px solid #eee" }}>
                         <td style={{ padding: "10px" }}>
                           <div style={{ fontWeight: 900, color: "#111", marginBottom: "4px" }}>{info.label}</div>
                           <div style={{ fontSize: "0.65rem", color: "#888" }}>{info.desc}</div>
                         </td>
-                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.owner.includes(key) ? "✅" : "-"}</td>
-                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.editor.includes(key) ? "✅" : "-"}</td>
-                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.project_manager.includes(key) ? "✅" : "-"}</td>
-                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.public_relations.includes(key) ? "✅" : "-"}</td>
-                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.proposer.includes(key) ? "✅" : "-"}</td>
-                        <td style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>{ROLE_DEFAULT_PERMISSIONS.visitor?.includes(key) ? "✅" : "-"}</td>
+                        {CANONICAL_ROLES.map((r) => (
+                          <td key={r} style={{ padding: "10px", textAlign: "center", fontSize: "0.9rem" }}>
+                            {ROLE_DEFAULT_PERMISSIONS[r]?.includes(key) ? "✅" : "-"}
+                          </td>
+                        ))}
                       </tr>
-                    ))}
+                    );})}
                   </tbody>
                 </table>
               </div>
@@ -816,12 +824,9 @@ export function SystemDashboardTab({
                 style={{ ...S.select, flex: 1, minWidth: "160px", padding: "10px 16px", height: "auto" }}
               />
               <select name="role" style={{ ...S.select, width: "auto", padding: "10px 16px", height: "auto" }}>
-                <option value="owner">👑 {ROLE_LABELS.owner} (owner)</option>
-                <option value="editor">📝 {ROLE_LABELS.editor} (editor)</option>
-                <option value="project_manager">🚀 {ROLE_LABELS.project_manager} (project_manager)</option>
-                <option value="public_relations">📢 {ROLE_LABELS.public_relations} (public_relations)</option>
-                <option value="proposer">💡 {ROLE_LABELS.proposer} (proposer)</option>
-                <option value="visitor">👀 {ROLE_LABELS.visitor} (visitor)</option>
+                {CANONICAL_ROLES.map((r) => (
+                  <option key={r} value={r}>{ROLE_LABELS[r]} ({r})</option>
+                ))}
               </select>
               <button type="submit" style={{ ...S.primaryBtn, width: "auto", padding: "10px 24px" }}>
                 ➕ 許可リストに追加
@@ -949,12 +954,9 @@ export function SystemDashboardTab({
                           onChange={(e) => onChangeRole(u.email, e.target.value)}
                           style={{ ...S.select, width: "auto", padding: "6px 12px", fontSize: "0.8rem", height: "auto", background: u.role === "owner" ? "#fff0f0" : "white" }}
                         >
-                          <option value="owner">👑 {ROLE_LABELS.owner} (owner)</option>
-                          <option value="editor">📝 {ROLE_LABELS.editor} (editor)</option>
-                          <option value="project_manager">🚀 {ROLE_LABELS.project_manager} (project_manager)</option>
-                          <option value="public_relations">📢 {ROLE_LABELS.public_relations} (public_relations)</option>
-                          <option value="proposer">💡 {ROLE_LABELS.proposer} (proposer)</option>
-                          <option value="visitor">👀 {ROLE_LABELS.visitor} (visitor)</option>
+                          {CANONICAL_ROLES.map((r) => (
+                            <option key={r} value={r}>{ROLE_LABELS[r]} ({r})</option>
+                          ))}
                           <option value="custom">🛠️ {ROLE_LABELS.custom} (custom)</option>
                         </select>
 
@@ -991,7 +993,7 @@ export function SystemDashboardTab({
                           const userPerms =
                             u.permissions && u.permissions.length > 0
                               ? u.permissions
-                              : ROLE_DEFAULT_PERMISSIONS[u.role] || [];
+                              : ROLE_DEFAULT_PERMISSIONS[normalizeRoleId(u.role)] || [];
                           const isChecked = userPerms.includes(permKey);
                           const isToggleDisabled = isSelf || isEditingNickname || isFixingEmail || !canManageUsers;
 

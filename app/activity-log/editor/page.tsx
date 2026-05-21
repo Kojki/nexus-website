@@ -1,7 +1,7 @@
 "use client";
 
 import type { NotificationItem } from "./hooks/useEditorData";
-import { useEditorData } from "./hooks/useEditorData";
+import { useEditorData, isReadOnlyBrowser } from "./hooks/useEditorData";
 import { NavBtn, S } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { 
@@ -182,12 +182,24 @@ export default function NexusStudioPro() {
           </div>
 
           <nav style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <NavBtn active={activeTab === "content"} label="🌐 一般テキスト編集" icon="✍️" onClick={() => setActiveTab("content")} />
-            {(hasPermission("propose_content") || userRole === "visitor") && <NavBtn active={activeTab === "activities"} label="✍️ 活動記録管理" icon="📝" onClick={() => setActiveTab("activities")} />}
-            {(hasPermission("propose_content") || userRole === "visitor") && <NavBtn active={activeTab === "members"} label="👤 メンバー情報管理" icon="👥" onClick={() => setActiveTab("members")} />}
-            {(hasPermission("propose_content") || userRole === "visitor") && <NavBtn active={activeTab === "projects"} label="🚀 コラボ PJ 管理" icon="💼" onClick={() => setActiveTab("projects")} />}
-            {(hasPermission("propose_content") || userRole === "visitor") && <NavBtn active={activeTab === "faqs"} label="❓ FAQ 質問管理" icon="💬" onClick={() => setActiveTab("faqs")} />}
-            {(hasPermission("view_inquiries") || userRole === "visitor") && <NavBtn active={activeTab === "inquiries"} label="📬 申請・お問い合わせ管理" icon="📬" onClick={() => setActiveTab("inquiries")} />}
+            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+              <NavBtn active={activeTab === "content"} label="🌐 一般テキスト編集" icon="✍️" onClick={() => setActiveTab("content")} />
+            )}
+            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+              <NavBtn active={activeTab === "activities"} label="✍️ 活動記録管理" icon="📝" onClick={() => setActiveTab("activities")} />
+            )}
+            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+              <NavBtn active={activeTab === "members"} label="👤 メンバー情報管理" icon="👥" onClick={() => setActiveTab("members")} />
+            )}
+            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+              <NavBtn active={activeTab === "projects"} label="🚀 コラボ PJ 管理" icon="💼" onClick={() => setActiveTab("projects")} />
+            )}
+            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+              <NavBtn active={activeTab === "faqs"} label="❓ FAQ 質問管理" icon="💬" onClick={() => setActiveTab("faqs")} />
+            )}
+            {(hasPermission("view_inquiries") || isReadOnlyBrowser(userRole)) && (
+              <NavBtn active={activeTab === "inquiries"} label="📬 申請・お問い合わせ管理" icon="📬" onClick={() => setActiveTab("inquiries")} />
+            )}
             {(hasPermission("view_traffic_analytics") || hasPermission("view_audit_logs") || hasPermission("manage_subordinate_roles") || hasPermission("remove_users") || hasPermission("restore_trash") || hasPermission("empty_trash") || hasPermission("manage_roles_unlimited")) && <NavBtn active={activeTab === "system"} label="📊 システム・解析" icon="⚙️" onClick={() => setActiveTab("system")} />}
             {userRole === "owner" && <NavBtn active={activeTab === "role-settings"} label="👑 役職設定" icon="🧩" onClick={() => setActiveTab("role-settings")} />}
           </nav>

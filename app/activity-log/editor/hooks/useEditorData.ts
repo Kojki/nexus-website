@@ -45,49 +45,66 @@ export interface AuditLogItem {
   created_at: string;
 }
 
-// 🔑 ロールとデフォルト権限のマトリクス
+/** Wikipediaモデルに基づく正規の5役職 */
+export const CANONICAL_ROLES = ["owner", "admin", "reviewer", "proposer", "guest"] as const;
+
+/** 旧データ互換（DBに残っている role 名 → 正規役職） */
+export const ROLE_ALIASES: Record<string, string> = {
+  editor: "reviewer",
+  chief_editor: "reviewer",
+  sysop: "admin",
+  project_manager: "admin",
+  public_relations: "proposer",
+  visitor: "guest",
+  autoconfirmed: "proposer",
+};
+
 // 🔑 役職の階層順序（数値が大きいほど上位）
 export const ROLE_HIERARCHY: Record<string, number> = {
-  owner:            7,
-  admin:            6,
-  editor:           5,
-  project_manager:  4,
-  public_relations: 3,
-  reviewer:         2,
-  proposer:         1,
-  visitor:          0,
-  guest:           -1,
+  owner: 5,
+  admin: 4,
+  reviewer: 3,
+  proposer: 2,
+  guest: 1,
+  custom: 0,
+  editor: 3,
+  project_manager: 4,
+  public_relations: 2,
+  visitor: 1,
 };
 
 export const ROLE_LABELS: Record<string, string> = {
-  owner: "オーナー",
-  admin: "管理者",
-  editor: "編集者",
-  project_manager: "PJマネージャー",
-  public_relations: "広報担当",
-  reviewer: "編集長",
-  proposer: "提案者",
-  visitor: "訪問者",
-  guest: "ゲスト",
+  owner: "ビューロクラット / オーナー",
+  admin: "管理者 (sysop)",
+  reviewer: "査読者・編集長",
+  proposer: "自動承認利用者 / 提案者",
+  guest: "ゲスト（閲覧のみ）",
   custom: "カスタム",
+  editor: "編集者（→査読者）",
+  project_manager: "PJマネージャー（→管理者）",
+  public_relations: "広報担当（→提案者）",
+  visitor: "訪問者（→ゲスト）",
 };
+
+/** 全12権限キー（approve_content は publish_content に統合済み） */
+export const ALL_PERMISSION_KEYS = [
+  "manage_roles_unlimited",
+  "manage_subordinate_roles",
+  "remove_users",
+  "view_traffic_analytics",
+  "view_audit_logs",
+  "propose_content",
+  "publish_content",
+  "view_inquiries",
+  "reply_inquiries",
+  "delete_inquiries",
+  "restore_trash",
+  "empty_trash",
+] as const;
 
 // 🔑 ロールとデフォルト権限のマトリクス
 export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
-  owner: [
-    "manage_roles_unlimited",
-    "manage_subordinate_roles",
-    "remove_users",
-    "view_traffic_analytics",
-    "view_audit_logs",
-    "propose_content",
-    "publish_content",
-    "view_inquiries",
-    "reply_inquiries",
-    "delete_inquiries",
-    "restore_trash",
-    "empty_trash",
-  ],
+  owner: [...ALL_PERMISSION_KEYS],
   admin: [
     "manage_subordinate_roles",
     "remove_users",
@@ -101,41 +118,48 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "restore_trash",
     "empty_trash",
   ],
+  reviewer: [
+    "view_traffic_analytics",
+    "publish_content",
+    "reply_inquiries",
+    "restore_trash",
+  ],
+  proposer: ["propose_content", "view_inquiries"],
+  guest: ["view_traffic_analytics"],
+  custom: [],
   editor: [
+    "view_traffic_analytics",
+    "publish_content",
+    "reply_inquiries",
+    "restore_trash",
+  ],
+  project_manager: [
+    "manage_subordinate_roles",
+    "remove_users",
+    "view_traffic_analytics",
+    "view_audit_logs",
     "propose_content",
     "publish_content",
     "view_inquiries",
     "reply_inquiries",
     "delete_inquiries",
-  ],
-  project_manager: [
-    "propose_content",
-    "publish_content",
-    "view_inquiries",
-    "reply_inquiries",
-  ],
-  public_relations: [
-    "propose_content",
-    "view_inquiries",
-  ],
-  reviewer: [
-    "view_traffic_analytics",
-    "propose_content",
-    "publish_content",
-    "view_inquiries",
-    "reply_inquiries",
     "restore_trash",
+    "empty_trash",
   ],
-  proposer: [
-    "propose_content",
-    "view_inquiries",
-  ],
-  visitor: [
-    "view_inquiries",
-  ],
-  guest: [],
-  custom: [],
+  public_relations: ["propose_content", "view_inquiries"],
+  visitor: ["view_traffic_analytics"],
 };
+
+export function normalizeRoleId(role: string): string {
+  return ROLE_ALIASES[role] || role;
+}
+
+/** ゲスト相当：画面は見られるが保存・送信は不可 */
+export function isReadOnlyBrowser(role: string | null): boolean {
+  if (!role) return false;
+  const n = normalizeRoleId(role);
+  return n === "guest" || role === "visitor";
+}
 
 /** Gmail等の表記ゆれを吸収（許可リスト登録時は小文字化している） */
 export function normalizeEmail(email: string): string {
@@ -152,9 +176,10 @@ export function resolveRolePermissions(
   rolePermsMap: Record<string, string[]>,
   role: string
 ): string[] {
-  const fromMap = rolePermsMap[role];
+  const roleKey = normalizeRoleId(role);
+  const fromMap = rolePermsMap[roleKey] ?? rolePermsMap[role];
   if (fromMap && fromMap.length > 0) return fromMap;
-  return ROLE_DEFAULT_PERMISSIONS[role] || [];
+  return ROLE_DEFAULT_PERMISSIONS[roleKey] || ROLE_DEFAULT_PERMISSIONS[role] || [];
 }
 
 /** DBの個別権限が空のときは役職デフォルトにフォールバック */
@@ -187,7 +212,7 @@ export const PERMISSION_LABELS: Record<string, { label: string; desc: string }> 
   view_traffic_analytics:   { label: "📊 アクセス状況の閲覧",       desc: "PV数・人気ページなどの統計データを見れる" },
   view_audit_logs:          { label: "🛡️ 監査ログの閲覧",          desc: "誰がいつ何をしたか（操作履歴）を見れる" },
   propose_content:          { label: "📝 編集提案",                 desc: "コンテンツの追加・編集を「提案（承認待ち）」として送信できる" },
-  publish_content:          { label: "🚀 本番公開・提案反映",       desc: "直接本番へ反映できる。他人の提案を承認・却下できる" },
+  publish_content:          { label: "🚀 本番公開・提案反映",       desc: "直接本番へ反映できる。他人の提案を本番へ反映（承認）できる" },
   view_inquiries:           { label: "📩 問い合わせの閲覧",         desc: "届いたメッセージや申請を「読む」ことだけできる" },
   reply_inquiries:          { label: "✉️ 返信・メール送信",         desc: "採用/お見送り/返信メールの送信、ステータス変更ができる" },
   delete_inquiries:         { label: "🗑️ 問い合わせの削除",        desc: "届いた問い合わせ・申請データを削除できる" },
@@ -296,8 +321,8 @@ export function useEditorData() {
   const canManageRole = (targetRole: string) => {
     if (userRole === "owner") return true;
     if (!hasPermission("manage_subordinate_roles")) return false;
-    const currentRank = ROLE_HIERARCHY[userRole || "guest"] ?? -1;
-    const targetRank = ROLE_HIERARCHY[targetRole] ?? -1;
+    const currentRank = ROLE_HIERARCHY[normalizeRoleId(userRole || "guest")] ?? 0;
+    const targetRank = ROLE_HIERARCHY[normalizeRoleId(targetRole)] ?? 0;
     return targetRank < currentRank;
   };
 
@@ -471,11 +496,11 @@ export function useEditorData() {
         setRolePermissions(effectiveRolePermissions);
       }
 
-      const activePerms = resolveUserPermissions(
-        userData.permissions,
-        userData.role,
-        effectiveRolePermissions
-      );
+      // custom 以外は役職テンプレートを優先（DBに空配列・古い権限が残っていても一致させる）
+      const activePerms =
+        userData.role === "custom"
+          ? resolveUserPermissions(userData.permissions, userData.role, effectiveRolePermissions)
+          : resolveRolePermissions(effectiveRolePermissions, userData.role);
       setUserPermissions(activePerms);
 
       const { data: nData } = await supabase
@@ -630,8 +655,12 @@ export function useEditorData() {
     }
     try {
       let updatedRole = "custom";
-      for (const [roleKey, perms] of Object.entries(ROLE_DEFAULT_PERMISSIONS)) {
-        if (roleKey !== "custom" && perms.length === permissions.length && perms.every((p) => permissions.includes(p))) {
+      for (const roleKey of CANONICAL_ROLES) {
+        const defaults = ROLE_DEFAULT_PERMISSIONS[roleKey] || [];
+        if (
+          defaults.length === permissions.length &&
+          defaults.every((p) => permissions.includes(p))
+        ) {
           updatedRole = roleKey;
           break;
         }
@@ -1033,7 +1062,7 @@ export function useEditorData() {
   };
 
   const handleMoveMember = async (index: number, direction: "up" | "down") => {
-    if (!hasPermission("manage_members") || !hasPermission("publish_content")) {
+    if (!hasPermission("publish_content")) {
       showToast("順序変更を行う権限がありません", "error");
       return;
     }
@@ -1228,7 +1257,7 @@ export function useEditorData() {
   };
 
   const handleInsertDefaultFaqs = async () => {
-    if (!hasPermission("manage_faqs") || !hasPermission("publish_content")) {
+    if (!hasPermission("publish_content")) {
       showToast("デフォルトFAQの自動投入権限がありません", "error");
       return;
     }

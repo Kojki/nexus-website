@@ -2,9 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import { S } from "./SharedUI";
-import { PERMISSION_LABELS, ROLE_DEFAULT_PERMISSIONS, ROLE_LABELS as ROLE_DISPLAY_NAMES } from "../hooks/useEditorData";
+import {
+  PERMISSION_LABELS,
+  ROLE_DEFAULT_PERMISSIONS,
+  ROLE_LABELS as ROLE_DISPLAY_NAMES,
+  CANONICAL_ROLES,
+  ALL_PERMISSION_KEYS
+} from "../hooks/useEditorData";
 
-const ROLES = ["owner", "editor", "project_manager", "public_relations", "proposer", "visitor"] as const;
+const ROLES = CANONICAL_ROLES;
 
 type RoleId = (typeof ROLES)[number];
 
@@ -38,7 +44,24 @@ export function RoleSettingsTab({ rolePermissions, onSaveRolePermissions, hasPer
     setSavingRole(null);
   };
 
-  const sortedPermissions = Object.keys(PERMISSION_LABELS) as Array<keyof typeof PERMISSION_LABELS>;
+  const sortedPermissions = ALL_PERMISSION_KEYS as unknown as Array<keyof typeof PERMISSION_LABELS>;
+
+  const roleDescription = (roleId: RoleId) => {
+    switch (roleId) {
+      case "owner":
+        return "ビューロクラット。全12権限を持ち、役職・権限の付与を含むすべての操作が可能です。";
+      case "admin":
+        return "管理者 (sysop)。ユーザー管理・監査・永久消去を含む実務権限すべて。manage_roles_unlimited は不可。";
+      case "reviewer":
+        return "査読者・編集長。提案の本番反映・復元・メール送信・解析閲覧。ユーザー剥奪・永久消去・監査ログは不可。";
+      case "proposer":
+        return "提案者。編集提案の送信と問い合わせの閲覧のみ。本番反映・メール送信・削除操作は不可。";
+      case "guest":
+        return "ゲスト。管理画面の閲覧のみ（アクセス解析）。編集・保存・送信は不可。";
+      default:
+        return "";
+    }
+  };
 
   return (
     <div>
@@ -55,7 +78,7 @@ export function RoleSettingsTab({ rolePermissions, onSaveRolePermissions, hasPer
                 <div>
                   <div style={{ fontSize: "1rem", fontWeight: 900, marginBottom: "6px" }}>{ROLE_DISPLAY_NAMES[roleId] || roleId}（{roleId}）</div>
                   <div style={{ color: "#777", fontSize: "0.85rem" }}>
-                    {roleId === "owner" ? "システムの最高権限です。すべての権限を管理できます。" : roleId === "editor" ? "編集者はコンテンツ編集・公開、および問い合わせ対応ができます。" : roleId === "project_manager" ? "PJマネージャーはプロジェクト管理と記事公開を調整できます。" : roleId === "public_relations" ? "広報担当は問い合わせ対応と情報発信の管理を行います。" : roleId === "proposer" ? "提案者は編集提案を送信できます。" : roleId === "visitor" ? "訪問者は提案者と同じ画面を見られますが、編集や保存の操作はできません。" : ""}
+                    {roleDescription(roleId)}
                   </div>
                 </div>
                 <button
