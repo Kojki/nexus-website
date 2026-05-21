@@ -394,6 +394,7 @@ export default function NexusStudioPro() {
                 logs={auditLogs}
                 userRole={userRole}
                 allowedUsers={allowedUsers}
+                rolePermissions={rolePermissions}
                 currentUserEmail={currentUserEmail}
                 onAddUser={actions.handleAddAllowedUser}
                 onRemoveUser={actions.handleRemoveAllowedUser}

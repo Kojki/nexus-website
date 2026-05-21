@@ -8,7 +8,8 @@ import {
   isValidEmail,
   CANONICAL_ROLES,
   ALL_PERMISSION_KEYS,
-  normalizeRoleId
+  normalizeRoleId,
+  resolveRolePermissions
 } from "../hooks/useEditorData";
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
   logs: any[];
   userRole: string | null;
   allowedUsers: any[];
+  rolePermissions: Record<string, string[]>;
   currentUserEmail: string;
   onAddUser: (email: string, role: string, displayName?: string) => Promise<void>;
   onRemoveUser: (email: string) => Promise<void>;
@@ -54,6 +56,7 @@ export function SystemDashboardTab({
   logs,
   userRole,
   allowedUsers,
+  rolePermissions,
   currentUserEmail,
   onAddUser,
   onRemoveUser,
@@ -991,9 +994,9 @@ export function SystemDashboardTab({
                         {/* 👇 ここで Object.entries の型キャストを行い、TSエラーを完璧に防いでいます！ */}
                         {(Object.entries(PERMISSION_LABELS) as [string, { label: string; desc: string }][]).map(([permKey, info]) => {
                           const userPerms =
-                            u.permissions && u.permissions.length > 0
-                              ? u.permissions
-                              : ROLE_DEFAULT_PERMISSIONS[normalizeRoleId(u.role)] || [];
+                            u.role === "custom"
+                              ? (u.permissions ?? [])
+                              : resolveRolePermissions(rolePermissions, u.role);
                           const isChecked = userPerms.includes(permKey);
                           const isToggleDisabled = isSelf || isEditingNickname || isFixingEmail || !canManageUsers;
 

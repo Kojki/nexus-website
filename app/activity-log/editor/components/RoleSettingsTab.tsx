@@ -7,7 +7,8 @@ import {
   ROLE_DEFAULT_PERMISSIONS,
   ROLE_LABELS as ROLE_DISPLAY_NAMES,
   CANONICAL_ROLES,
-  ALL_PERMISSION_KEYS
+  ALL_PERMISSION_KEYS,
+  getEditorRolePermissions
 } from "../hooks/useEditorData";
 
 const ROLES = CANONICAL_ROLES;
@@ -30,7 +31,7 @@ export function RoleSettingsTab({ rolePermissions, onSaveRolePermissions, hasPer
 
   const handleToggle = (roleId: RoleId, permission: string) => {
     setLocalRolePermissions((prev) => {
-      const current = prev[roleId] || [];
+      const current = getEditorRolePermissions(prev, roleId);
       const next = current.includes(permission)
         ? current.filter((item) => item !== permission)
         : [...current, permission];
@@ -40,7 +41,10 @@ export function RoleSettingsTab({ rolePermissions, onSaveRolePermissions, hasPer
 
   const handleSave = async (roleId: RoleId) => {
     setSavingRole(roleId);
-    await onSaveRolePermissions(roleId, localRolePermissions[roleId] || []);
+    const perms = roleId in localRolePermissions
+      ? localRolePermissions[roleId]
+      : getEditorRolePermissions(localRolePermissions, roleId);
+    await onSaveRolePermissions(roleId, [...perms]);
     setSavingRole(null);
   };
 
@@ -100,7 +104,7 @@ export function RoleSettingsTab({ rolePermissions, onSaveRolePermissions, hasPer
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
                 {sortedPermissions.map((permKey) => {
                   const info = PERMISSION_LABELS[permKey];
-                  const currentPerms = localRolePermissions[roleId] || ROLE_DEFAULT_PERMISSIONS[roleId] || [];
+                  const currentPerms = getEditorRolePermissions(localRolePermissions, roleId);
                   const isChecked = currentPerms.includes(permKey);
 
                   return (

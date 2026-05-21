@@ -171,15 +171,28 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
 }
 
-/** 役職テンプレートから有効なデフォルト権限を取得（空配列は未設定扱い） */
+/**
+ * 役職テンプレートの権限を取得。
+ * - DBに保存済み（キーが存在）なら空配列 [] もそのまま返す（明示的な「権限なし」）
+ * - 未保存の役職のみコード内デフォルトにフォールバック
+ */
 export function resolveRolePermissions(
   rolePermsMap: Record<string, string[]>,
   role: string
 ): string[] {
   const roleKey = normalizeRoleId(role);
-  const fromMap = rolePermsMap[roleKey] ?? rolePermsMap[role];
-  if (fromMap && fromMap.length > 0) return fromMap;
+  if (roleKey in rolePermsMap) return rolePermsMap[roleKey];
+  if (role in rolePermsMap) return rolePermsMap[role];
   return ROLE_DEFAULT_PERMISSIONS[roleKey] || ROLE_DEFAULT_PERMISSIONS[role] || [];
+}
+
+/** 役職設定UI用：保存済みテンプレートをそのまま表示 */
+export function getEditorRolePermissions(
+  rolePermsMap: Record<string, string[]>,
+  roleId: string
+): string[] {
+  if (roleId in rolePermsMap) return rolePermsMap[roleId];
+  return ROLE_DEFAULT_PERMISSIONS[roleId] || [];
 }
 
 /** DBの個別権限が空のときは役職デフォルトにフォールバック */
@@ -197,8 +210,8 @@ function mergeRolePermissionsFromDb(
 ): Record<string, string[]> {
   const loaded: Record<string, string[]> = { ...ROLE_DEFAULT_PERMISSIONS };
   rows.forEach((row) => {
-    if (row.role_id && row.permissions && row.permissions.length > 0) {
-      loaded[row.role_id] = row.permissions;
+    if (row.role_id) {
+      loaded[row.role_id] = row.permissions ?? [];
     }
   });
   return loaded;
@@ -628,7 +641,7 @@ export function useEditorData() {
       return;
     }
     try {
-      const defaultPerms = getDefaultPermissionsForRole(role);
+      const defaultPerms = [...getDefaultPermissionsForRole(role)];
       const { error } = await supabase
         .from("allowed_users")
         .update({ role, permissions: defaultPerms })
@@ -719,7 +732,7 @@ export function useEditorData() {
 
       setRolePermissions((prev) => ({
         ...prev,
-        [roleId]: permsToSave.length > 0 ? permsToSave : (ROLE_DEFAULT_PERMISSIONS[roleId] || [])
+        [roleId]: [...permsToSave]
       }));
       showToast(`${roleId} のデフォルト権限を保存しました`);
     } catch (e: any) {
