@@ -161,6 +161,14 @@ export function isReadOnlyBrowser(role: string | null): boolean {
   return n === "guest" || role === "visitor";
 }
 
+/** 提案のみ可能（本番反映・削除・公開切替は不可） */
+export function isProposerOnly(hasPermission: (permission: string) => boolean): boolean {
+  return hasPermission("propose_content") && !hasPermission("publish_content");
+}
+
+/** 1ユーザーが同時に出せる一般テキスト提案の上限 */
+export const MAX_PENDING_CONTENT_PROPOSALS_PER_USER = 200;
+
 /** Gmail等の表記ゆれを吸収（許可リスト登録時は小文字化している） */
 export function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
@@ -859,6 +867,16 @@ export function useEditorData() {
       }
 
       if (!hasPermission("publish_content")) {
+        const { count: pendingCount, error: countError } = await supabase
+          .from("content_proposals")
+          .select("id", { count: "exact", head: true })
+          .eq("proposer_email", currentUserEmail)
+          .eq("status", "pending");
+
+        if (countError) throw countError;
+
+        let newProposalKeys = 0;
+
         for (const key of changedKeys) {
           const value = liveData[key];
 
@@ -867,6 +885,7 @@ export function useEditorData() {
             .select("id")
             .eq("page_path", activePage)
             .eq("content_key", key)
+            .eq("proposer_email", currentUserEmail)
             .eq("status", "pending")
             .limit(1);
 
@@ -877,6 +896,14 @@ export function useEditorData() {
               .eq("id", existing[0].id);
             if (error) throw error;
           } else {
+            if ((pendingCount ?? 0) + newProposalKeys >= MAX_PENDING_CONTENT_PROPOSALS_PER_USER) {
+              showToast(
+                `保留中のテキスト提案は最大 ${MAX_PENDING_CONTENT_PROPOSALS_PER_USER} 件までです。承認後に再度お試しください。`,
+                "error"
+              );
+              setPublishing(false);
+              return;
+            }
             const { error } = await supabase.from("content_proposals").insert([
               {
                 page_path: activePage,
@@ -887,6 +914,7 @@ export function useEditorData() {
               }
             ]);
             if (error) throw error;
+            newProposalKeys += 1;
           }
         }
         showToast("テキスト変更提案を一括送信しました！");
@@ -1344,8 +1372,8 @@ export function useEditorData() {
       return;
     }
 
-    if (!hasPermission("propose_content")) {
-      showToast("削除権限がありません", "error");
+    if (!hasPermission("publish_content")) {
+      showToast("削除は承認者のみ可能です。変更は「提案を送信」から行ってください。", "error");
       return;
     }
 

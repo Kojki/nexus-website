@@ -3,6 +3,36 @@ import { PageTabBtn, InputField, S, PagePath } from "./SharedUI";
 import { supabase } from "@/lib/supabase";
 import { isReadOnlyBrowser } from "../hooks/useEditorData";
 
+function ProposerNotice() {
+  return (
+    <div
+      style={{
+        marginBottom: "24px",
+        padding: "16px",
+        borderRadius: "18px",
+        background: "#eef4ff",
+        border: "1px solid #c5d8ff",
+        color: "#1a3a8a",
+        fontSize: "0.85rem",
+        lineHeight: 1.6,
+        fontWeight: 700
+      }}
+    >
+      💡 提案者モード: 変更は承認待ちとして送信されます（システムタブで承認）。本番への直接反映・公開切替・削除はできません。
+    </div>
+  );
+}
+
+function useTabAccess(userRole: string | null, hasPermission?: (p: string) => boolean) {
+  const isReadOnly =
+    isReadOnlyBrowser(userRole) || (hasPermission ? !hasPermission("propose_content") : userRole === "visitor");
+  const canOnlyPropose = hasPermission
+    ? hasPermission("propose_content") && !hasPermission("publish_content")
+    : userRole === "proposer";
+  const canPublish = hasPermission ? hasPermission("publish_content") : userRole !== "proposer";
+  return { isReadOnly, canOnlyPropose, canPublish };
+}
+
 // 🟢 共通の画像ドラッグ＆ドロップ・アップローダー
 function DragDropImageZone({ label, imageUrl, uploading, onUpload, onClear }: any) {
   const [dragging, setDragging] = useState(false);
@@ -72,13 +102,14 @@ function DragDropImageZone({ label, imageUrl, uploading, onUpload, onClear }: an
 }
 
 // 🌐 サイト文言編集タブ（一括保存ボタン ＆ 最新情報同期ボタンを追加）
-export function ContentTab({ activePage, setActivePage, liveData, handleUpdateContent, onSave, onReload, publishing, userRole }: any) {
-  const isReadOnly = userRole === "visitor";
+export function ContentTab({ activePage, setActivePage, liveData, handleUpdateContent, onSave, onReload, publishing, userRole, hasPermission }: any) {
+  const { isReadOnly, canOnlyPropose } = useTabAccess(userRole, hasPermission);
 
   return (
     <div>
       <h2 style={S.sectionTitle}>サイト文言の編集</h2>
-      {isReadOnly && (
+      {canOnlyPropose && <ProposerNotice />}
+      {isReadOnly && !canOnlyPropose && (
         <div style={{ marginBottom: "24px", padding: "16px", borderRadius: "18px", background: "#fff7e6", border: "1px solid #ffe2b3", color: "#8a4b00" }}>
           👀 閲覧専用モード: 表示はできますが編集・保存はできません。
         </div>
@@ -245,7 +276,7 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
             disabled={publishing || isReadOnly}
             style={{
               ...S.primaryBtn,
-              background: userRole === "proposer" ? "#0055ff" : "#111",
+              background: canOnlyPropose ? "#0055ff" : "#111",
               opacity: isReadOnly ? 0.65 : 1,
               cursor: isReadOnly ? "not-allowed" : "pointer",
               display: "flex",
@@ -254,7 +285,7 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
               gap: "8px"
             }}
           >
-            {publishing ? "⌛ 処理を実行中..." : userRole === "proposer" ? "💡 編集提案を送信する" : "💾 変更内容を本番公開・保存する"}
+            {publishing ? "⌛ 処理を実行中..." : canOnlyPropose ? "💡 編集提案を送信する" : "💾 変更内容を本番公開・保存する"}
           </button>
         </div>
       </div>
@@ -263,13 +294,14 @@ export function ContentTab({ activePage, setActivePage, liveData, handleUpdateCo
 }
 
 // ✍️ 活動記録管理タブ
-export function ActivityTab({ state, setters, handlers, activities, userRole }: any) {
-  const isReadOnly = userRole === "visitor";
+export function ActivityTab({ state, setters, handlers, activities, userRole, hasPermission }: any) {
+  const { isReadOnly, canOnlyPropose, canPublish } = useTabAccess(userRole, hasPermission);
   const actionDisabled = isReadOnly || state.publishing;
 
   return (
     <div>
       <h2 style={S.sectionTitle}>活動記録の管理</h2>
+      {canOnlyPropose && <ProposerNotice />}
 
       <div style={{ ...S.editorCard, marginBottom: "40px" }}>
         <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>
@@ -342,21 +374,33 @@ export function ActivityTab({ state, setters, handlers, activities, userRole }: 
           <InputField label="詳細内容 (本文) ※任意" value={state.content} onChange={setters.setContent} textarea large placeholder="## 大見出し&#13;### 中見出し&#13;- 箇条書き&#13;**太字** などが使用できます。" disabled={isReadOnly} />
           <InputField label="URLスラッグ (例: project-kickoff) ※任意" value={state.slug} onChange={setters.setSlug} disabled={isReadOnly} />
           
-          <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
-            <button 
-              onClick={() => handlers.handleSaveActivity(false)} 
-              style={{...S.primaryBtn, background: "white", color: "#111", border: "2px solid #111", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer"}} 
-              disabled={actionDisabled || !state.title}
-            >
-              下書き保存する
-            </button>
-            <button 
-              onClick={() => handlers.handleSaveActivity(true)} 
-              style={{ ...S.primaryBtn, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
-              disabled={actionDisabled || !state.title}
-            >
-              {state.editingActivityId ? "更新して公開" : "今すぐ公開する"}
-            </button>
+          <div style={{ display: "flex", gap: "12px", marginTop: "20px", flexWrap: "wrap" }}>
+            {canOnlyPropose ? (
+              <button
+                onClick={() => handlers.handleSaveActivity(false)}
+                style={{ ...S.primaryBtn, background: "#0055ff", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
+                disabled={actionDisabled || !state.title}
+              >
+                {state.editingActivityId ? "💡 修正提案を送信" : "💡 新規提案を送信"}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => handlers.handleSaveActivity(false)}
+                  style={{ ...S.primaryBtn, background: "white", color: "#111", border: "2px solid #111", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
+                  disabled={actionDisabled || !state.title}
+                >
+                  下書き保存する
+                </button>
+                <button
+                  onClick={() => handlers.handleSaveActivity(true)}
+                  style={{ ...S.primaryBtn, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
+                  disabled={actionDisabled || !state.title}
+                >
+                  {state.editingActivityId ? "更新して公開" : "今すぐ公開する"}
+                </button>
+              </>
+            )}
             {state.editingActivityId && (
               <button 
                 onClick={handlers.cancelEditActivity} 
@@ -401,14 +445,17 @@ export function ActivityTab({ state, setters, handlers, activities, userRole }: 
                 >
                   📝 編集
                 </button>
-                <button 
-                  onClick={() => !isReadOnly && handlers.handleTogglePublish('activities', act.id, !act.is_published)} 
-                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px", opacity: isReadOnly ? 0.5 : 1, cursor: isReadOnly ? "not-allowed" : "pointer" }}
-                  disabled={isReadOnly}
-                >
-                  {act.is_published ? "非公開にする" : "公開する"}
-                </button>
-                <button onClick={() => !isReadOnly && handlers.handleDelete('activities', act.id)} style={{ ...S.dangerBtn, opacity: isReadOnly ? 0.5 : 1, cursor: isReadOnly ? "not-allowed" : "pointer" }} disabled={isReadOnly}>削除</button>
+                {canPublish && (
+                  <button
+                    onClick={() => handlers.handleTogglePublish("activities", act.id, !act.is_published)}
+                    style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px" }}
+                  >
+                    {act.is_published ? "非公開にする" : "公開する"}
+                  </button>
+                )}
+                {canPublish && (
+                  <button onClick={() => handlers.handleDelete("activities", act.id)} style={{ ...S.dangerBtn }}>削除</button>
+                )}
               </div>
             </div>
           ))
@@ -419,13 +466,14 @@ export function ActivityTab({ state, setters, handlers, activities, userRole }: 
 }
 
 // 👤 メンバー管理タブ
-export function MembersTab({ state, setters, handlers, userRole }: any) {
-  const isReadOnly = userRole === "visitor";
+export function MembersTab({ state, setters, handlers, userRole, hasPermission }: any) {
+  const { isReadOnly, canOnlyPropose, canPublish } = useTabAccess(userRole, hasPermission);
   const actionDisabled = isReadOnly;
 
   return (
     <div>
       <h2 style={S.sectionTitle}>メンバー管理</h2>
+      {canOnlyPropose && <ProposerNotice />}
       
       <div style={{ ...S.editorCard, marginBottom: "40px" }}>
         <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>
@@ -452,10 +500,16 @@ export function MembersTab({ state, setters, handlers, userRole }: any) {
           <div style={{ display: "flex", gap: "12px" }}>
             <button 
               onClick={handlers.handleSaveMember} 
-              style={{ ...S.primaryBtn, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
+              style={{ ...S.primaryBtn, background: canOnlyPropose ? "#0055ff" : undefined, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
               disabled={actionDisabled || !state.mName}
             >
-              {state.editingMemberId ? "更新して保存" : "追加する"}
+              {canOnlyPropose
+                ? state.editingMemberId
+                  ? "💡 修正提案を送信"
+                  : "💡 新規提案を送信"
+                : state.editingMemberId
+                  ? "更新して保存"
+                  : "追加する"}
             </button>
             {state.editingMemberId && (
               <button 
@@ -486,20 +540,24 @@ export function MembersTab({ state, setters, handlers, userRole }: any) {
               </div>
               <div style={{ display: "flex", gap: "8px", flexDirection: "column", alignItems: "flex-end" }}>
                 <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                  <button 
-                    onClick={() => !isReadOnly && handlers.handleMoveMember(index, 'up')} 
-                    disabled={index === 0 || actionDisabled} 
-                    style={{ background: index === 0 || actionDisabled ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 || actionDisabled ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem", opacity: index === 0 || actionDisabled ? 0.5 : 1 }}
-                  >
-                    ⬆️
-                  </button>
-                  <button 
-                    onClick={() => !isReadOnly && handlers.handleMoveMember(index, 'down')} 
-                    disabled={index === state.members.length - 1 || actionDisabled} 
-                    style={{ background: index === state.members.length - 1 || actionDisabled ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === state.members.length - 1 || actionDisabled ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem", opacity: index === state.members.length - 1 || actionDisabled ? 0.5 : 1 }}
-                  >
-                    ⬇️
-                  </button>
+                  {canPublish && (
+                    <>
+                      <button
+                        onClick={() => handlers.handleMoveMember(index, "up")}
+                        disabled={index === 0}
+                        style={{ background: index === 0 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem" }}
+                      >
+                        ⬆️
+                      </button>
+                      <button
+                        onClick={() => handlers.handleMoveMember(index, "down")}
+                        disabled={index === state.members.length - 1}
+                        style={{ background: index === state.members.length - 1 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === state.members.length - 1 ? "not-allowed" : "pointer", padding: "4px 8px", borderRadius: "6px", fontSize: "0.8rem" }}
+                      >
+                        ⬇️
+                      </button>
+                    </>
+                  )}
 
                   <button 
                     onClick={() => !isReadOnly && handlers.startEditMember(m)} 
@@ -508,14 +566,18 @@ export function MembersTab({ state, setters, handlers, userRole }: any) {
                   >
                     📝 編集
                   </button>
-                  <button 
-                    onClick={() => !isReadOnly && handlers.handleTogglePublish('members', m.id, !m.is_published)} 
-                    disabled={actionDisabled}
-                    style={{...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px", opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer"}}>
-                    {m.is_published ? "非公開" : "公開"}
-                  </button>
+                  {canPublish && (
+                    <button
+                      onClick={() => handlers.handleTogglePublish("members", m.id, !m.is_published)}
+                      style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px" }}
+                    >
+                      {m.is_published ? "非公開" : "公開"}
+                    </button>
+                  )}
                 </div>
-                <button onClick={() => !isReadOnly && handlers.handleDelete('members', m.id)} disabled={actionDisabled} style={{ ...S.dangerBtn, opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}>削除</button>
+                {canPublish && (
+                  <button onClick={() => handlers.handleDelete("members", m.id)} style={{ ...S.dangerBtn }}>削除</button>
+                )}
               </div>
             </div>
           ))
@@ -526,13 +588,14 @@ export function MembersTab({ state, setters, handlers, userRole }: any) {
 }
 
 // 🚀 共創プロジェクト管理タブ (CRUD)
-export function ProjectsTab({ state, setters, handlers, projects, userRole }: any) {
-  const isReadOnly = userRole === "visitor";
+export function ProjectsTab({ state, setters, handlers, projects, userRole, hasPermission }: any) {
+  const { isReadOnly, canOnlyPropose, canPublish } = useTabAccess(userRole, hasPermission);
   const actionDisabled = isReadOnly;
 
   return (
     <div>
       <h2 style={S.sectionTitle}>共創プロジェクト管理</h2>
+      {canOnlyPropose && <ProposerNotice />}
 
       <div style={{ ...S.editorCard, marginBottom: "40px" }}>
         <h3 style={{ fontSize: "1rem", fontWeight: 800, marginBottom: "20px" }}>
@@ -560,10 +623,16 @@ export function ProjectsTab({ state, setters, handlers, projects, userRole }: an
           <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
             <button 
               onClick={handlers.handleSaveProject} 
-              style={{ ...S.primaryBtn, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
+              style={{ ...S.primaryBtn, background: canOnlyPropose ? "#0055ff" : undefined, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
               disabled={actionDisabled || !state.pTitle || !state.pDescription}
             >
-              {state.editingProjectId ? "更新して保存" : "プロジェクトを登録する"}
+              {canOnlyPropose
+                ? state.editingProjectId
+                  ? "💡 修正提案を送信"
+                  : "💡 新規提案を送信"
+                : state.editingProjectId
+                  ? "更新して保存"
+                  : "プロジェクトを登録する"}
             </button>
             {state.editingProjectId && (
               <button 
@@ -594,22 +663,24 @@ export function ProjectsTab({ state, setters, handlers, projects, userRole }: an
                   <span style={{ fontWeight: 800, fontSize: "1.05rem" }}>{proj.title}</span>
                 </div>
                 
-                <div style={{ display: "flex", gap: "6px" }}>
-                  <button 
-                    onClick={() => !isReadOnly && handlers.handleMoveProject(index, 'up')} 
-                    disabled={index === 0 || actionDisabled} 
-                    style={{ background: index === 0 || actionDisabled ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 || actionDisabled ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem", opacity: index === 0 || actionDisabled ? 0.5 : 1 }}
-                  >
-                    ⬆️
-                  </button>
-                  <button 
-                    onClick={() => !isReadOnly && handlers.handleMoveProject(index, 'down')} 
-                    disabled={index === projects.length - 1 || actionDisabled} 
-                    style={{ background: index === projects.length - 1 || actionDisabled ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === projects.length - 1 || actionDisabled ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem", opacity: index === projects.length - 1 || actionDisabled ? 0.5 : 1 }}
-                  >
-                    ⬇️
-                  </button>
-                </div>
+                {canPublish && (
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      onClick={() => handlers.handleMoveProject(index, "up")}
+                      disabled={index === 0}
+                      style={{ background: index === 0 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === 0 ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem" }}
+                    >
+                      ⬆️
+                    </button>
+                    <button
+                      onClick={() => handlers.handleMoveProject(index, "down")}
+                      disabled={index === projects.length - 1}
+                      style={{ background: index === projects.length - 1 ? "#f0f0f0" : "white", border: "1px solid #ddd", cursor: index === projects.length - 1 ? "not-allowed" : "pointer", padding: "2px 6px", borderRadius: "6px", fontSize: "0.75rem" }}
+                    >
+                      ⬇️
+                    </button>
+                  </div>
+                )}
               </div>
 
               {proj.tech_stack && (
@@ -626,7 +697,9 @@ export function ProjectsTab({ state, setters, handlers, projects, userRole }: an
                 >
                   📝 編集
                 </button>
-                <button onClick={() => !isReadOnly && handlers.handleDelete('projects', proj.id)} disabled={actionDisabled} style={{ ...S.dangerBtn, opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}>削除</button>
+                {canPublish && (
+                  <button onClick={() => handlers.handleDelete("projects", proj.id)} style={{ ...S.dangerBtn }}>削除</button>
+                )}
               </div>
             </div>
           ))
@@ -637,15 +710,16 @@ export function ProjectsTab({ state, setters, handlers, projects, userRole }: an
 }
 
 // ❓ FAQ管理タブ
-export function FaqTab({ state, setters, handlers, userRole }: any) {
-  const isReadOnly = userRole === "visitor";
+export function FaqTab({ state, setters, handlers, userRole, hasPermission }: any) {
+  const { isReadOnly, canOnlyPropose, canPublish } = useTabAccess(userRole, hasPermission);
   const actionDisabled = isReadOnly;
 
   return (
     <div>
       <h2 style={S.sectionTitle}>FAQ管理</h2>
+      {canOnlyPropose && <ProposerNotice />}
 
-      {state.faqs.length === 0 && (
+      {state.faqs.length === 0 && canPublish && (
         <div style={{ background: "#fdfbf8", border: "1px dashed var(--accent)", padding: "20px", borderRadius: "12px", marginBottom: "32px", textAlign: "center" }}>
           <p style={{ fontSize: "0.85rem", color: "#555", marginBottom: "16px" }}>
             💡 現在、FAQデータが1件もありません。初期の標準テンプレートを自動投入しますか？
@@ -671,10 +745,16 @@ export function FaqTab({ state, setters, handlers, userRole }: any) {
           <div style={{ display: "flex", gap: "12px" }}>
             <button 
               onClick={handlers.handleSaveFaq} 
-              style={{ ...S.primaryBtn, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
+              style={{ ...S.primaryBtn, background: canOnlyPropose ? "#0055ff" : undefined, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
               disabled={actionDisabled || !state.fQuestion || !state.fAnswer}
             >
-              {state.editingFaqId ? "更新して保存" : "追加する"}
+              {canOnlyPropose
+                ? state.editingFaqId
+                  ? "💡 修正提案を送信"
+                  : "💡 新規提案を送信"
+                : state.editingFaqId
+                  ? "更新して保存"
+                  : "追加する"}
             </button>
             {state.editingFaqId && (
               <button 
@@ -709,14 +789,17 @@ export function FaqTab({ state, setters, handlers, userRole }: any) {
                 >
                   📝 編集
                 </button>
-                <button 
-                  onClick={() => !isReadOnly && handlers.handleTogglePublish('faqs', f.id, !f.is_published)} 
-                  disabled={actionDisabled}
-                  style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px", opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
-                >
-                  {f.is_published ? "非公開にする" : "公開する"}
-                </button>
-                <button onClick={() => !isReadOnly && handlers.handleDelete('faqs', f.id)} disabled={actionDisabled} style={{ ...S.dangerBtn, opacity: actionDisabled ? 0.5 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}>削除</button>
+                {canPublish && (
+                  <button
+                    onClick={() => handlers.handleTogglePublish("faqs", f.id, !f.is_published)}
+                    style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", padding: "4px 8px", borderRadius: "6px" }}
+                  >
+                    {f.is_published ? "非公開にする" : "公開する"}
+                  </button>
+                )}
+                {canPublish && (
+                  <button onClick={() => handlers.handleDelete("faqs", f.id)} style={{ ...S.dangerBtn }}>削除</button>
+                )}
               </div>
             </div>
           ))

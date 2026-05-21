@@ -336,6 +336,7 @@ export default function NexusStudioPro() {
                 onReload={actions.handleReloadOriginalContent}
                 publishing={publishing}
                 userRole={userRole}
+                hasPermission={hasPermission}
               />
             )}
 
@@ -346,6 +347,7 @@ export default function NexusStudioPro() {
                 handlers={activityHandlers}
                 activities={activities}
                 userRole={userRole}
+                hasPermission={hasPermission}
               />
             )}
 
@@ -355,6 +357,7 @@ export default function NexusStudioPro() {
                 setters={memberSetters}
                 handlers={memberHandlers}
                 userRole={userRole}
+                hasPermission={hasPermission}
               />
             )}
 
@@ -365,6 +368,7 @@ export default function NexusStudioPro() {
                 handlers={projectHandlers}
                 projects={projects}
                 userRole={userRole}
+                hasPermission={hasPermission}
               />
             )}
 
@@ -374,6 +378,7 @@ export default function NexusStudioPro() {
                 setters={faqSetters}
                 handlers={faqHandlers}
                 userRole={userRole}
+                hasPermission={hasPermission}
               />
             )}
 
