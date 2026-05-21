@@ -502,8 +502,8 @@ export function MembersTab({ state, setters, handlers, userRole, hasPermission }
           <div style={{ display: "flex", gap: "12px" }}>
             <button 
               onClick={handlers.handleSaveMember} 
-              style={{ ...S.primaryBtn, background: canOnlyPropose ? "#0055ff" : undefined, opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }} 
-              disabled={actionDisabled || !state.mName}
+              style={{ ...S.primaryBtn, background: canOnlyPropose ? "#0055ff" : undefined, opacity: actionDisabled || !state.mName || !state.mRole || !state.mPhotoUrl ? 0.65 : 1, cursor: actionDisabled || !state.mName || !state.mRole || !state.mPhotoUrl ? "not-allowed" : "pointer" }} 
+              disabled={actionDisabled || !state.mName || !state.mRole || !state.mPhotoUrl}
             >
               {canOnlyPropose
                 ? state.editingMemberId

@@ -1096,6 +1096,14 @@ export function useEditorData() {
       showToast("操作権限がありません", "error");
       return;
     }
+    if (!mName.trim() || !mRole.trim()) {
+      showToast("氏名と役割は必須です", "error");
+      return;
+    }
+    if (!mPhotoUrl) {
+      showToast("顔写真をアップロードしてください", "error");
+      return;
+    }
     try {
       const finalApprovalState = hasPermission("publish_content") ? "approved" : "pending";
       const finalPublishState = hasPermission("publish_content") ? true : false;
