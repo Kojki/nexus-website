@@ -519,27 +519,37 @@ export function MembersTab({ state, setters, handlers, userRole, hasPermission }
           <div style={{ display: "flex", gap: "12px" }}>
             <button 
               onClick={handlers.handleSaveMember} 
-              style={{ ...S.primaryBtn, background: canOnlyPropose ? "#0055ff" : undefined, opacity: actionDisabled || !state.mName || !state.mRole || !state.mPhotoUrl ? 0.65 : 1, cursor: actionDisabled || !state.mName || !state.mRole || !state.mPhotoUrl ? "not-allowed" : "pointer" }} 
-              disabled={actionDisabled || !state.mName || !state.mRole || !state.mPhotoUrl}
-            >
-              {canOnlyPropose
-                ? state.editingMemberId
-                  ? "💡 修正提案を送信"
-                  : "💡 新規提案を送信"
-                : state.editingMemberId
-                  ? "更新して保存"
-                  : "追加する"}
-            </button>
-            {state.editingMemberId && (
-              <button 
-                onClick={handlers.cancelEditMember} 
-                style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
-                disabled={actionDisabled}
-              >
-                キャンセル
-              </button>
-            )}
-          </div>
+              style={{ 
+              ...S.primaryBtn, 
+              background: canOnlyPropose 
+              ? (!state.mName || !state.mRole || !state.mPhotoUrl ? "#aaa" : "#0055ff")
+              : (!state.mName || !state.mRole || !state.mPhotoUrl ? "#aaa" : "#111"),
+              opacity: actionDisabled || !state.mName || !state.mRole || !state.mPhotoUrl ? 0.65 : 1, 
+              cursor: actionDisabled || !state.mName || !state.mRole || !state.mPhotoUrl ? "not-allowed" : "pointer",
+              transition: "background 0.2s ease"
+    }} 
+    disabled={actionDisabled || !state.mName || !state.mRole || !state.mPhotoUrl}
+  >
+    {canOnlyPropose
+      ? state.editingMemberId
+        ? "💡 修正提案を送信"
+        : "💡 新規提案を送信"
+      : state.editingMemberId
+        ? "更新して保存"
+        : !state.mName || !state.mRole || !state.mPhotoUrl
+          ? "⚠️ 必須項目を入力してください"
+          : "✅ 追加する"}
+  </button>
+  {state.editingMemberId && (
+    <button 
+      onClick={handlers.cancelEditMember} 
+      style={{ ...S.dangerBtn, color: "#111", border: "1px solid #ddd", background: "white", opacity: actionDisabled ? 0.65 : 1, cursor: actionDisabled ? "not-allowed" : "pointer" }}
+      disabled={actionDisabled}
+    >
+      キャンセル
+    </button>
+  )}
+</div>
         </div>
       </div>
 
