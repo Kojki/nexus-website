@@ -1096,14 +1096,16 @@ export function useEditorData() {
       showToast("操作権限がありません", "error");
       return;
     }
-    if (!mName.trim() || !mRole.trim()) {
-      showToast("氏名と役割は必須です", "error");
+
+    const missingFields = [] as string[];
+    if (!mName.trim()) missingFields.push("氏名");
+    if (!mRole.trim()) missingFields.push("役割");
+    if (!mPhotoUrl) missingFields.push("顔写真");
+    if (missingFields.length > 0) {
+      showToast(`次の必須項目を入力してください: ${missingFields.join("、")}`, "error");
       return;
     }
-    if (!mPhotoUrl) {
-      showToast("顔写真をアップロードしてください", "error");
-      return;
-    }
+
     try {
       const finalApprovalState = hasPermission("publish_content") ? "approved" : "pending";
       const finalPublishState = hasPermission("publish_content") ? true : false;
@@ -1128,7 +1130,8 @@ export function useEditorData() {
         logAdminAction("update_member", `メンバー「${mName}」の編集を送信しました (承認状況: ${finalApprovalState})`);
         showToast(!hasPermission("publish_content") ? "プロフィールの修正提案を送信しました！" : "メンバー情報を更新しました");
       } else {
-        const { error } = await supabase.from("members").insert([{ ...memberPayload, order_index: members.length + 1 }]);
+        const nextOrderIndex = Array.isArray(members) ? members.length + 1 : 1;
+        const { error } = await supabase.from("members").insert([{ ...memberPayload, order_index: nextOrderIndex }]);
         if (error) throw error;
         logAdminAction("create_member", `メンバー「${mName}」の追加を送信しました (承認状況: ${finalApprovalState})`);
         showToast(!hasPermission("publish_content") ? "新規メンバーの登録提案を送信しました！" : "メンバーを追加しました");
@@ -1147,7 +1150,9 @@ export function useEditorData() {
       setEditingMemberId(null);
       fetchData(true);
     } catch (e: any) {
-      showToast("保存に失敗しました", "error");
+      const message = e?.message || e?.details || e?.error || "保存に失敗しました";
+      showToast(message, "error");
+      console.error("handleSaveMember failed:", e);
     }
   };
 

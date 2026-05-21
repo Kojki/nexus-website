@@ -498,6 +498,17 @@ export function MembersTab({ state, setters, handlers, userRole, hasPermission }
           <InputField label="GitHub プロフィール URL (任意)" value={state.githubUrl || ""} onChange={setters.setGithubUrl} placeholder="https://github.com/..." disabled={isReadOnly} />
           <InputField label="ポートフォリオ URL (任意)" value={state.portfolioUrl || ""} onChange={setters.setPortfolioUrl} placeholder="https://..." disabled={isReadOnly} />
           <InputField label="自己紹介・メンバーへのメッセージ" value={state.mMessage} onChange={setters.setMMessage} textarea disabled={isReadOnly} />
+
+          {(!state.mName || !state.mRole || !state.mPhotoUrl) && (
+            <div style={{ padding: "14px 16px", borderRadius: "14px", background: "#fff4f4", border: "1px solid #f4c2c2", color: "#922" }}>
+              <strong>必須項目が未入力です：</strong>
+              <div style={{ marginTop: "8px", fontSize: "0.9rem", lineHeight: 1.5 }}>
+                {!state.mPhotoUrl && <div>• 顔写真</div>}
+                {!state.mName && <div>• 氏名</div>}
+                {!state.mRole && <div>• 役割</div>}
+              </div>
+            </div>
+          )}
           
           <div style={{ display: "flex", gap: "12px" }}>
             <button 
