@@ -657,19 +657,55 @@ export function useEditorData() {
       return;
     }
 
+    const permsToSave = permissions;
+    const payload = {
+      role_id: roleId,
+      permissions: permsToSave,
+      updated_at: new Date().toISOString()
+    };
+
     try {
-      const { error } = await supabase.from("role_permissions").upsert([
-        { role_id: roleId, permissions }
-      ], { onConflict: "role_id" });
-      if (error) throw error;
+      let { error } = await supabase
+        .from("role_permissions")
+        .upsert([payload], { onConflict: "role_id" });
+
+      // upsert 非対応・制約名不一致時は update → insert で代替
+      if (error) {
+        const { data: existing, error: selectError } = await supabase
+          .from("role_permissions")
+          .select("role_id")
+          .eq("role_id", roleId)
+          .maybeSingle();
+
+        if (selectError) throw selectError;
+
+        if (existing) {
+          const { error: updateError } = await supabase
+            .from("role_permissions")
+            .update({ permissions: permsToSave, updated_at: payload.updated_at })
+            .eq("role_id", roleId);
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase.from("role_permissions").insert([payload]);
+          if (insertError) throw insertError;
+        }
+        error = null;
+      }
 
       setRolePermissions((prev) => ({
         ...prev,
-        [roleId]: permissions.length > 0 ? permissions : (ROLE_DEFAULT_PERMISSIONS[roleId] || [])
+        [roleId]: permsToSave.length > 0 ? permsToSave : (ROLE_DEFAULT_PERMISSIONS[roleId] || [])
       }));
       showToast(`${roleId} のデフォルト権限を保存しました`);
     } catch (e: any) {
-      showToast("役職設定の保存に失敗しました", "error");
+      console.error("role_permissions save failed:", e);
+      const detail = e?.message || e?.details || e?.hint || "";
+      showToast(
+        detail
+          ? `役職設定の保存に失敗しました: ${detail}`
+          : "役職設定の保存に失敗しました（role_permissions テーブル・RLSを確認）",
+        "error"
+      );
     }
   };
 
