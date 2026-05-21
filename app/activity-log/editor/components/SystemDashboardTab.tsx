@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase"; 
 import { S } from "./SharedUI";
-import { ROLE_DEFAULT_PERMISSIONS, PERMISSION_LABELS, ROLE_LABELS } from "../hooks/useEditorData";
+import { ROLE_DEFAULT_PERMISSIONS, PERMISSION_LABELS, ROLE_LABELS, isValidEmail } from "../hooks/useEditorData";
 
 interface Props {
   analytics: {
@@ -13,10 +13,11 @@ interface Props {
   userRole: string | null;
   allowedUsers: any[];
   currentUserEmail: string;
-  onAddUser: (email: string, role: string) => Promise<void>;
+  onAddUser: (email: string, role: string, displayName?: string) => Promise<void>;
   onRemoveUser: (email: string) => Promise<void>;
   onChangeRole: (email: string, role: string) => Promise<void>;
-  onUpdateUserEmail?: (oldEmail: string, newEmail: string) => Promise<void>;
+  onUpdateDisplayName?: (email: string, displayName: string) => Promise<void>;
+  onFixUserEmail?: (oldEmail: string, newEmail: string) => Promise<void>;
   onUpdateUserPermissions?: (email: string, permissions: string[]) => Promise<void>;
   hasPermission: (permission: string) => boolean;
 
@@ -49,7 +50,8 @@ export function SystemDashboardTab({
   onAddUser,
   onRemoveUser,
   onChangeRole,
-  onUpdateUserEmail,
+  onUpdateDisplayName,
+  onFixUserEmail,
   onUpdateUserPermissions,
   hasPermission,
   trashItems = { activities: [], members: [], projects: [], faqs: [] },
@@ -73,8 +75,10 @@ export function SystemDashboardTab({
   const [reminderCooldown, setReminderCooldown] = useState<string | null>(null);
   const [sendingReminder, setSendingReminder] = useState(false);
 
-  const [editingEmail, setEditingEmail] = useState<string | null>(null);
-  const [editEmailValue, setEditEmailValue] = useState("");
+  const [editingNicknameFor, setEditingNicknameFor] = useState<string | null>(null);
+  const [editNicknameValue, setEditNicknameValue] = useState("");
+  const [fixingEmailFor, setFixingEmailFor] = useState<string | null>(null);
+  const [fixEmailValue, setFixEmailValue] = useState("");
 
   const fetchBulletin = async () => {
     try {
@@ -750,6 +754,7 @@ export function SystemDashboardTab({
             </h3>
             <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginBottom: "24px" }}>
               ログインを許可するGoogleアカウントの管理および権限割当を行います。
+              <strong> Gmailアドレスはログイン照合に必須</strong>です。ニックネームは表示用のみで、メール欄には入れないでください。
             </p>
             <details style={{ marginBottom: "24px", background: "#fdfbf8", borderRadius: "12px", border: "1px solid #f2ede4" }}>
               <summary style={{ padding: "16px", fontWeight: 800, fontSize: "0.85rem", color: "#555", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", userSelect: "none" }}>
@@ -791,16 +796,24 @@ export function SystemDashboardTab({
               e.preventDefault();
               const form = e.currentTarget;
               const emailInput = form.elements.namedItem("email") as HTMLInputElement;
+              const nicknameInput = form.elements.namedItem("display_name") as HTMLInputElement;
               const roleSelect = form.elements.namedItem("role") as HTMLSelectElement;
-              onAddUser(emailInput.value, roleSelect.value);
+              onAddUser(emailInput.value, roleSelect.value, nicknameInput.value);
               emailInput.value = "";
+              nicknameInput.value = "";
             }} style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
               <input 
                 name="email" 
                 type="email" 
                 required 
-                placeholder="追加するメンバーのGmailアドレス" 
+                placeholder="Googleログイン用 Gmailアドレス（必須）" 
                 style={{ ...S.select, flex: 1, minWidth: "220px", padding: "10px 16px", height: "auto" }}
+              />
+              <input
+                name="display_name"
+                type="text"
+                placeholder="ニックネーム（任意・表示のみ）"
+                style={{ ...S.select, flex: 1, minWidth: "160px", padding: "10px 16px", height: "auto" }}
               />
               <select name="role" style={{ ...S.select, width: "auto", padding: "10px 16px", height: "auto" }}>
                 <option value="owner">👑 {ROLE_LABELS.owner} (owner)</option>
@@ -818,64 +831,121 @@ export function SystemDashboardTab({
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {allowedUsers.map((u) => {
                 const isSelf = u.email.toLowerCase() === currentUserEmail.toLowerCase();
-                const isEditingThis = editingEmail === u.email;
+                const isEditingNickname = editingNicknameFor === u.email;
+                const isFixingEmail = fixingEmailFor === u.email;
+                const emailInvalid = !isValidEmail(u.email);
+                const canManageUsers = hasPermission("manage_roles_unlimited") || hasPermission("manage_subordinate_roles");
 
                 return (
                   <div key={u.email} style={{ 
                     display: "flex", flexDirection: "column", gap: "12px",
                     padding: "20px", background: "#fdfbf8", borderRadius: "16px", 
-                    border: "1px solid #f2ede4", transition: "all 0.2s"
+                    border: emailInvalid ? "1px solid #e65c00" : "1px solid #f2ede4", transition: "all 0.2s"
                   }}>
+                    {emailInvalid && (
+                      <div style={{ fontSize: "0.75rem", color: "#b45309", fontWeight: 800, background: "#fff7ed", padding: "8px 12px", borderRadius: "8px" }}>
+                        ⚠️ ログイン用メールが不正です（ニックネームが入っている可能性）。下の「メールを修正」で正しい Gmail に直してください。
+                      </div>
+                    )}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-                      {isEditingThis ? (
-                        <div style={{ display: "flex", gap: "12px", alignItems: "center", flex: 1, minWidth: "280px" }}>
-                          <input
-                            type="email"
-                            value={editEmailValue}
-                            onChange={(e) => setEditEmailValue(e.target.value)}
-                            style={{ ...S.select, padding: "6px 12px", fontSize: "0.9rem", fontFamily: "monospace", flex: 1, height: "auto" }}
-                          />
-                          <button
-                            onClick={async () => {
-                              if (onUpdateUserEmail) {
-                                await onUpdateUserEmail(u.email, editEmailValue);
-                              }
-                              setEditingEmail(null);
-                            }}
-                            style={{ ...S.primaryBtn, padding: "8px 16px", fontSize: "0.8rem", width: "auto", height: "auto" }}
-                          >
-                            保存
-                          </button>
-                          <button
-                            onClick={() => setEditingEmail(null)}
-                            style={{ background: "white", color: "#666", border: "1px solid #ccc", padding: "8px 16px", borderRadius: "8px", fontSize: "0.8rem", cursor: "pointer" }}
-                          >
-                            キャンセル
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                          <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#333", fontFamily: "monospace" }}>{u.email}</span>
-                          {isSelf ? (
-                            <span style={{ background: "var(--accent-pale)", color: "var(--accent)", padding: "2px 8px", borderRadius: "6px", fontSize: "0.65rem", fontWeight: 800 }}>あなた</span>
-                          ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "240px" }}>
+                        {isEditingNickname ? (
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                            <input
+                              type="text"
+                              value={editNicknameValue}
+                              onChange={(e) => setEditNicknameValue(e.target.value)}
+                              placeholder="ニックネーム"
+                              style={{ ...S.select, padding: "6px 12px", fontSize: "0.9rem", flex: 1, minWidth: "140px", height: "auto" }}
+                            />
                             <button
-                              onClick={() => {
-                                  setEditingEmail(u.email);
-                                  setEditEmailValue(u.email);
+                              onClick={async () => {
+                                if (onUpdateDisplayName) {
+                                  await onUpdateDisplayName(u.email, editNicknameValue);
+                                }
+                                setEditingNicknameFor(null);
                               }}
-                              style={{ background: "none", border: "none", color: "var(--accent)", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                              style={{ ...S.primaryBtn, padding: "8px 16px", fontSize: "0.8rem", width: "auto", height: "auto" }}
                             >
-                              編集 (名前変更)
+                              保存
                             </button>
-                          )}
-                        </div>
-                      )}
+                            <button
+                              onClick={() => setEditingNicknameFor(null)}
+                              style={{ background: "white", color: "#666", border: "1px solid #ccc", padding: "8px 16px", borderRadius: "8px", fontSize: "0.8rem", cursor: "pointer" }}
+                            >
+                              キャンセル
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                            {u.display_name ? (
+                              <span style={{ fontSize: "1rem", fontWeight: 900, color: "#111" }}>{u.display_name}</span>
+                            ) : null}
+                            {isSelf && (
+                              <span style={{ background: "var(--accent-pale)", color: "var(--accent)", padding: "2px 8px", borderRadius: "6px", fontSize: "0.65rem", fontWeight: 800 }}>あなた</span>
+                            )}
+                            {!isSelf && canManageUsers && (
+                              <button
+                                onClick={() => {
+                                  setEditingNicknameFor(u.email);
+                                  setEditNicknameValue(u.display_name || "");
+                                }}
+                                style={{ background: "none", border: "none", color: "var(--accent)", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                              >
+                                ニックネーム編集
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {isFixingEmail ? (
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                            <input
+                              type="email"
+                              value={fixEmailValue}
+                              onChange={(e) => setFixEmailValue(e.target.value)}
+                              placeholder="正しい Gmail アドレス"
+                              style={{ ...S.select, padding: "6px 12px", fontSize: "0.85rem", fontFamily: "monospace", flex: 1, minWidth: "200px", height: "auto" }}
+                            />
+                            <button
+                              onClick={async () => {
+                                if (onFixUserEmail) {
+                                  await onFixUserEmail(u.email, fixEmailValue);
+                                }
+                                setFixingEmailFor(null);
+                              }}
+                              style={{ ...S.primaryBtn, padding: "8px 16px", fontSize: "0.8rem", width: "auto", height: "auto" }}
+                            >
+                              メール保存
+                            </button>
+                            <button
+                              onClick={() => setFixingEmailFor(null)}
+                              style={{ background: "white", color: "#666", border: "1px solid #ccc", padding: "8px 16px", borderRadius: "8px", fontSize: "0.8rem", cursor: "pointer" }}
+                            >
+                              キャンセル
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                            <span style={{ fontSize: "0.82rem", color: "#666", fontFamily: "monospace" }}>📧 {u.email}</span>
+                            {!isSelf && canManageUsers && (
+                              <button
+                                onClick={() => {
+                                  setFixingEmailFor(u.email);
+                                  setFixEmailValue(emailInvalid ? "" : u.email);
+                                }}
+                                style={{ background: "none", border: "none", color: emailInvalid ? "#b45309" : "#888", fontSize: "0.72rem", fontWeight: 800, cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                              >
+                                メールを修正
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <select 
                           value={u.role} 
-                          disabled={isSelf || isEditingThis || !(hasPermission("manage_roles_unlimited") || hasPermission("manage_subordinate_roles"))} 
+                          disabled={isSelf || isEditingNickname || isFixingEmail || !canManageUsers} 
                           onChange={(e) => onChangeRole(u.email, e.target.value)}
                           style={{ ...S.select, width: "auto", padding: "6px 12px", fontSize: "0.8rem", height: "auto", background: u.role === "owner" ? "#fff0f0" : "white" }}
                         >
@@ -890,12 +960,12 @@ export function SystemDashboardTab({
 
                         <button 
                           onClick={() => onRemoveUser(u.email)}
-                          disabled={isSelf || isEditingThis || !hasPermission("remove_users")}
+                          disabled={isSelf || isEditingNickname || isFixingEmail || !hasPermission("remove_users")}
                           style={{ 
                             ...S.dangerBtn, 
                             padding: "6px 12px", 
-                            opacity: (isSelf || isEditingThis || !hasPermission("remove_users")) ? 0.3 : 1,
-                            cursor: (isSelf || isEditingThis || !hasPermission("remove_users")) ? "not-allowed" : "pointer"
+                            opacity: (isSelf || isEditingNickname || isFixingEmail || !hasPermission("remove_users")) ? 0.3 : 1,
+                            cursor: (isSelf || isEditingNickname || isFixingEmail || !hasPermission("remove_users")) ? "not-allowed" : "pointer"
                           }}
                         >
                           削除
@@ -923,7 +993,7 @@ export function SystemDashboardTab({
                               ? u.permissions
                               : ROLE_DEFAULT_PERMISSIONS[u.role] || [];
                           const isChecked = userPerms.includes(permKey);
-                          const isToggleDisabled = isSelf || isEditingThis || !(hasPermission("manage_roles_unlimited") || hasPermission("manage_subordinate_roles"));
+                          const isToggleDisabled = isSelf || isEditingNickname || isFixingEmail || !canManageUsers;
 
                           return (
                             <label 

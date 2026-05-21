@@ -386,7 +386,8 @@ export default function NexusStudioPro() {
                 onAddUser={actions.handleAddAllowedUser}
                 onRemoveUser={actions.handleRemoveAllowedUser}
                 onChangeRole={actions.handleChangeUserRole}
-                onUpdateUserEmail={actions.handleUpdateAllowedUserEmail}
+                onUpdateDisplayName={actions.handleUpdateAllowedUserDisplayName}
+                onFixUserEmail={actions.handleFixAllowedUserEmail}
                 onUpdateUserPermissions={actions.handleUpdateAllowedUserPermissions}
                 hasPermission={hasPermission}
                 trashItems={{

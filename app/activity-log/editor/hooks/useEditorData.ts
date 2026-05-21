@@ -33,6 +33,8 @@ export interface AllowedUserItem {
   email: string;
   role: string;
   permissions: string[];
+  /** 管理画面用の表示名（ログイン識別には使わない） */
+  display_name?: string | null;
 }
 
 export interface AuditLogItem {
@@ -138,6 +140,11 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
 /** Gmail等の表記ゆれを吸収（許可リスト登録時は小文字化している） */
 export function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
+}
+
+/** Googleログイン照合に使うメール形式か */
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
 }
 
 /** 役職テンプレートから有効なデフォルト権限を取得（空配列は未設定扱い） */
@@ -518,8 +525,12 @@ export function useEditorData() {
     }
   };
 
-  const handleAddAllowedUser = async (email: string, role: string) => {
+  const handleAddAllowedUser = async (email: string, role: string, displayName?: string) => {
     if (!email) return;
+    if (!isValidEmail(email)) {
+      showToast("有効なGmailアドレスを入力してください（ログイン照合に使用します）", "error");
+      return;
+    }
     if (!hasPermission("manage_subordinate_roles")) {
       showToast("操作権限がありません", "error");
       return;
@@ -529,15 +540,17 @@ export function useEditorData() {
       return;
     }
     const cleanEmail = normalizeEmail(email);
+    const cleanDisplayName = displayName?.trim() || null;
     try {
       const defaultPerms = getDefaultPermissionsForRole(role);
-      const { error } = await supabase.from("allowed_users").insert([
-        {
-          email: cleanEmail,
-          role,
-          permissions: defaultPerms
-        }
-      ]);
+      const row: Record<string, unknown> = {
+        email: cleanEmail,
+        role,
+        permissions: defaultPerms
+      };
+      if (cleanDisplayName) row.display_name = cleanDisplayName;
+
+      const { error } = await supabase.from("allowed_users").insert([row]);
       if (error) throw error;
 
       logAdminAction("add_allowed_user", `ユーザー「${cleanEmail}」に「${role}」権限を付与して招待しました`);
@@ -660,13 +673,41 @@ export function useEditorData() {
     }
   };
 
-  const handleUpdateAllowedUserEmail = async (oldEmail: string, newEmail: string) => {
+  const handleUpdateAllowedUserDisplayName = async (email: string, displayName: string) => {
+    if (!hasPermission("manage_subordinate_roles")) {
+      showToast("操作権限がありません", "error");
+      return;
+    }
+    const cleanDisplayName = displayName.trim();
+    try {
+      const { error } = await supabase
+        .from("allowed_users")
+        .update({ display_name: cleanDisplayName || null })
+        .ilike("email", normalizeEmail(email));
+      if (error) throw error;
+
+      logAdminAction(
+        "update_allowed_user_display_name",
+        `ユーザー「${normalizeEmail(email)}」の表示名を「${cleanDisplayName || "(未設定)"}」に変更しました`
+      );
+      showToast("ニックネームを更新しました");
+      fetchData(true);
+    } catch (e: any) {
+      showToast("ニックネームの更新に失敗しました", "error");
+    }
+  };
+
+  /** 誤ってニックネーム等が入った場合のみ。通常は変更しない */
+  const handleFixAllowedUserEmail = async (oldEmail: string, newEmail: string) => {
     if (!hasPermission("manage_subordinate_roles")) {
       showToast("操作権限がありません", "error");
       return;
     }
     const cleanNewEmail = normalizeEmail(newEmail);
-    if (!cleanNewEmail) return;
+    if (!isValidEmail(cleanNewEmail)) {
+      showToast("ログイン用には有効なメールアドレス（例: name@gmail.com）を入力してください", "error");
+      return;
+    }
     try {
       const { error } = await supabase
         .from("allowed_users")
@@ -674,8 +715,8 @@ export function useEditorData() {
         .ilike("email", normalizeEmail(oldEmail));
       if (error) throw error;
 
-      logAdminAction("update_allowed_user_email", `登録メールアドレスを「${oldEmail}」から「${cleanNewEmail}」に変更しました`);
-      showToast(`メールアドレスを ${cleanNewEmail} に変更しました`);
+      logAdminAction("fix_allowed_user_email", `ログイン用メールを「${oldEmail}」から「${cleanNewEmail}」に修正しました`);
+      showToast(`ログイン用メールを ${cleanNewEmail} に修正しました`);
       fetchData(true);
     } catch (e: any) {
       showToast("変更に失敗しました。すでに登録されている可能性があります。", "error");
@@ -1452,7 +1493,8 @@ export function useEditorData() {
       handleRemoveAllowedUser,
       handleChangeUserRole,
       handleUpdateAllowedUserPermissions,
-      handleUpdateAllowedUserEmail,
+      handleUpdateAllowedUserDisplayName,
+      handleFixAllowedUserEmail,
       handleUpdateRolePermissions,
       handleSignOut,
       handleUpload,
