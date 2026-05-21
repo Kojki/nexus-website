@@ -427,6 +427,8 @@ export function useEditorData() {
         .eq("is_deleted", false)
         .eq("approval_status", "approved")
         .order("order_index", { ascending: true });
+
+      console.log("members fetch result:", mData); // ← 追加
       setMembers(mData || []);
 
       const { data: fData } = await supabase
