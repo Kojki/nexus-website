@@ -121,6 +121,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   reviewer: [
     "view_traffic_analytics",
     "publish_content",
+    "view_inquiries",
     "reply_inquiries",
     "restore_trash",
   ],
@@ -154,11 +155,58 @@ export function normalizeRoleId(role: string): string {
   return ROLE_ALIASES[role] || role;
 }
 
-/** ゲスト相当：画面は見られるが保存・送信は不可 */
+/** 旧 visitor 役職：全画面を閲覧専用で見られる（guest とは別） */
+export function isLegacyVisitorBrowse(role: string | null): boolean {
+  return role === "visitor";
+}
+
+/** @deprecated isLegacyVisitorBrowse を使用 */
 export function isReadOnlyBrowser(role: string | null): boolean {
+  return isLegacyVisitorBrowse(role);
+}
+
+export function isGuestRole(role: string | null): boolean {
   if (!role) return false;
-  const n = normalizeRoleId(role);
-  return n === "guest" || role === "visitor";
+  return normalizeRoleId(role) === "guest";
+}
+
+/** ナビに表示するタブ一覧（権限と一致） */
+export function getAccessibleTabs(
+  userRole: string | null,
+  hasPermission: (permission: string) => boolean
+): string[] {
+  const tabs: string[] = [];
+  const canEditContent =
+    hasPermission("propose_content") || hasPermission("publish_content");
+
+  if (canEditContent) {
+    tabs.push("content", "activities", "members", "projects", "faqs");
+  } else if (isLegacyVisitorBrowse(userRole)) {
+    tabs.push("content", "activities", "members", "projects", "faqs");
+  }
+
+  if (hasPermission("view_inquiries") || hasPermission("reply_inquiries")) {
+    tabs.push("inquiries");
+  }
+
+  if (
+    hasPermission("view_traffic_analytics") ||
+    hasPermission("view_audit_logs") ||
+    hasPermission("publish_content") ||
+    hasPermission("manage_subordinate_roles") ||
+    hasPermission("remove_users") ||
+    hasPermission("restore_trash") ||
+    hasPermission("empty_trash") ||
+    hasPermission("manage_roles_unlimited")
+  ) {
+    tabs.push("system");
+  }
+
+  if (hasPermission("manage_roles_unlimited")) {
+    tabs.push("role-settings");
+  }
+
+  return tabs;
 }
 
 /** 提案のみ可能（本番反映・削除・公開切替は不可） */
@@ -517,12 +565,23 @@ export function useEditorData() {
         setRolePermissions(effectiveRolePermissions);
       }
 
-      // custom 以外は役職テンプレートを優先（DBに空配列・古い権限が残っていても一致させる）
+      // custom 以外は役職テンプレートを優先（DBに古い権限が残っていても役職定義に合わせる）
       const activePerms =
         userData.role === "custom"
           ? resolveUserPermissions(userData.permissions, userData.role, effectiveRolePermissions)
           : resolveRolePermissions(effectiveRolePermissions, userData.role);
       setUserPermissions(activePerms);
+
+      if (userData.role !== "custom") {
+        const stored = Array.isArray(userData.permissions) ? [...userData.permissions].sort() : [];
+        const next = [...activePerms].sort();
+        if (JSON.stringify(stored) !== JSON.stringify(next)) {
+          await supabase
+            .from("allowed_users")
+            .update({ permissions: activePerms })
+            .ilike("email", email);
+        }
+      }
 
       const { data: nData } = await supabase
         .from("notifications")
@@ -545,6 +604,15 @@ export function useEditorData() {
   useEffect(() => {
     setLiveData(siteContents[activePage] || {});
   }, [activePage, siteContents]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const checkPerm = (p: string) => userRole === "owner" || userPermissions.includes(p);
+    const allowed = getAccessibleTabs(userRole, checkPerm);
+    if (allowed.length > 0 && !allowed.includes(activeTab)) {
+      setActiveTab(allowed[0]);
+    }
+  }, [isAuthenticated, userRole, userPermissions, activeTab]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -1556,6 +1624,7 @@ export function useEditorData() {
     errorMsg,
     isAuthenticated,
     userRole,
+    userPermissions,
     currentUserEmail,
     allowedUsers,
     rolePermissions,

@@ -1,7 +1,7 @@
 "use client";
 
 import type { NotificationItem } from "./hooks/useEditorData";
-import { useEditorData, isReadOnlyBrowser } from "./hooks/useEditorData";
+import { useEditorData, getAccessibleTabs, ROLE_LABELS, isGuestRole } from "./hooks/useEditorData";
 import { NavBtn, S } from "./components/SharedUI";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { 
@@ -31,6 +31,7 @@ export default function NexusStudioPro() {
     allowedUsers,
     rolePermissions,
     hasPermission,
+    userPermissions,
     pendingContentProposals,
     notifications,
     showNotifications,
@@ -56,6 +57,8 @@ export default function NexusStudioPro() {
     form,
     actions
   } = useEditorData();
+
+  const visibleTabs = getAccessibleTabs(userRole, hasPermission);
 
   if (isAuthenticated === null || loading) {
     return (
@@ -177,31 +180,41 @@ export default function NexusStudioPro() {
               <span>🎛️</span> NEXUS STUDIO <span style={{ fontSize: "0.6rem", background: "var(--accent)", color: "white", padding: "2px 6px", borderRadius: "4px" }}>PRO</span>
             </h1>
             <p style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.4)", marginTop: "6px", fontWeight: 700, letterSpacing: "0.05em" }}>
-              COMMUNITY CONSOLE / ROLE: <span style={{ color: "var(--accent)", textTransform: "uppercase" }}>{userRole}</span>
+              COMMUNITY CONSOLE /{" "}
+              <span style={{ color: "var(--accent)", textTransform: "uppercase" }}>
+                {ROLE_LABELS[userRole || ""] || userRole}
+              </span>
+              {isGuestRole(userRole) && (
+                <span style={{ marginLeft: "6px", fontSize: "0.6rem", color: "#aaa" }}>(閲覧のみ)</span>
+              )}
             </p>
           </div>
 
           <nav style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+            {visibleTabs.includes("content") && (
               <NavBtn active={activeTab === "content"} label="🌐 一般テキスト編集" icon="✍️" onClick={() => setActiveTab("content")} />
             )}
-            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+            {visibleTabs.includes("activities") && (
               <NavBtn active={activeTab === "activities"} label="✍️ 活動記録管理" icon="📝" onClick={() => setActiveTab("activities")} />
             )}
-            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+            {visibleTabs.includes("members") && (
               <NavBtn active={activeTab === "members"} label="👤 メンバー情報管理" icon="👥" onClick={() => setActiveTab("members")} />
             )}
-            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+            {visibleTabs.includes("projects") && (
               <NavBtn active={activeTab === "projects"} label="🚀 コラボ PJ 管理" icon="💼" onClick={() => setActiveTab("projects")} />
             )}
-            {(hasPermission("propose_content") || isReadOnlyBrowser(userRole)) && (
+            {visibleTabs.includes("faqs") && (
               <NavBtn active={activeTab === "faqs"} label="❓ FAQ 質問管理" icon="💬" onClick={() => setActiveTab("faqs")} />
             )}
-            {(hasPermission("view_inquiries") || isReadOnlyBrowser(userRole)) && (
+            {visibleTabs.includes("inquiries") && (
               <NavBtn active={activeTab === "inquiries"} label="📬 申請・お問い合わせ管理" icon="📬" onClick={() => setActiveTab("inquiries")} />
             )}
-            {(hasPermission("view_traffic_analytics") || hasPermission("view_audit_logs") || hasPermission("manage_subordinate_roles") || hasPermission("remove_users") || hasPermission("restore_trash") || hasPermission("empty_trash") || hasPermission("manage_roles_unlimited")) && <NavBtn active={activeTab === "system"} label="📊 システム・解析" icon="⚙️" onClick={() => setActiveTab("system")} />}
-            {userRole === "owner" && <NavBtn active={activeTab === "role-settings"} label="👑 役職設定" icon="🧩" onClick={() => setActiveTab("role-settings")} />}
+            {visibleTabs.includes("system") && (
+              <NavBtn active={activeTab === "system"} label="📊 システム・解析" icon="⚙️" onClick={() => setActiveTab("system")} />
+            )}
+            {visibleTabs.includes("role-settings") && (
+              <NavBtn active={activeTab === "role-settings"} label="👑 役職設定" icon="🧩" onClick={() => setActiveTab("role-settings")} />
+            )}
           </nav>
         </div>
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { PageTabBtn, InputField, S, PagePath } from "./SharedUI";
 import { supabase } from "@/lib/supabase";
-import { isReadOnlyBrowser } from "../hooks/useEditorData";
+import { isReadOnlyBrowser, isGuestRole } from "../hooks/useEditorData";
 
 function ProposerNotice() {
   return (
@@ -25,11 +25,13 @@ function ProposerNotice() {
 
 function useTabAccess(userRole: string | null, hasPermission?: (p: string) => boolean) {
   const isReadOnly =
-    isReadOnlyBrowser(userRole) || (hasPermission ? !hasPermission("propose_content") : userRole === "visitor");
+    isReadOnlyBrowser(userRole) ||
+    isGuestRole(userRole) ||
+    (hasPermission ? !hasPermission("propose_content") && !hasPermission("publish_content") : false);
   const canOnlyPropose = hasPermission
     ? hasPermission("propose_content") && !hasPermission("publish_content")
     : userRole === "proposer";
-  const canPublish = hasPermission ? hasPermission("publish_content") : userRole !== "proposer";
+  const canPublish = hasPermission ? hasPermission("publish_content") : false;
   return { isReadOnly, canOnlyPropose, canPublish };
 }
 
