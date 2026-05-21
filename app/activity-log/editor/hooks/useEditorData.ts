@@ -657,19 +657,15 @@ export function useEditorData() {
       return;
     }
 
+    // role_id は "owner" / "visitor" 等の text（uuid ではない）
     const permsToSave = permissions;
-    const payload = {
-      role_id: roleId,
-      permissions: permsToSave,
-      updated_at: new Date().toISOString()
-    };
+    const payload = { role_id: roleId, permissions: permsToSave };
 
     try {
       let { error } = await supabase
         .from("role_permissions")
         .upsert([payload], { onConflict: "role_id" });
 
-      // upsert 非対応・制約名不一致時は update → insert で代替
       if (error) {
         const { data: existing, error: selectError } = await supabase
           .from("role_permissions")
@@ -682,7 +678,7 @@ export function useEditorData() {
         if (existing) {
           const { error: updateError } = await supabase
             .from("role_permissions")
-            .update({ permissions: permsToSave, updated_at: payload.updated_at })
+            .update({ permissions: permsToSave })
             .eq("role_id", roleId);
           if (updateError) throw updateError;
         } else {
@@ -700,10 +696,13 @@ export function useEditorData() {
     } catch (e: any) {
       console.error("role_permissions save failed:", e);
       const detail = e?.message || e?.details || e?.hint || "";
+      const isUuidTypeError = /invalid input syntax for type uuid/i.test(String(detail));
       showToast(
-        detail
-          ? `役職設定の保存に失敗しました: ${detail}`
-          : "役職設定の保存に失敗しました（role_permissions テーブル・RLSを確認）",
+        isUuidTypeError
+          ? "役職設定の保存に失敗しました: role_id が UUID 型です。Supabase で role_id を text 型に直す SQL を実行してください。"
+          : detail
+            ? `役職設定の保存に失敗しました: ${detail}`
+            : "役職設定の保存に失敗しました（role_permissions テーブル・RLSを確認）",
         "error"
       );
     }
